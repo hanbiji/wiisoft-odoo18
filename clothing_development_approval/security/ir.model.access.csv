@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_clothing_development_request_user,clothing.development.request.user,model_clothing_development_request,base.group_user,1,1,1,0
+access_clothing_development_request_manager,clothing.development.request.manager,model_clothing_development_request,base.group_system,1,1,1,1
+access_clothing_color_user,clothing.color.user,model_clothing_color,base.group_user,1,0,0,0
+access_clothing_color_manager,clothing.color.manager,model_clothing_color,base.group_system,1,1,1,1

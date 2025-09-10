@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- 服装开发审批流程菜单配置 -->
+        
+        <!-- 主菜单 -->
+        <!--
+        <menuitem id="menu_clothing_development_main"
+                  name="服装开发审批"
+                  sequence="100"/>
+        -->
+        
+        <!-- 子菜单 -->
+        <!--
+        <menuitem id="menu_clothing_development_requests"
+                  name="开发申请"
+                  parent="menu_clothing_development_main"
+                  action="action_clothing_development_request"
+                  sequence="10"/>
+        -->
+        
+        <!-- 动作配置 -->
+        <!--
+        <record id="action_clothing_development_request" model="ir.actions.act_window">
+            <field name="name">服装开发申请</field>
+            <field name="res_model">clothing.development.request</field>
+            <field name="view_mode">list,form</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    创建您的第一个服装开发申请
+                </p>
+                <p>
+                    在这里您可以管理所有的服装开发申请和审批流程。
+                </p>
+            </field>
+        </record>
+        -->
+        
+    </data>
+</odoo>

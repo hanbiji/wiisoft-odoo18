@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- 服装开发审批流程视图将在此处定义 -->
+        
+        <!-- 示例：列表视图 -->
+        <!--
+        <record id="view_clothing_development_request_list" model="ir.ui.view">
+            <field name="name">clothing.development.request.list</field>
+            <field name="model">clothing.development.request</field>
+            <field name="arch" type="xml">
+                <list>
+                    <field name="name"/>
+                    <field name="state"/>
+                    <field name="create_date"/>
+                </list>
+            </field>
+        </record>
+        -->
+        
+        <!-- 示例：表单视图 -->
+        <!--
+        <record id="view_clothing_development_request_form" model="ir.ui.view">
+            <field name="name">clothing.development.request.form</field>
+            <field name="model">clothing.development.request</field>
+            <field name="arch" type="xml">
+                <form>
+                    <sheet>
+                        <group>
+                            <field name="name"/>
+                            <field name="state"/>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+        -->
+        
+    </data>
+</odoo>

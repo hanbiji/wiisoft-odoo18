@@ -1,0 +1,52 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- 服装开发审批流程初始数据 -->
+        
+        <!-- 审批状态数据 -->
+        <!--
+        <record id="state_draft" model="clothing.development.state">
+            <field name="name">草稿</field>
+            <field name="code">draft</field>
+            <field name="sequence">10</field>
+        </record>
+        
+        <record id="state_submitted" model="clothing.development.state">
+            <field name="name">已提交</field>
+            <field name="code">submitted</field>
+            <field name="sequence">20</field>
+        </record>
+        
+        <record id="state_approved" model="clothing.development.state">
+            <field name="name">已批准</field>
+            <field name="code">approved</field>
+            <field name="sequence">30</field>
+        </record>
+        
+        <record id="state_rejected" model="clothing.development.state">
+            <field name="name">已拒绝</field>
+            <field name="code">rejected</field>
+            <field name="sequence">40</field>
+        </record>
+        -->
+        
+        <!-- 服装类型数据 -->
+        <!--
+        <record id="clothing_type_shirt" model="clothing.type">
+            <field name="name">衬衫</field>
+            <field name="code">shirt</field>
+        </record>
+        
+        <record id="clothing_type_pants" model="clothing.type">
+            <field name="name">裤子</field>
+            <field name="code">pants</field>
+        </record>
+        
+        <record id="clothing_type_dress" model="clothing.type">
+            <field name="name">连衣裙</field>
+            <field name="code">dress</field>
+        </record>
+        -->
+        
+    </data>
+</odoo>
