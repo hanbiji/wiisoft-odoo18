@@ -3,38 +3,102 @@
     <data>
         <!-- 服装开发审批流程菜单配置 -->
         
-        <!-- 主菜单 -->
-        <!--
-        <menuitem id="menu_clothing_development_main"
-                  name="服装开发审批"
-                  sequence="100"/>
-        -->
-        
-        <!-- 子菜单 -->
-        <!--
-        <menuitem id="menu_clothing_development_requests"
-                  name="开发申请"
-                  parent="menu_clothing_development_main"
-                  action="action_clothing_development_request"
-                  sequence="10"/>
-        -->
-        
-        <!-- 动作配置 -->
-        <!--
-        <record id="action_clothing_development_request" model="ir.actions.act_window">
-            <field name="name">服装开发申请</field>
+        <!-- 产品经理专用动作 -->
+        <record id="action_clothing_development_request_product_manager" model="ir.actions.act_window">
+            <field name="name">产品经理工作台</field>
             <field name="res_model">clothing.development.request</field>
             <field name="view_mode">list,form</field>
+            <field name="context">{'search_default_my_tasks': 1, 'search_default_my_product_manager': 1}</field>
+            <field name="domain">[]</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_smiling_face">
-                    创建您的第一个服装开发申请
+                    暂无需要处理的申请
                 </p>
                 <p>
-                    在这里您可以管理所有的服装开发申请和审批流程。
+                    作为产品经理，您可以在这里审核和批准服装开发申请。
                 </p>
             </field>
         </record>
-        -->
+        
+        <!-- 设计师专用动作 -->
+        <record id="action_clothing_development_request_designer" model="ir.actions.act_window">
+            <field name="name">设计师工作台</field>
+            <field name="res_model">clothing.development.request</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{'search_default_my_tasks': 1, 'search_default_my_designer': 1}</field>
+            <field name="domain">[]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    暂无需要处理的设计任务
+                </p>
+                <p>
+                    作为设计师，您可以在这里处理分配给您的设计任务。
+                </p>
+            </field>
+        </record>
+        
+        <!-- 版师专用动作 -->
+        <record id="action_clothing_development_request_pattern_maker" model="ir.actions.act_window">
+            <field name="name">版师工作台</field>
+            <field name="res_model">clothing.development.request</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{'search_default_my_tasks': 1, 'search_default_my_pattern_maker': 1}</field>
+            <field name="domain">[]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    暂无需要处理的版型制作任务
+                </p>
+                <p>
+                    作为版师，您可以在这里处理分配给您的版型制作任务。
+                </p>
+            </field>
+        </record>
+        
+        <!-- 样衣工专用动作 -->
+        <record id="action_clothing_development_request_sample_worker" model="ir.actions.act_window">
+            <field name="name">样衣工工作台</field>
+            <field name="res_model">clothing.development.request</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{'search_default_my_tasks': 1, 'search_default_my_sample_worker': 1}</field>
+            <field name="domain">[]</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    暂无需要处理的样衣制作任务
+                </p>
+                <p>
+                    作为样衣工，您可以在这里处理分配给您的样衣制作任务。
+                </p>
+            </field>
+        </record>
+        
+        <!-- 角色专用菜单 -->
+        <menuitem id="menu_clothing_development_product_manager"
+                  name="产品经理工作台"
+                  parent="menu_clothing_development_root"
+                  action="action_clothing_development_request_product_manager"
+                  groups="clothing_development_approval.group_product_manager"
+                  sequence="20"/>
+                  
+        <menuitem id="menu_clothing_development_designer"
+                  name="设计师工作台"
+                  parent="menu_clothing_development_root"
+                  action="action_clothing_development_request_designer"
+                  groups="clothing_development_approval.group_designer"
+                  sequence="30"/>
+                  
+        <menuitem id="menu_clothing_development_pattern_maker"
+                  name="版师工作台"
+                  parent="menu_clothing_development_root"
+                  action="action_clothing_development_request_pattern_maker"
+                  groups="clothing_development_approval.group_pattern_maker"
+                  sequence="40"/>
+                  
+        <menuitem id="menu_clothing_development_sample_worker"
+                  name="样衣工工作台"
+                  parent="menu_clothing_development_root"
+                  action="action_clothing_development_request_sample_worker"
+                  groups="clothing_development_approval.group_sample_worker"
+                  sequence="50"/>
         
     </data>
 </odoo>

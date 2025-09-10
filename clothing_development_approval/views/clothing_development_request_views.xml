@@ -11,23 +11,55 @@
                         <!-- 操作按钮 -->
                         <button name="action_submit" type="object" string="提交申请" 
                                 class="oe_highlight" invisible="state != 'draft'"/>
-                        <button name="action_start_review" type="object" string="开始审核" 
-                                class="oe_highlight" invisible="state != 'submitted'"/>
-                        <button name="action_approve" type="object" string="批准" 
-                                class="oe_highlight" invisible="state != 'under_review'"/>
-                        <button name="action_reject" type="object" string="拒绝" 
-                                invisible="state not in ['submitted', 'under_review']"/>
-                        <button name="action_start_development" type="object" string="开始开发" 
-                                class="oe_highlight" invisible="state != 'approved'"/>
+                        
+                        <!-- 产品经理操作 -->
+                        <button name="action_product_review" type="object" string="开始产品审核" 
+                                class="oe_highlight" invisible="state != 'submitted'" 
+                                groups="clothing_development_approval.group_product_manager"/>
+                        <button name="action_approve_to_design" type="object" string="批准进入设计" 
+                                class="oe_highlight" invisible="state != 'product_review'" 
+                                groups="clothing_development_approval.group_product_manager"/>
+                        <button name="action_approve_to_pattern" type="object" string="批准进入版型制作" 
+                                class="oe_highlight" invisible="state != 'design_review'" 
+                                groups="clothing_development_approval.group_product_manager"/>
+                        <button name="action_approve_to_sample" type="object" string="批准进入样衣制作" 
+                                class="oe_highlight" invisible="state != 'pattern_review'" 
+                                groups="clothing_development_approval.group_product_manager"/>
+                        <button name="action_final_approval" type="object" string="进入最终审批" 
+                                class="oe_highlight" invisible="state != 'sample_review'" 
+                                groups="clothing_development_approval.group_product_manager"/>
+                        <button name="action_approve" type="object" string="最终批准" 
+                                class="oe_highlight" invisible="state != 'final_approval'" 
+                                groups="clothing_development_approval.group_product_manager"/>
+                        
+                        <!-- 设计师操作 -->
+                        <button name="action_design_complete" type="object" string="设计完成" 
+                                class="oe_highlight" invisible="state != 'design'" 
+                                groups="clothing_development_approval.group_designer"/>
+                        
+                        <!-- 版师操作 -->
+                        <button name="action_pattern_complete" type="object" string="版型制作完成" 
+                                class="oe_highlight" invisible="state != 'pattern_making'" 
+                                groups="clothing_development_approval.group_pattern_maker"/>
+                        
+                        <!-- 样衣工操作 -->
+                        <button name="action_sample_complete" type="object" string="样衣制作完成" 
+                                class="oe_highlight" invisible="state != 'sample_making'" 
+                                groups="clothing_development_approval.group_sample_worker"/>
+                        
+                        <!-- 通用操作 -->
                         <button name="action_complete" type="object" string="完成开发" 
-                                class="oe_highlight" invisible="state != 'in_development'"/>
-                        <button name="action_cancel" type="object" string="取消申请" 
-                                invisible="state in ['completed']"/>
+                                class="oe_highlight" invisible="state != 'approved'"/>
+                        <button name="action_reject" type="object" string="拒绝" 
+                                invisible="state in ['completed', 'cancelled', 'draft']" 
+                                groups="clothing_development_approval.group_product_manager"/>
+                        <button name="action_cancel" type="object" string="取消" 
+                                invisible="state in ['completed', 'cancelled']"/>
                         <button name="action_reset_to_draft" type="object" string="重置为草稿" 
                                 invisible="state not in ['rejected', 'cancelled']"/>
                         
                         <!-- 状态栏 -->
-                        <field name="state" widget="statusbar" statusbar_visible="draft,submitted,under_review,approved,in_development,completed,rejected,cancelled"/>
+                        <field name="state" widget="statusbar" statusbar_visible="draft,submitted,product_review,design,design_review,pattern_making,pattern_review,sample_making,sample_review,final_approval,approved,completed"/>
                     </header>
                     <sheet>
                         <!-- 顶部按钮区域 -->
@@ -73,8 +105,20 @@
                                 <field name="cost_variance" invisible="state not in ['in_development', 'completed']"/>
                             </group>
                             <group name="approval_info" string="审批信息">
+                                <field name="current_handler_id" invisible="state in ['draft', 'completed', 'cancelled']"/>
                                 <field name="approver_id" invisible="state in ['draft']"/>
                                 <field name="approval_date" invisible="state in ['draft', 'submitted']"/>
+                            </group>
+                        </group>
+                        
+                        <group>
+                            <group name="role_assignment" string="角色分配">
+                                <field name="product_manager_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
+                                <field name="designer_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
+                            </group>
+                            <group name="role_assignment2" string="">
+                                <field name="pattern_maker_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
+                                <field name="sample_worker_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
                             </group>
                         </group>
                         
@@ -86,18 +130,21 @@
                             </page>
                             <page string="设计要求" name="design_requirements">
                                 <group>
-                                    <field name="design_requirements" nolabel="1" placeholder="请描述具体的设计要求和规格..." widget="html" options="{'toolbar': true}"/>
+                                    <field name="design_requirements" nolabel="1" placeholder="请描述具体的设计要求和规格..." widget="html"/>
                                 </group>
                             </page>
                             <page string="备注" name="notes">
                                 <group>
-                                    <field name="notes" nolabel="1" placeholder="其他备注信息..." widget="html" options="{'toolbar': true}"/>
+                                    <field name="notes" nolabel="1" placeholder="其他备注信息..." widget="html"/>
+                                </group>
+                            </page>
+                            <page string="附件" name="attachments">
+                                <group>
+                                    <field name="attachment_ids" widget="many2many_binary"/>
                                 </group>
                             </page>
                         </notebook>
-                        <group>
-                            <field name="attachment_ids" widget="many2many_binary"/>
-                        </group>
+                        
                     </sheet>
                     <chatter/>
                     
@@ -110,7 +157,7 @@
             <field name="name">clothing.development.request.list</field>
             <field name="model">clothing.development.request</field>
             <field name="arch" type="xml">
-                <list string="服装开发申请" decoration-info="state=='draft'" decoration-warning="state=='submitted'" decoration-success="state=='approved'" decoration-primary="state=='in_development'" decoration-muted="state=='cancelled'">
+                <list string="服装开发申请" decoration-info="state=='draft'" decoration-warning="state in ['submitted','product_review']" decoration-success="state=='approved'" decoration-primary="state in ['design','pattern_making','sample_making']" decoration-muted="state in ['cancelled','rejected']">
                     <field name="name"/>
                     <field name="year"/>
                     <field name="batch"/>
@@ -118,12 +165,12 @@
                     <field name="clothing_type"/>
                     <field name="target_season"/>
                     <field name="applicant_id"/>
-                    <field name="department_id"/>
+                    <field name="current_handler_id"/>
                     <field name="expected_start_date"/>
                     <field name="expected_completion_date"/>
                     <field name="priority"/>
                     <field name="estimated_cost" sum="总预算"/>
-                    <field name="state" widget="badge" decoration-info="state=='draft'" decoration-warning="state=='submitted'" decoration-success="state=='approved'" decoration-primary="state=='in_development'" decoration-muted="state=='cancelled'"/>
+                    <field name="state" widget="badge" decoration-info="state=='draft'" decoration-warning="state in ['submitted','product_review']" decoration-success="state=='approved'" decoration-primary="state in ['design','pattern_making','sample_making']" decoration-muted="state in ['cancelled','rejected']"/>
                 </list>
             </field>
         </record>
@@ -146,11 +193,27 @@
                     
                     <!-- 过滤器 -->
                     <filter string="我的申请" name="my_requests" domain="[('applicant_id', '=', uid)]"/>
-                    <filter string="待审批" name="pending_approval" domain="[('state', '=', 'submitted')]"/>
-                    <filter string="已审批" name="approved" domain="[('state', '=', 'approved')]"/>
-                    <filter string="开发中" name="in_development" domain="[('state', '=', 'in_development')]"/>
+                    <filter string="我负责处理" name="my_tasks" domain="[('current_handler_id', '=', uid)]"/>
+                    <separator/>
+                    <filter string="待提交" name="draft" domain="[('state', '=', 'draft')]"/>
+                    <filter string="产品审核中" name="product_review" domain="[('state', '=', 'product_review')]"/>
+                    <filter string="设计阶段" name="design" domain="[('state', '=', 'design')]"/>
+                    <filter string="设计审核中" name="design_review" domain="[('state', '=', 'design_review')]"/>
+                    <filter string="版型制作中" name="pattern_making" domain="[('state', '=', 'pattern_making')]"/>
+                    <filter string="版型审核中" name="pattern_review" domain="[('state', '=', 'pattern_review')]"/>
+                    <filter string="样衣制作中" name="sample_making" domain="[('state', '=', 'sample_making')]"/>
+                    <filter string="样衣审核中" name="sample_review" domain="[('state', '=', 'sample_review')]"/>
+                    <filter string="最终审批" name="final_approval" domain="[('state', '=', 'final_approval')]"/>
+                    <filter string="已批准" name="approved" domain="[('state', '=', 'approved')]"/>
                     <filter string="已完成" name="completed" domain="[('state', '=', 'completed')]"/>
+                    <filter string="已拒绝" name="rejected" domain="[('state', '=', 'rejected')]"/>
                     <filter string="已取消" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
+                    
+                    <separator/>
+                    <filter string="我是产品经理" name="my_product_manager" domain="[('product_manager_id', '=', uid)]" groups="clothing_development_approval.group_product_manager"/>
+                    <filter string="我是设计师" name="my_designer" domain="[('designer_id', '=', uid)]" groups="clothing_development_approval.group_designer"/>
+                    <filter string="我是版师" name="my_pattern_maker" domain="[('pattern_maker_id', '=', uid)]" groups="clothing_development_approval.group_pattern_maker"/>
+                    <filter string="我是样衣工" name="my_sample_worker" domain="[('sample_worker_id', '=', uid)]" groups="clothing_development_approval.group_sample_worker"/>
                     
                     <separator/>
                     <filter string="高优先级" name="high_priority" domain="[('priority', '=', 'high')]"/>

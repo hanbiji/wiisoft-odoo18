@@ -4,23 +4,52 @@
         <!-- 服装开发审批流程安全配置 -->
         
         <!-- 用户组定义 -->
-        <!--
+        <!-- 基础用户组 -->
         <record id="group_clothing_development_user" model="res.groups">
             <field name="name">服装开发用户</field>
             <field name="category_id" ref="base.module_category_manufacturing"/>
             <field name="comment">可以创建和查看服装开发申请</field>
         </record>
         
+        <!-- 专业角色用户组 -->
+        <record id="group_product_manager" model="res.groups">
+            <field name="name">产品经理</field>
+            <field name="category_id" ref="base.module_category_manufacturing"/>
+            <field name="implied_ids" eval="[(4, ref('group_clothing_development_user'))]"/>
+            <field name="comment">负责产品规划、需求审核和最终审批</field>
+        </record>
+        
+        <record id="group_designer" model="res.groups">
+            <field name="name">设计师</field>
+            <field name="category_id" ref="base.module_category_manufacturing"/>
+            <field name="implied_ids" eval="[(4, ref('group_clothing_development_user'))]"/>
+            <field name="comment">负责设计方案制定和设计审核</field>
+        </record>
+        
+        <record id="group_pattern_maker" model="res.groups">
+            <field name="name">版师</field>
+            <field name="category_id" ref="base.module_category_manufacturing"/>
+            <field name="implied_ids" eval="[(4, ref('group_clothing_development_user'))]"/>
+            <field name="comment">负责版型制作和技术审核</field>
+        </record>
+        
+        <record id="group_sample_worker" model="res.groups">
+            <field name="name">样衣工</field>
+            <field name="category_id" ref="base.module_category_manufacturing"/>
+            <field name="implied_ids" eval="[(4, ref('group_clothing_development_user'))]"/>
+            <field name="comment">负责样衣制作和质量检验</field>
+        </record>
+        
+        <!-- 管理员用户组 -->
         <record id="group_clothing_development_manager" model="res.groups">
             <field name="name">服装开发管理员</field>
             <field name="category_id" ref="base.module_category_manufacturing"/>
-            <field name="implied_ids" eval="[(4, ref('group_clothing_development_user'))]"/>
+            <field name="implied_ids" eval="[(4, ref('group_product_manager')), (4, ref('group_designer')), (4, ref('group_pattern_maker')), (4, ref('group_sample_worker'))]"/>
             <field name="comment">可以管理所有服装开发申请和审批流程</field>
         </record>
-        -->
         
         <!-- 记录规则 -->
-        <!--
+        <!-- 基础用户规则：只能访问自己创建的申请 -->
         <record id="clothing_development_request_rule_user" model="ir.rule">
             <field name="name">服装开发申请：用户只能访问自己的申请</field>
             <field name="model_id" ref="model_clothing_development_request"/>
@@ -28,13 +57,45 @@
             <field name="groups" eval="[(4, ref('group_clothing_development_user'))]"/>
         </record>
         
+        <!-- 产品经理规则：可以访问所有申请进行审批 -->
+        <record id="clothing_development_request_rule_product_manager" model="ir.rule">
+            <field name="name">服装开发申请：产品经理可以访问所有申请</field>
+            <field name="model_id" ref="model_clothing_development_request"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('group_product_manager'))]"/>
+        </record>
+        
+        <!-- 设计师规则：可以访问设计相关状态的申请 -->
+        <record id="clothing_development_request_rule_designer" model="ir.rule">
+            <field name="name">服装开发申请：设计师可以访问设计阶段的申请</field>
+            <field name="model_id" ref="model_clothing_development_request"/>
+            <field name="domain_force">['|', ('state', 'in', ['design', 'design_review']), ('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_designer'))]"/>
+        </record>
+        
+        <!-- 版师规则：可以访问版型制作相关状态的申请 -->
+        <record id="clothing_development_request_rule_pattern_maker" model="ir.rule">
+            <field name="name">服装开发申请：版师可以访问版型制作阶段的申请</field>
+            <field name="model_id" ref="model_clothing_development_request"/>
+            <field name="domain_force">['|', ('state', 'in', ['pattern_making', 'pattern_review']), ('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_pattern_maker'))]"/>
+        </record>
+        
+        <!-- 样衣工规则：可以访问样衣制作相关状态的申请 -->
+        <record id="clothing_development_request_rule_sample_worker" model="ir.rule">
+            <field name="name">服装开发申请：样衣工可以访问样衣制作阶段的申请</field>
+            <field name="model_id" ref="model_clothing_development_request"/>
+            <field name="domain_force">['|', ('state', 'in', ['sample_making', 'sample_review']), ('create_uid', '=', user.id)]</field>
+            <field name="groups" eval="[(4, ref('group_sample_worker'))]"/>
+        </record>
+        
+        <!-- 管理员规则：可以访问所有申请 -->
         <record id="clothing_development_request_rule_manager" model="ir.rule">
             <field name="name">服装开发申请：管理员可以访问所有申请</field>
             <field name="model_id" ref="model_clothing_development_request"/>
             <field name="domain_force">[(1, '=', 1)]</field>
             <field name="groups" eval="[(4, ref('group_clothing_development_manager'))]"/>
         </record>
-        -->
         
     </data>
 </odoo>

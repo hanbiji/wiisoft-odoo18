@@ -179,10 +179,16 @@ class ClothingDevelopmentRequest(models.Model):
     state = fields.Selection([
         ('draft', '草稿'),
         ('submitted', '已提交'),
-        ('under_review', '审核中'),
+        ('product_review', '产品经理审核'),
+        ('design', '设计阶段'),
+        ('design_review', '设计审核'),
+        ('pattern_making', '版型制作'),
+        ('pattern_review', '版型审核'),
+        ('sample_making', '样衣制作'),
+        ('sample_review', '样衣审核'),
+        ('final_approval', '最终审批'),
         ('approved', '已批准'),
         ('rejected', '已拒绝'),
-        ('in_development', '开发中'),
         ('completed', '已完成'),
         ('cancelled', '已取消')
     ], string='状态', default='draft', required=True, tracking=True, help='申请当前状态')
@@ -207,6 +213,42 @@ class ClothingDevelopmentRequest(models.Model):
         string='批准人',
         tracking=True,
         help='最终批准此申请的用户'
+    )
+    
+    # ========== 角色分配 ==========
+    current_handler_id = fields.Many2one(
+        'res.users',
+        string='当前处理人',
+        tracking=True,
+        help='当前阶段的负责处理人员'
+    )
+    
+    product_manager_id = fields.Many2one(
+        'res.users',
+        string='产品经理',
+        tracking=True,
+        help='负责产品规划和最终审批的产品经理'
+    )
+    
+    designer_id = fields.Many2one(
+        'res.users',
+        string='设计师',
+        tracking=True,
+        help='负责设计方案制定的设计师'
+    )
+    
+    pattern_maker_id = fields.Many2one(
+        'res.users',
+        string='版师',
+        tracking=True,
+        help='负责版型制作的版师'
+    )
+    
+    sample_worker_id = fields.Many2one(
+        'res.users',
+        string='样衣工',
+        tracking=True,
+        help='负责样衣制作的样衣工'
     )
     
     review_date = fields.Datetime(
@@ -324,9 +366,15 @@ class ClothingDevelopmentRequest(models.Model):
         state_progress = {
             'draft': 0,
             'submitted': 10,
-            'under_review': 20,
-            'approved': 30,
-            'in_development': 70,
+            'product_review': 15,
+            'design': 25,
+            'design_review': 35,
+            'pattern_making': 50,
+            'pattern_review': 60,
+            'sample_making': 75,
+            'sample_review': 85,
+            'final_approval': 90,
+            'approved': 95,
             'completed': 100,
             'rejected': 0,
             'cancelled': 0
@@ -349,66 +397,174 @@ class ClothingDevelopmentRequest(models.Model):
         for record in self:
             if record.state != 'draft':
                 raise UserError(_('只有草稿状态的申请才能提交！'))
+            # 自动分配产品经理作为当前处理人
+            current_handler = record.product_manager_id or self._get_default_product_manager()
             record.write({
-                'state': 'submitted'
+                'state': 'submitted',
+                'current_handler_id': current_handler.id if current_handler else False
             })
-            record.message_post(body=_('申请已提交，等待审核。'))
+            record.message_post(body=_('申请已提交，等待产品经理审核。'))
     
-    def action_start_review(self):
-        """开始审核"""
+    def action_product_review(self):
+        """产品经理开始审核"""
         for record in self:
             if record.state != 'submitted':
-                raise UserError(_('只有已提交的申请才能开始审核！'))
+                raise UserError(_('只有已提交的申请才能开始产品审核！'))
+            if not self.env.user.has_group('clothing_development_approval.group_product_manager'):
+                raise UserError(_('只有产品经理才能执行此操作！'))
             record.write({
-                'state': 'under_review',
+                'state': 'product_review',
                 'reviewer_id': self.env.user.id,
-                'review_date': fields.Datetime.now()
+                'review_date': fields.Datetime.now(),
+                'current_handler_id': self.env.user.id
             })
-            record.message_post(body=_('申请审核已开始。'))
+            record.message_post(body=_('产品经理审核已开始。'))
+    
+    def action_approve_to_design(self):
+        """批准进入设计阶段"""
+        for record in self:
+            if record.state != 'product_review':
+                raise UserError(_('只有产品审核中的申请才能批准进入设计阶段！'))
+            if not self.env.user.has_group('clothing_development_approval.group_product_manager'):
+                raise UserError(_('只有产品经理才能执行此操作！'))
+            # 分配设计师作为当前处理人
+            current_handler = record.designer_id or self._get_default_designer()
+            record.write({
+                'state': 'design',
+                'current_handler_id': current_handler.id if current_handler else False
+            })
+            record.message_post(body=_('申请已批准进入设计阶段。'))
+    
+    def action_design_complete(self):
+        """设计完成，提交审核"""
+        for record in self:
+            if record.state != 'design':
+                raise UserError(_('只有设计阶段的申请才能提交设计审核！'))
+            if not self.env.user.has_group('clothing_development_approval.group_designer'):
+                raise UserError(_('只有设计师才能执行此操作！'))
+            # 分配产品经理进行设计审核
+            current_handler = record.product_manager_id or self._get_default_product_manager()
+            record.write({
+                'state': 'design_review',
+                'current_handler_id': current_handler.id if current_handler else False
+            })
+            record.message_post(body=_('设计已完成，等待产品经理审核。'))
+    
+    def action_approve_to_pattern(self):
+        """批准进入版型制作阶段"""
+        for record in self:
+            if record.state != 'design_review':
+                raise UserError(_('只有设计审核中的申请才能批准进入版型制作阶段！'))
+            if not self.env.user.has_group('clothing_development_approval.group_product_manager'):
+                raise UserError(_('只有产品经理才能执行此操作！'))
+            # 分配版师作为当前处理人
+            current_handler = record.pattern_maker_id or self._get_default_pattern_maker()
+            record.write({
+                'state': 'pattern_making',
+                'current_handler_id': current_handler.id if current_handler else False
+            })
+            record.message_post(body=_('设计已批准，进入版型制作阶段。'))
+    
+    def action_pattern_complete(self):
+        """版型制作完成，提交审核"""
+        for record in self:
+            if record.state != 'pattern_making':
+                raise UserError(_('只有版型制作阶段的申请才能提交版型审核！'))
+            if not self.env.user.has_group('clothing_development_approval.group_pattern_maker'):
+                raise UserError(_('只有版师才能执行此操作！'))
+            # 分配产品经理进行版型审核
+            current_handler = record.product_manager_id or self._get_default_product_manager()
+            record.write({
+                'state': 'pattern_review',
+                'current_handler_id': current_handler.id if current_handler else False
+            })
+            record.message_post(body=_('版型制作已完成，等待产品经理审核。'))
+    
+    def action_approve_to_sample(self):
+        """批准进入样衣制作阶段"""
+        for record in self:
+            if record.state != 'pattern_review':
+                raise UserError(_('只有版型审核中的申请才能批准进入样衣制作阶段！'))
+            if not self.env.user.has_group('clothing_development_approval.group_product_manager'):
+                raise UserError(_('只有产品经理才能执行此操作！'))
+            # 分配样衣工作为当前处理人
+            current_handler = record.sample_worker_id or self._get_default_sample_worker()
+            record.write({
+                'state': 'sample_making',
+                'current_handler_id': current_handler.id if current_handler else False,
+                'actual_start_date': fields.Date.today()
+            })
+            record.message_post(body=_('版型已批准，进入样衣制作阶段。'))
+    
+    def action_sample_complete(self):
+        """样衣制作完成，提交审核"""
+        for record in self:
+            if record.state != 'sample_making':
+                raise UserError(_('只有样衣制作阶段的申请才能提交样衣审核！'))
+            if not self.env.user.has_group('clothing_development_approval.group_sample_worker'):
+                raise UserError(_('只有样衣工才能执行此操作！'))
+            # 分配产品经理进行样衣审核
+            current_handler = record.product_manager_id or self._get_default_product_manager()
+            record.write({
+                'state': 'sample_review',
+                'current_handler_id': current_handler.id if current_handler else False
+            })
+            record.message_post(body=_('样衣制作已完成，等待产品经理审核。'))
+    
+    def action_final_approval(self):
+        """进入最终审批"""
+        for record in self:
+            if record.state != 'sample_review':
+                raise UserError(_('只有样衣审核中的申请才能进入最终审批！'))
+            if not self.env.user.has_group('clothing_development_approval.group_product_manager'):
+                raise UserError(_('只有产品经理才能执行此操作！'))
+            record.write({
+                'state': 'final_approval',
+                'current_handler_id': self.env.user.id
+            })
+            record.message_post(body=_('样衣已通过审核，进入最终审批阶段。'))
     
     def action_approve(self):
-        """批准申请"""
+        """最终批准"""
         for record in self:
-            if record.state != 'under_review':
-                raise UserError(_('只有审核中的申请才能批准！'))
+            if record.state != 'final_approval':
+                raise UserError(_('只有最终审批阶段的申请才能批准！'))
+            if not self.env.user.has_group('clothing_development_approval.group_product_manager'):
+                raise UserError(_('只有产品经理才能执行此操作！'))
             record.write({
                 'state': 'approved',
                 'approver_id': self.env.user.id,
-                'approval_date': fields.Datetime.now()
+                'approval_date': fields.Datetime.now(),
+                'current_handler_id': False
             })
-            record.message_post(body=_('申请已批准，可以开始开发。'))
-    
-    def action_reject(self):
-        """拒绝申请"""
-        for record in self:
-            if record.state not in ['submitted', 'under_review']:
-                raise UserError(_('只有已提交或审核中的申请才能拒绝！'))
-            record.write({
-                'state': 'rejected'
-            })
-            record.message_post(body=_('申请已被拒绝。'))
-    
-    def action_start_development(self):
-        """开始开发"""
-        for record in self:
-            if record.state != 'approved':
-                raise UserError(_('只有已批准的申请才能开始开发！'))
-            record.write({
-                'state': 'in_development',
-                'actual_start_date': fields.Date.today()
-            })
-            record.message_post(body=_('开发工作已开始。'))
+            record.message_post(body=_('申请已最终批准，可以投入生产。'))
     
     def action_complete(self):
         """完成开发"""
         for record in self:
-            if record.state != 'in_development':
-                raise UserError(_('只有开发中的申请才能标记为完成！'))
+            if record.state != 'approved':
+                raise UserError(_('只有已批准的申请才能标记为完成！'))
             record.write({
                 'state': 'completed',
-                'actual_completion_date': fields.Date.today()
+                'actual_completion_date': fields.Date.today(),
+                'current_handler_id': False
             })
             record.message_post(body=_('开发工作已完成。'))
+    
+    def action_reject(self):
+        """拒绝申请"""
+        for record in self:
+            if record.state in ['completed', 'cancelled']:
+                raise UserError(_('已完成或已取消的申请不能拒绝！'))
+            # 检查权限
+            if record.state in ['submitted', 'product_review', 'design_review', 'pattern_review', 'sample_review', 'final_approval']:
+                if not self.env.user.has_group('clothing_development_approval.group_product_manager'):
+                    raise UserError(_('只有产品经理才能拒绝此申请！'))
+            record.write({
+                'state': 'rejected',
+                'current_handler_id': False
+            })
+            record.message_post(body=_('申请已被拒绝。'))
     
     def action_cancel(self):
         """取消申请"""
@@ -416,7 +572,8 @@ class ClothingDevelopmentRequest(models.Model):
             if record.state in ['completed']:
                 raise UserError(_('已完成的申请不能取消！'))
             record.write({
-                'state': 'cancelled'
+                'state': 'cancelled',
+                'current_handler_id': False
             })
             record.message_post(body=_('申请已取消。'))
     
@@ -433,6 +590,39 @@ class ClothingDevelopmentRequest(models.Model):
                 'approval_date': False,
                 'review_notes': False,
                 'approval_notes': False,
-                'rejection_reason': False
+                'rejection_reason': False,
+                'current_handler_id': False,
+                'product_manager_id': False,
+                'designer_id': False,
+                'pattern_maker_id': False,
+                'sample_worker_id': False
             })
             record.message_post(body=_('申请已重置为草稿状态。'))
+    
+    def _get_default_product_manager(self):
+        """获取默认产品经理"""
+        product_manager = self.env['res.users'].search([
+            ('groups_id', 'in', self.env.ref('clothing_development_approval.group_product_manager').id)
+        ], limit=1)
+        return product_manager
+    
+    def _get_default_designer(self):
+        """获取默认设计师"""
+        designer = self.env['res.users'].search([
+            ('groups_id', 'in', self.env.ref('clothing_development_approval.group_designer').id)
+        ], limit=1)
+        return designer
+    
+    def _get_default_pattern_maker(self):
+        """获取默认版师"""
+        pattern_maker = self.env['res.users'].search([
+            ('groups_id', 'in', self.env.ref('clothing_development_approval.group_pattern_maker').id)
+        ], limit=1)
+        return pattern_maker
+    
+    def _get_default_sample_worker(self):
+        """获取默认样衣工"""
+        sample_worker = self.env['res.users'].search([
+            ('groups_id', 'in', self.env.ref('clothing_development_approval.group_sample_worker').id)
+        ], limit=1)
+        return sample_worker
