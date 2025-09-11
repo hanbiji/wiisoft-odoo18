@@ -69,9 +69,12 @@
                         
                         <!-- 主要信息区域 -->
                         <div class="oe_title">
-                            <h1>
-                                <field name="name" readonly="1"/>
-                            </h1>
+                            <div class="d-flex align-items-center">
+                                <h1 class="flex-grow-1">
+                                    <field name="name" readonly="1"/>
+                                </h1>
+                                <field name="thumbnail" widget="image" class="oe_avatar ms-3" style="width: 64px; height: 64px;"/>
+                            </div>
                         </div>
                         
                         <group>
@@ -158,6 +161,7 @@
             <field name="model">clothing.development.request</field>
             <field name="arch" type="xml">
                 <list string="服装开发申请" decoration-info="state=='draft'" decoration-warning="state in ['submitted','product_review']" decoration-success="state=='approved'" decoration-primary="state in ['design','pattern_making','sample_making']" decoration-muted="state in ['cancelled','rejected']">
+                    <field name="thumbnail" widget="image" width="50px"/>
                     <field name="name"/>
                     <field name="year"/>
                     <field name="batch"/>

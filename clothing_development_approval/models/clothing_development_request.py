@@ -53,6 +53,12 @@ class ClothingDevelopmentRequest(models.Model):
         help='详细描述服装开发需求、设计理念、功能要求等'
     )
     
+    thumbnail = fields.Binary(
+        string='缩略图',
+        help='服装设计的缩略图或效果图',
+        attachment=True
+    )
+    
     # ========== 申请人信息 ==========
     applicant_id = fields.Many2one(
         'res.users',
