@@ -39,11 +39,11 @@
         
         # 数据文件
         'data/sequence.xml',
-        'data/data.xml',
-        
+        'data/data.xml',        
         # 视图文件
         'views/clothing_development_request_views.xml',
         'views/clothing_color_views.xml',
+        'views/clothing_size_views.xml',
         'views/views.xml',
         'views/menus.xml',
     ],

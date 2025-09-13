@@ -4,4 +4,5 @@
 # 导入模型文件
 from . import clothing_development_request
 from . import clothing_color
+from . import clothing_size
 # from . import approval_workflow

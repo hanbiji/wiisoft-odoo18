@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- 服装尺寸基础数据 -->
+        
+        <!-- 滑雪上衣 - 男性 -->
+        <record id="clothing_size_ski_jacket_male_s" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">male</field>
+            <field name="size">s</field>
+        </record>
+        
+        <record id="clothing_size_ski_jacket_male_m" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">male</field>
+            <field name="size">m</field>
+        </record>
+        
+        <record id="clothing_size_ski_jacket_male_l" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">male</field>
+            <field name="size">l</field>
+        </record>
+        
+        <record id="clothing_size_ski_jacket_male_xl" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">male</field>
+            <field name="size">xl</field>
+        </record>
+        
+        <!-- 滑雪上衣 - 女性 -->
+        <record id="clothing_size_ski_jacket_female_s" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">female</field>
+            <field name="size">s</field>
+        </record>
+        
+        <record id="clothing_size_ski_jacket_female_m" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">female</field>
+            <field name="size">m</field>
+        </record>
+        
+        <record id="clothing_size_ski_jacket_female_l" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">female</field>
+            <field name="size">l</field>
+        </record>
+        
+        <!-- 滑雪上衣 - 中性 -->
+        <record id="clothing_size_ski_jacket_unisex_m" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">unisex</field>
+            <field name="size">m</field>
+        </record>
+        
+        <record id="clothing_size_ski_jacket_unisex_l" model="clothing.size">
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">unisex</field>
+            <field name="size">l</field>
+        </record>
+        
+        <!-- 滑雪裤子 - 男性 -->
+        <record id="clothing_size_ski_pants_male_m" model="clothing.size">
+            <field name="clothing_type">ski_pants</field>
+            <field name="target_gender">male</field>
+            <field name="size">m</field>
+        </record>
+        
+        <record id="clothing_size_ski_pants_male_l" model="clothing.size">
+            <field name="clothing_type">ski_pants</field>
+            <field name="target_gender">male</field>
+            <field name="size">l</field>
+        </record>
+        
+        <!-- 滑雪裤子 - 女性 -->
+        <record id="clothing_size_ski_pants_female_s" model="clothing.size">
+            <field name="clothing_type">ski_pants</field>
+            <field name="target_gender">female</field>
+            <field name="size">s</field>
+        </record>
+        
+        <record id="clothing_size_ski_pants_female_m" model="clothing.size">
+            <field name="clothing_type">ski_pants</field>
+            <field name="target_gender">female</field>
+            <field name="size">m</field>
+        </record>
+        
+        <!-- 衬衫 - 男性 -->
+        <record id="clothing_size_shirt_male_m" model="clothing.size">
+            <field name="clothing_type">shirt</field>
+            <field name="target_gender">male</field>
+            <field name="size">m</field>
+        </record>
+        
+        <record id="clothing_size_shirt_male_l" model="clothing.size">
+            <field name="clothing_type">shirt</field>
+            <field name="target_gender">male</field>
+            <field name="size">l</field>
+        </record>
+        
+        <!-- 衬衫 - 女性 -->
+        <record id="clothing_size_shirt_female_s" model="clothing.size">
+            <field name="clothing_type">shirt</field>
+            <field name="target_gender">female</field>
+            <field name="size">s</field>
+        </record>
+        
+        <record id="clothing_size_shirt_female_m" model="clothing.size">
+            <field name="clothing_type">shirt</field>
+            <field name="target_gender">female</field>
+            <field name="size">m</field>
+        </record>
+        
+    </data>
+</odoo>

@@ -31,5 +31,19 @@
                   action="action_clothing_development_request_all"
                   sequence="10"/>
         
+        <!-- 配置菜单 -->
+        <menuitem id="menu_clothing_development_config"
+                  name="配置"
+                  parent="menu_clothing_development_root"
+                  sequence="100"/>
+        
+        <!-- 服装尺寸菜单 -->
+        <menuitem id="menu_clothing_size"
+                  name="服装尺寸"
+                  parent="menu_clothing_development_config"
+                  action="clothing_development_approval.action_clothing_size"
+                  groups="clothing_development_approval.group_clothing_development_manager,clothing_development_approval.group_designer"
+                  sequence="10"/>
+        
     </data>
 </odoo>

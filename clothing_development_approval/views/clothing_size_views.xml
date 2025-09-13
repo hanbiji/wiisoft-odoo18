@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- 服装尺寸表单视图 -->
+        <record id="view_clothing_size_form" model="ir.ui.view">
+            <field name="name">clothing.size.form</field>
+            <field name="model">clothing.size</field>
+            <field name="arch" type="xml">
+                <form string="服装尺寸">
+                    <sheet>
+                        <group>
+                            <group name="basic_info" string="基本信息">
+                                <field name="clothing_type" required="1"/>
+                                <field name="target_gender" required="1"/>
+                                <field name="size" required="1"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+        
+        <!-- 服装尺寸列表视图 -->
+        <record id="view_clothing_size_tree" model="ir.ui.view">
+            <field name="name">clothing.size.tree</field>
+            <field name="model">clothing.size</field>
+            <field name="arch" type="xml">
+                <list string="服装尺寸" default_order="clothing_type, target_gender, size">
+                    <field name="clothing_type"/>
+                    <field name="target_gender"/>
+                    <field name="size"/>
+                </list>
+            </field>
+        </record>
+        
+        <!-- 服装尺寸搜索视图 -->
+        <record id="view_clothing_size_search" model="ir.ui.view">
+            <field name="name">clothing.size.search</field>
+            <field name="model">clothing.size</field>
+            <field name="arch" type="xml">
+                <search string="搜索服装尺寸">
+                    <!-- 搜索字段 -->
+                    <field name="clothing_type" string="服装类型"/>
+                    <field name="target_gender" string="目标性别"/>
+                    <field name="size" string="尺寸"/>
+                    <field name="display_name" string="显示名称" filter_domain="[('display_name', 'ilike', self)]"/>
+                    <!-- 过滤器 -->
+                    <!-- 按服装类型分组 -->
+                    <filter string="滑雪上衣" name="ski_jacket" domain="[('clothing_type', '=', 'ski_jacket')]"/>
+                    <filter string="滑雪裤子" name="ski_pants" domain="[('clothing_type', '=', 'ski_pants')]"/>
+                    <filter string="连体滑雪套装" name="ski_suit" domain="[('clothing_type', '=', 'ski_suit')]"/>
+                    <filter string="衬衫" name="shirt" domain="[('clothing_type', '=', 'shirt')]"/>
+                    <filter string="裤子" name="pants" domain="[('clothing_type', '=', 'pants')]"/>
+                    <filter string="连衣裙" name="dress" domain="[('clothing_type', '=', 'dress')]"/>
+                    <filter string="外套" name="jacket" domain="[('clothing_type', '=', 'jacket')]"/>
+                    <filter string="裙子" name="skirt" domain="[('clothing_type', '=', 'skirt')]"/>
+                    <filter string="套装" name="suit" domain="[('clothing_type', '=', 'suit')]"/>
+                    <separator/>
+                    
+                    <!-- 按性别分组 -->
+                    <filter string="男性" name="male" domain="[('target_gender', '=', 'male')]"/>
+                    <filter string="女性" name="female" domain="[('target_gender', '=', 'female')]"/>
+                    <filter string="中性" name="unisex" domain="[('target_gender', '=', 'unisex')]"/>
+                    <separator/>
+                    
+                    <!-- 尺寸搜索 -->
+                    <field name="size" string="尺寸" filter_domain="[('size', 'ilike', self)]"/>
+                    
+                </search>
+            </field>
+        </record>
+        
+        <!-- 服装尺寸动作 -->
+        <record id="action_clothing_size" model="ir.actions.act_window">
+            <field name="name">服装尺寸</field>
+            <field name="res_model">clothing.size</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    创建第一个服装尺寸规格
+                </p>
+                <p>
+                    服装尺寸用于定义不同服装类型和性别的标准尺寸规格。
+                    您可以为每种服装类型和性别组合定义详细的尺寸参数。
+                </p>
+            </field>
+        </record>
+        
+    </data>
+</odoo>

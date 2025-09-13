@@ -74,7 +74,7 @@
         <!-- 菜单项 -->
         <menuitem id="menu_clothing_color" 
                   name="颜色管理" 
-                  parent="menu_clothing_development_root" 
+                  parent="menu_clothing_development_config" 
                   action="action_clothing_color" 
                   sequence="20"/>
         

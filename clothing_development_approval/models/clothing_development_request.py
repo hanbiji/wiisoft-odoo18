@@ -85,15 +85,16 @@ class ClothingDevelopmentRequest(models.Model):
     ], string='服装品牌', required=True, help='选择要开发的服装品牌')
 
     clothing_type = fields.Selection([
+        ('ski_jacket', '滑雪上衣'),
+        ('ski_pants', '滑雪裤子'),
+        ('ski_suit', '连体滑雪套装'),
         ('shirt', '衬衫'),
         ('pants', '裤子'),
         ('dress', '连衣裙'),
         ('jacket', '外套'),
         ('skirt', '裙子'),
         ('suit', '套装'),
-        ('accessories', '配饰'),
-        ('other', '其他')
-    ], string='服装类型', required=True, tracking=True, help='选择要开发的服装类型')
+    ], string='设计风格', required=True, tracking=True, help='选择要开发的服装类型')
     
     target_season = fields.Selection([
         ('spring', '春季'),
@@ -123,12 +124,15 @@ class ClothingDevelopmentRequest(models.Model):
     target_gender = fields.Selection([
         ('male', '男性'),
         ('female', '女性'),
-        ('unisex', '中性')
+        ('unisex', '中性'),
+        ('child', '儿童')
     ], string='目标性别', required=True, help='该服装的目标客户群体性别')
     
-    size_range = fields.Char(
-        string='尺码范围',
-        help='例如：S-XXL 或 XS-L'
+    clothing_size_ids = fields.Many2many(
+        'clothing.size',
+        string='关联尺寸',
+        help='与此开发申请关联的具体尺寸规格',
+        domain="[('clothing_type', '=', clothing_type), ('target_gender', '=', target_gender)]"
     )
     
     estimated_cost = fields.Float(
@@ -233,6 +237,7 @@ class ClothingDevelopmentRequest(models.Model):
         'res.users',
         string='产品经理',
         tracking=True,
+        default=lambda self: self._get_default_product_manager(),
         help='负责产品规划和最终审批的产品经理'
     )
     
@@ -240,6 +245,7 @@ class ClothingDevelopmentRequest(models.Model):
         'res.users',
         string='设计师',
         tracking=True,
+        default=lambda self: self._get_default_designer(),
         help='负责设计方案制定的设计师'
     )
     
@@ -247,6 +253,7 @@ class ClothingDevelopmentRequest(models.Model):
         'res.users',
         string='版师',
         tracking=True,
+        default=lambda self: self._get_default_pattern_maker(),
         help='负责版型制作的版师'
     )
     
@@ -254,6 +261,7 @@ class ClothingDevelopmentRequest(models.Model):
         'res.users',
         string='样衣工',
         tracking=True,
+        default=lambda self: self._get_default_sample_worker(),
         help='负责样衣制作的样衣工'
     )
     
@@ -598,10 +606,7 @@ class ClothingDevelopmentRequest(models.Model):
                 'approval_notes': False,
                 'rejection_reason': False,
                 'current_handler_id': False,
-                'product_manager_id': False,
-                'designer_id': False,
-                'pattern_maker_id': False,
-                'sample_worker_id': False
+                
             })
             record.message_post(body=_('申请已重置为草稿状态。'))
     
@@ -632,3 +637,6 @@ class ClothingDevelopmentRequest(models.Model):
             ('groups_id', 'in', self.env.ref('clothing_development_approval.group_sample_worker').id)
         ], limit=1)
         return sample_worker
+    
+    
+

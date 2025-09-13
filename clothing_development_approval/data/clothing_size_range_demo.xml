@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        
+        <!-- 演示数据：服装开发申请与尺寸关联 -->
+        
+        <!-- 男性滑雪上衣开发申请 -->
+        <record id="demo_ski_jacket_male_request" model="clothing.development.request">
+            <field name="name">2025春季男性滑雪上衣开发</field>
+            <field name="year">2025</field>
+            <field name="batch">春季批次</field>
+            <field name="clothing_type">ski_jacket</field>
+            <field name="target_gender">male</field>
+            <field name="size_range">s,m,l,xl</field>
+            <field name="clothing_size_ids" eval="[(6, 0, [
+                ref('clothing_development_approval.clothing_size_ski_jacket_male_s'),
+                ref('clothing_development_approval.clothing_size_ski_jacket_male_m'),
+                ref('clothing_development_approval.clothing_size_ski_jacket_male_l'),
+                ref('clothing_development_approval.clothing_size_ski_jacket_male_xl')
+            ])]"/>
+            <field name="estimated_cost">280.00</field>
+            <field name="target_price">580.00</field>
+            <field name="description">2025年春季新款男性滑雪上衣，采用防风防水面料，适合专业滑雪运动。</field>
+        </record>
+        
+        <!-- 女性衬衫开发申请 -->
+        <record id="demo_shirt_female_request" model="clothing.development.request">
+            <field name="name">2025夏季女性商务衬衫开发</field>
+            <field name="year">2025</field>
+            <field name="batch">夏季批次</field>
+            <field name="clothing_type">shirt</field>
+            <field name="target_gender">female</field>
+            <field name="size_range">xs,s,m,l</field>
+            <field name="clothing_size_ids" eval="[(6, 0, [
+                ref('clothing_development_approval.clothing_size_shirt_female_xs'),
+                ref('clothing_development_approval.clothing_size_shirt_female_s'),
+                ref('clothing_development_approval.clothing_size_shirt_female_m'),
+                ref('clothing_development_approval.clothing_size_shirt_female_l')
+            ])]"/>
+            <field name="estimated_cost">85.00</field>
+            <field name="target_price">199.00</field>
+            <field name="description">2025年夏季新款女性商务衬衫，采用透气棉质面料，适合职场穿着。</field>
+        </record>
+        
+    </data>
+</odoo>

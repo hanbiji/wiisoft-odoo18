@@ -11,7 +11,6 @@
                         <!-- 操作按钮 -->
                         <button name="action_submit" type="object" string="提交申请" 
                                 class="oe_highlight" invisible="state != 'draft'"/>
-                        
                         <!-- 产品经理操作 -->
                         <button name="action_product_review" type="object" string="开始产品审核" 
                                 class="oe_highlight" invisible="state != 'submitted'" 
@@ -94,36 +93,12 @@
                                 <field name="actual_completion_date" invisible="state not in ['completed']"/>
                                 <field name="duration_days" invisible="state in ['completed', 'cancelled']"/>
                                 <field name="applicant_id"/>
-                                <field name="department_id"/>
-                                <field name="size_range"/>
+                                <field name="clothing_size_ids" widget="many2many_tags"/>
                                 <field name="color_id"/>
                                 <field name="secondary_color_ids" widget="many2many_tags"/>
                             </group>
                         </group>
-                        
-                        <group>
-                            <group name="budget_info" string="预算信息">
-                                <field name="estimated_cost"/>
-                                <field name="actual_cost" invisible="state not in ['in_development', 'completed']"/>
-                                <field name="cost_variance" invisible="state not in ['in_development', 'completed']"/>
-                            </group>
-                            <group name="approval_info" string="审批信息">
-                                <field name="current_handler_id" invisible="state in ['draft', 'completed', 'cancelled']"/>
-                                <field name="approver_id" invisible="state in ['draft']"/>
-                                <field name="approval_date" invisible="state in ['draft', 'submitted']"/>
-                            </group>
-                        </group>
-                        
-                        <group>
-                            <group name="role_assignment" string="角色分配">
-                                <field name="product_manager_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
-                                <field name="designer_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
-                            </group>
-                            <group name="role_assignment2" string="">
-                                <field name="pattern_maker_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
-                                <field name="sample_worker_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
-                            </group>
-                        </group>
+                    
                         
                         <notebook>
                             <page string="详细描述" name="description">
@@ -146,6 +121,30 @@
                                     <field name="attachment_ids" widget="many2many_binary"/>
                                 </group>
                             </page>
+                            <page name="budget_info" string="预算信息">
+                                <group>
+                                    <field name="estimated_cost"/>
+                                    <field name="actual_cost" invisible="state not in ['in_development', 'completed']"/>
+                                    <field name="cost_variance" invisible="state not in ['in_development', 'completed']"/>
+                                </group>
+                            </page>
+                            <page name="other_info" string="其它信息">
+                                <group name="approval_info" string="审批信息">
+                                    <field name="current_handler_id" invisible="state in ['draft', 'completed', 'cancelled']"/>
+                                    <field name="approver_id" invisible="state in ['draft']"/>
+                                    <field name="approval_date" invisible="state in ['draft', 'submitted']"/>
+                                </group>
+                                <group>
+                                    <group name="role_assignment" string="角色分配">
+                                        <field name="product_manager_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
+                                        <field name="designer_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
+                                    </group>
+                                    <group name="role_assignment2" string="">
+                                        <field name="pattern_maker_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
+                                        <field name="sample_worker_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
+                                    </group>
+                                </group>
+                            </page>
                         </notebook>
                         
                     </sheet>
@@ -161,7 +160,7 @@
             <field name="model">clothing.development.request</field>
             <field name="arch" type="xml">
                 <list string="服装开发申请" decoration-info="state=='draft'" decoration-warning="state in ['submitted','product_review']" decoration-success="state=='approved'" decoration-primary="state in ['design','pattern_making','sample_making']" decoration-muted="state in ['cancelled','rejected']">
-                    <field name="thumbnail" widget="image" width="50px"/>
+                    <field name="thumbnail" widget="image" width="50"/>
                     <field name="name"/>
                     <field name="year"/>
                     <field name="batch"/>
