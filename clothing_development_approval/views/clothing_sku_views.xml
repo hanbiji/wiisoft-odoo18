@@ -1,0 +1,81 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data>
+        <!-- 服装SKU表单视图 -->
+        <record id="view_clothing_sku_form" model="ir.ui.view">
+            <field name="name">clothing.sku.form</field>
+            <field name="model">clothing.sku</field>
+            <field name="arch" type="xml">
+                <form string="服装SKU">
+                    <sheet>
+                        <group>
+                            <group name="basic_info" string="基本信息">
+                                <field name="name" required="1"/>
+                                <field name="sku" required="1"/>
+                                <field name="request_id" readonly="1"/>
+                            </group>
+                            <group name="variant_info" string="变体信息">
+                                <field name="size_id"/>
+                                <field name="color_id"/>
+                            </group>
+                        </group>
+                    </sheet>
+                </form>
+            </field>
+        </record>
+        
+        <!-- 服装SKU列表视图 -->
+        <record id="view_clothing_sku_tree" model="ir.ui.view">
+            <field name="name">clothing.sku.tree</field>
+            <field name="model">clothing.sku</field>
+            <field name="arch" type="xml">
+                <list string="服装SKU" default_order="request_id, sku">
+                    <field name="name"/>
+                    <field name="sku"/>
+                    <field name="size_id"/>
+                    <field name="color_id"/>
+                    <field name="request_id"/>
+                </list>
+            </field>
+        </record>
+        
+        <!-- 服装SKU搜索视图 -->
+        <record id="view_clothing_sku_search" model="ir.ui.view">
+            <field name="name">clothing.sku.search</field>
+            <field name="model">clothing.sku</field>
+            <field name="arch" type="xml">
+                <search string="搜索服装SKU">
+                    <!-- 搜索字段 -->
+                    <field name="name" string="SKU名称"/>
+                    <field name="sku" string="SKU代码"/>
+                    <field name="size_id" string="尺寸"/>
+                    <field name="color_id" string="颜色"/>
+                    <field name="request_id" string="申请"/>
+                    
+                    <!-- 过滤器 -->
+                    <filter string="按申请分组" name="group_by_request" context="{'group_by': 'request_id'}"/>
+                    <filter string="按尺寸分组" name="group_by_size" context="{'group_by': 'size_id'}"/>
+                    <filter string="按颜色分组" name="group_by_color" context="{'group_by': 'color_id'}"/>
+                </search>
+            </field>
+        </record>
+        
+        <!-- 服装SKU动作 -->
+        <record id="action_clothing_sku" model="ir.actions.act_window">
+            <field name="name">服装SKU</field>
+            <field name="res_model">clothing.sku</field>
+            <field name="view_mode">list,form</field>
+            <field name="context">{}</field>
+            <field name="help" type="html">
+                <p class="o_view_nocontent_smiling_face">
+                    暂无SKU变体
+                </p>
+                <p>
+                    SKU变体通过服装开发申请自动生成。
+                    请前往服装开发申请页面，填写完整信息后点击"生成SKU变体"按钮。
+                </p>
+            </field>
+        </record>
+        
+    </data>
+</odoo>

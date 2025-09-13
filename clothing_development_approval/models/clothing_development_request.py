@@ -295,7 +295,15 @@ class ClothingDevelopmentRequest(models.Model):
     attachment_ids = fields.Many2many(
         'ir.attachment',
         string='附件',
-        help='相关的设计图、参考资料等附件'
+        help='上传相关的设计图、参考图等附件'
+    )
+    
+    # SKU变体关联字段
+    sku_variant_ids = fields.One2many(
+        'clothing.sku',
+        'request_id',
+        string='SKU变体',
+        help='该申请生成的所有SKU变体'
     )
     
     notes = fields.Text(
@@ -322,7 +330,8 @@ class ClothingDevelopmentRequest(models.Model):
         compute='_compute_progress_percentage',
         help='基于状态计算的进度百分比'
     )
-    
+
+
     # ========== 约束条件 ==========
     @api.constrains('expected_start_date', 'expected_completion_date')
     def _check_dates(self):
@@ -558,6 +567,8 @@ class ClothingDevelopmentRequest(models.Model):
         for record in self:
             if record.state != 'approved':
                 raise UserError(_('只有已批准的申请才能标记为完成！'))
+            # generate_sku_variants
+            record.generate_sku_variants()
             record.write({
                 'state': 'completed',
                 'actual_completion_date': fields.Date.today(),
@@ -638,5 +649,91 @@ class ClothingDevelopmentRequest(models.Model):
         ], limit=1)
         return sample_worker
     
+    def generate_sku_variants(self):
+        """生成所有SKU变体
+        
+        根据SKU规则生成所有可能的变体组合：
+        'brand'-'year''batch''style_number'-'clothing_type'-'target_gender'-'color_id.color_code'-'clothing_size_ids.size'
+        
+        Returns:
+            list: 生成的SKU变体列表
+        """
+        self.ensure_one()
+        
+        # 验证必要字段
+        if not all([self.brand, self.year, self.batch, self.style_number, 
+                   self.clothing_type, self.target_gender, self.color_id, self.clothing_size_ids]):
+            raise UserError(_("请确保所有必要字段都已填写：品牌、年份、批次、款号、服装类型、目标性别、主要颜色、关联尺寸"))
+        
+        # 清除现有的SKU变体
+        existing_skus = self.env['clothing.sku'].search([('request_id', '=', self.id)])
+        existing_skus.unlink()
+        
+        sku_variants = []
+        
+        # 为每个尺寸生成SKU
+        for size in self.clothing_size_ids:
+            # 构建SKU代码：brand-year+batch+style_number-clothing_type-target_gender-color_code-size
+            sku_code = f"{self.brand}-{self.year}{self.batch}{self.style_number}-{self.clothing_type}-{self.target_gender}-{self.color_id.color_code}-{size.size}"
+            # 把sku_code转换为大写
+            sku_code = sku_code.upper()
+            # 构建SKU名称
+            sku_name = f"{dict(self._fields['brand'].selection)[self.brand]} {self.year}年{self.batch}批次 {self.style_number}款 {dict(self._fields['clothing_type'].selection)[self.clothing_type]} {dict(self._fields['target_gender'].selection)[self.target_gender]} {self.color_id.name} {size.size.upper()}码"
+            
+            # 创建SKU记录
+            sku_variant = self.env['clothing.sku'].create({
+                'name': sku_name,
+                'sku': sku_code,
+                'size_id': size.id,
+                'color_id': self.color_id.id,
+                'request_id': self.id,
+            })
+            
+            sku_variants.append(sku_variant)
+        
+        return sku_variants
     
+    def action_generate_sku_variants(self):
+        """按钮动作：生成SKU变体
+        
+        用于在界面上提供生成SKU变体的按钮功能
+        """
+        try:
+            sku_variants = self.generate_sku_variants()
+            
+            # 显示成功消息
+            message = _("成功生成 %d 个SKU变体") % len(sku_variants)
+            
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _("SKU生成成功"),
+                    'message': message,
+                    'type': 'success',
+                    'sticky': False,
+                }
+            }
+        except Exception as e:
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _("SKU生成失败"),
+                    'message': str(e),
+                    'type': 'danger',
+                    'sticky': True,
+                }
+            }
+    
+    
+class ClothingSku(models.Model):
+    _name = 'clothing.sku'
+    _description = '服装SKU'
 
+    name = fields.Char(string='SKU名称', required=True)
+    sku = fields.Char(string='SKU', required=True)
+    size_id = fields.Many2one('clothing.size', string='尺寸')
+    color_id = fields.Many2one('clothing.color', string='颜色')
+    # clothing.development.request id
+    request_id = fields.Many2one('clothing.development.request', string='申请')

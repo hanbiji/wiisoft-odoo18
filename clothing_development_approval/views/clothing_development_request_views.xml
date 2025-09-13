@@ -128,6 +128,7 @@
                                     <field name="cost_variance" invisible="state not in ['in_development', 'completed']"/>
                                 </group>
                             </page>
+                            
                             <page name="other_info" string="其它信息">
                                 <group name="approval_info" string="审批信息">
                                     <field name="current_handler_id" invisible="state in ['draft', 'completed', 'cancelled']"/>
@@ -144,6 +145,21 @@
                                         <field name="sample_worker_id" groups="clothing_development_approval.group_product_manager,clothing_development_approval.group_clothing_development_manager"/>
                                     </group>
                                 </group>
+                            </page>
+                            <page name="sku_variants" string="SKU变体">
+                                <div class="oe_button_box" style="margin-bottom: 10px;">
+                                    <button name="action_generate_sku_variants" type="object" 
+                                            string="生成SKU变体" class="btn-primary"
+                                            help="根据当前配置生成所有SKU变体"/>
+                                </div>
+                                <field name="sku_variant_ids" nolabel="1">
+                                    <list editable="bottom">
+                                        <field name="name" string="名称" readonly="1"/>
+                                        <field name="sku" string="SKU" readonly="1"/>
+                                        <field name="size_id" string="尺寸" readonly="1"/>
+                                        <field name="color_id" string="颜色" readonly="1"/>
+                                    </list>
+                                </field>
                             </page>
                         </notebook>
                         
