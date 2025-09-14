@@ -37,6 +37,13 @@
                   parent="menu_clothing_development_root"
                   sequence="100"/>
         
+        <!-- 菜单项 -->
+        <menuitem id="menu_clothing_color" 
+                  name="颜色管理" 
+                  parent="menu_clothing_development_config" 
+                  action="action_clothing_color" 
+                  sequence="20"/>
+        
         <!-- 服装尺寸菜单 -->
         <menuitem id="menu_clothing_size"
                   name="服装尺寸"
