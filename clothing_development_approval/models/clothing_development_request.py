@@ -56,7 +56,14 @@ class ClothingDevelopmentRequest(models.Model):
         string='设计要求',
         help='详细的设计要求和规格说明'
     )
-    # 样衣内容
+    # 打板图
+    board_drawing_ids = fields.One2many(
+        'ir.attachment', 'res_id',
+        domain=[('res_model', '=', 'clothing.development.request')],
+        string='打板图',
+        help='上传多张打板图'
+    )
+    # 样衣图
     sample_clothing = fields.Text(
         string='样衣内容',
         help='上传样衣图片或视频'

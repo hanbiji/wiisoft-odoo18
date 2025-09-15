@@ -112,25 +112,23 @@
                                     <field name="design_requirements" nolabel="1" placeholder="请描述具体的设计要求和规格..." widget="html"/>
                                 </group>
                             </page>
-                            <page string="样衣内容" name="sample_clothing">
+                            <page string="打板图" name="board_drawing">
+                                <group>
+                                    <field name="board_drawing_ids" nolabel="1" placeholder="请上传样衣图片或视频..."/>
+                                </group>
+                            </page>
+                            <page string="样衣挂牌图" name="sample_clothing">
                                 <group>
                                     <field name="sample_clothing" nolabel="1" placeholder="请上传样衣图片或视频..." widget="html"/>
                                 </group>
                             </page>
-                            <page string="附件" name="attachments">
-                                <group>
-                                    <field name="attachment_ids" nolabel="1" widget="many2many_binary"/>
-                                </group>
-                            </page>
-                            <page name="budget_info" string="预算信息">
+
+                            <page name="other_info" string="其它信息">
                                 <group>
                                     <field name="estimated_cost"/>
                                     <field name="actual_cost" invisible="state not in ['in_development', 'completed']"/>
                                     <field name="cost_variance" invisible="state not in ['in_development', 'completed']"/>
                                 </group>
-                            </page>
-                            
-                            <page name="other_info" string="其它信息">
                                 <group name="approval_info" string="审批信息">
                                     <field name="current_handler_id" invisible="state in ['draft', 'completed', 'cancelled']"/>
                                     <field name="approver_id" invisible="state in ['draft']"/>
