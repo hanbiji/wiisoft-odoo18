@@ -114,7 +114,7 @@
                             </page>
                             <page string="打板图" name="board_drawing">
                                 <group>
-                                    <field name="board_drawing_ids" nolabel="1" placeholder="请上传样衣图片或视频..."/>
+                                    <field name="board_drawing_ids" nolabel="1" widget="many2many_binary" options="{'preview_image': True, 'accepted_file_extensions': '.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp,.mp4,.avi,.mov,.wmv'}" context="{'default_res_model': 'clothing.development.request'}"/>
                                 </group>
                             </page>
                             <page string="样衣挂牌图" name="sample_clothing">
