@@ -48,11 +48,19 @@ class ClothingDevelopmentRequest(models.Model):
     )
     
     description = fields.Text(
-        string='详细描述',
+        string='设计参考',
         required=True,
         help='详细描述服装开发需求、设计理念、功能要求等'
     )
-    
+    design_requirements = fields.Text(
+        string='设计要求',
+        help='详细的设计要求和规格说明'
+    )
+    # 样衣内容
+    sample_clothing = fields.Text(
+        string='样衣内容',
+        help='上传样衣图片或视频'
+    )
     thumbnail = fields.Binary(
         string='缩略图',
         help='服装设计的缩略图或效果图',
@@ -94,7 +102,16 @@ class ClothingDevelopmentRequest(models.Model):
         ('jacket', '外套'),
         ('skirt', '裙子'),
         ('suit', '套装'),
-    ], string='设计风格', required=True, tracking=True, help='选择要开发的服装类型')
+    ], string='服装类别', required=True, help='选择要开发的服装类型')
+    # 服装风格: 工装,时装,潮酷,复古,常规,其他
+    style = fields.Selection([
+        ('formal', '工装'),
+        ('fashion', '时装'),
+        ('trendy', '潮酷'),
+        ('retro', '复古'),
+        ('regular', '常规'),
+        ('other', '其他'),
+    ], string='服装风格', required=True, help='选择服装的设计风格')
     
     target_season = fields.Selection([
         ('spring', '春季'),
@@ -114,11 +131,6 @@ class ClothingDevelopmentRequest(models.Model):
         'clothing.color',
         string='次要颜色',
         help='服装的次要颜色或配色方案'
-    )
-    
-    design_requirements = fields.Text(
-        string='设计要求',
-        help='详细的设计要求和规格说明'
     )
     
     target_gender = fields.Selection([

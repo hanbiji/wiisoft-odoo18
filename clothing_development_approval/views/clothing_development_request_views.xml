@@ -83,9 +83,9 @@
                                 <field name="batch"/>
                                 <field name="style_number"/>
                                 <field name="clothing_type"/>
+                                <field name="style"/>
                                 <field name="target_season"/>
                                 <field name="target_gender"/>
-                                <field name="priority"/>
                             </group>
                             <group name="schedule_info" string="时间安排">
                                 <field name="expected_start_date"/>
@@ -96,29 +96,30 @@
                                 <field name="clothing_size_ids" widget="many2many_tags"/>
                                 <field name="color_id"/>
                                 <field name="secondary_color_ids" widget="many2many_tags"/>
+                                <field name="priority"/>
                             </group>
                         </group>
                     
                         
                         <notebook>
-                            <page string="详细描述" name="description">
+                            <page string="设计参考" name="description">
                                 <group>
                                     <field name="description" nolabel="1" placeholder="请详细描述服装开发需求..." widget="html" options="{'toolbar': true}"/>
                                 </group>
                             </page>
-                            <page string="设计要求" name="design_requirements">
+                            <page string="设计稿图" name="design_requirements">
                                 <group>
                                     <field name="design_requirements" nolabel="1" placeholder="请描述具体的设计要求和规格..." widget="html"/>
                                 </group>
                             </page>
-                            <page string="备注" name="notes">
+                            <page string="样衣内容" name="sample_clothing">
                                 <group>
-                                    <field name="notes" nolabel="1" placeholder="其他备注信息..." widget="html"/>
+                                    <field name="sample_clothing" nolabel="1" placeholder="请上传样衣图片或视频..." widget="html"/>
                                 </group>
                             </page>
                             <page string="附件" name="attachments">
                                 <group>
-                                    <field name="attachment_ids" widget="many2many_binary"/>
+                                    <field name="attachment_ids" nolabel="1" widget="many2many_binary"/>
                                 </group>
                             </page>
                             <page name="budget_info" string="预算信息">

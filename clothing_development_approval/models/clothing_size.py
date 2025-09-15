@@ -14,7 +14,7 @@ class ClothingSize(models.Model):
     _name = 'clothing.size'
     _description = '服装尺寸'
     _order = 'clothing_type, target_gender, size'
-    _rec_name = 'display_name'
+    _rec_name = 'size'
     
     # ========== 基本信息字段 ==========
     clothing_type = fields.Selection([
