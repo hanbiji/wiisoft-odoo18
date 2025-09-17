@@ -3,9 +3,8 @@
  * Odoo 18 backend asset
  * 纯DOM实现的轻量级弹窗画廊，避免对OWL/对话服务的依赖。
  */
-odoo.define('clothing_development_approval.wiiboard_gallery', function (require) {
+odoo.define('@clothing_development_approval/js/wiiboard_gallery', [], function (require) {
     'use strict';
-    const { registry } = require('@web/core/registry');
 
     function buildOverlay() {
         const overlay = document.createElement('div');
@@ -30,7 +29,7 @@ odoo.define('clothing_development_approval.wiiboard_gallery', function (require)
                     <div class="wiiboard-title"></div>
                     <div class="wiiboard-count"></div>
                 </div>
-                <div class="wiiboard-imgwrap"><img class="wiiboard-img"/></div>
+                <div class="wiiboard-imgwrap"><img class="wiiboard-img" alt="preview image"/></div>
                 <div class="wiiboard-actions">
                     <button class="wiiboard-btn wiiboard-prev">上一张</button>
                     <button class="wiiboard-btn wiiboard-next">下一张</button>
@@ -81,8 +80,11 @@ odoo.define('clothing_development_approval.wiiboard_gallery', function (require)
     }
 
     function start() {
+        // 全局仅绑定一次，避免重复注册
+        if (window.__wiiboard_gallery_bound__) return;
+        window.__wiiboard_gallery_bound__ = true;
         document.addEventListener('click', function (ev) {
-            const a = ev.target.closest('a.wiiboard-thumb');
+            const a = ev.target && ev.target.closest ? ev.target.closest('a.wiiboard-thumb') : null;
             if (!a) return;
             const scope = a.closest('.wiiboard-gallery');
             if (!scope) return;
@@ -94,5 +96,6 @@ odoo.define('clothing_development_approval.wiiboard_gallery', function (require)
         }, true); // 捕获阶段，早于其他处理
     }
 
-    registry.category('main_components').add('clothing_development_approval.wiiboard_gallery_bootstrap', { start });
+    // 立即启动（资源加载后执行），不依赖 registry/main_components，避免 MutationObserver 报错
+    start();
 });
