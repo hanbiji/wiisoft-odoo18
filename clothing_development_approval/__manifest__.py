@@ -31,6 +31,7 @@
         'mail',
         'portal',
         'hr',
+        'web',
     ],
     'data': [
         # 安全配置
@@ -53,11 +54,10 @@
         # 'demo/demo.xml',
     ],
     'assets': {
-        # 静态资源
-        # 'web.assets_backend': [
-        #     'clothing_development_approval/static/src/css/style.css',
-        #     'clothing_development_approval/static/src/js/main.js',
-        # ],
+        'web.assets_backend': [
+            'clothing_development_approval/static/src/js/wiiboard_gallery.js',
+            # 'clothing_development_approval/static/src/css/style.css',
+        ],
     },
     'installable': True,
     'auto_install': False,
