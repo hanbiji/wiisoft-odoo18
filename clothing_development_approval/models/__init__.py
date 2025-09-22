@@ -5,4 +5,5 @@
 from . import clothing_development_request
 from . import clothing_color
 from . import clothing_size
+from . import clothing_design_reference
 # from . import approval_workflow

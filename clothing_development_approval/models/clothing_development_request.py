@@ -57,6 +57,10 @@ class ClothingDevelopmentRequest(models.Model):
         help='详细的设计要求和规格说明'
     )
     # 打板图
+    board_drawing_html = fields.Html(
+        string='打板图',
+        help='上传多张打板图'
+    )
     board_drawing_ids = fields.One2many(
         'ir.attachment', 'res_id',
         domain=[('res_model', '=', 'clothing.development.request')],
@@ -315,6 +319,35 @@ class ClothingDevelopmentRequest(models.Model):
         'ir.attachment',
         string='附件',
         help='上传相关的设计图、参考图等附件'
+    )
+    
+    # 设计参考图片关联
+    design_reference_ids = fields.One2many(
+        'clothing.design.reference',
+        'request_id',
+        string='设计参考图片',
+        help='该申请关联的设计参考图片'
+    )
+    # 服装设计草稿关联
+    design_draft_ids = fields.One2many(
+        'clothing.design.draft',
+        'request_id',
+        string='设计草稿',
+        help='该申请关联的设计草稿'
+    )
+    # 服装设计打板图关联
+    design_board_ids = fields.One2many(
+        'clothing.design.board',
+        'request_id',
+        string='设计打板图',
+        help='该申请关联的设计打板图'
+    )
+    # 服装设计样衣挂板图关联
+    design_sample_ids = fields.One2many(
+        'clothing.design.sample',
+        'request_id',
+        string='设计样衣挂板图',
+        help='该申请关联的设计样衣挂板图'
     )
     
     # SKU变体关联字段
@@ -756,3 +789,4 @@ class ClothingSku(models.Model):
     color_id = fields.Many2one('clothing.color', string='颜色')
     # clothing.development.request id
     request_id = fields.Many2one('clothing.development.request', string='申请')
+

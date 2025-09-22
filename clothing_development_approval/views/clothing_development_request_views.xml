@@ -104,24 +104,131 @@
                         <notebook>
                             <page string="设计参考" name="description">
                                 <group>
-                                    <field name="description" nolabel="1" placeholder="请详细描述服装开发需求..." widget="html" options="{'toolbar': true}"/>
+                                    <field name="description" nolabel="1" placeholder="请详细描述服装开发需求..." widget="html"/>
+                                </group>
+                                <group>
+                                    <field name="design_reference_ids" nolabel="1">
+                                        <kanban>
+                                            <field name="id"/>
+                                            <field name="name"/>
+                                            <field name="image"/>
+                                            <templates>
+                                                <t t-name="kanban-box">
+                                                    <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                        <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
+                                                             t-att-title="record.name.value" 
+                                                             t-att-alt="record.name.value" 
+                                                             class="o_image_preview oe_kanban_no_global_click"
+                                                             t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
+                                                             style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
+                                                    </div>
+                                                </t>
+                                            </templates>
+                                        </kanban>
+                                        <form delete="false">
+                                            <sheet>
+                                                <field nolabel="1" width="100%" name="image" widget="image" />
+                                            </sheet>
+                                        </form>
+                                    </field>
                                 </group>
                             </page>
                             <page string="设计稿图" name="design_requirements">
                                 <group>
                                     <field name="design_requirements" nolabel="1" placeholder="请描述具体的设计要求和规格..." widget="html"/>
                                 </group>
-                            </page>
-                            <page string="打板图" name="board_drawing">
                                 <group>
-                                    <field name="board_drawing_ids" nolabel="1" widget="many2many_binary" options="{'preview_image': True, 'accepted_file_extensions': '.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp,.mp4,.avi,.mov,.wmv'}" context="{'default_res_model': 'clothing.development.request'}"/>
+                                    <field name="design_draft_ids" nolabel="1">
+                                        <kanban>
+                                            <field name="id"/>
+                                            <field name="name"/>
+                                            <field name="image"/>
+                                            <templates>
+                                                <t t-name="kanban-box">
+                                                    <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                        <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
+                                                             t-att-title="record.name.value" 
+                                                             t-att-alt="record.name.value" 
+                                                             class="o_image_preview oe_kanban_no_global_click"
+                                                             t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
+                                                             style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
+                                                    </div>
+                                                </t>
+                                            </templates>
+                                        </kanban>
+                                        <form delete="false">
+                                            <sheet>
+                                                <field nolabel="1" width="100%" name="image" widget="image" />
+                                            </sheet>
+                                        </form>
+                                    </field>
                                 </group>
                             </page>
-                            <page string="样衣挂牌图" name="sample_clothing">
+
+                            <page string="打板图" name="board_drawing">
+                                <group>
+                                    <field name="board_drawing_html" nolabel="1" widget="html" />
+                                </group>
+                                <group>
+                                    <field name="design_board_ids" nolabel="1">
+                                        <kanban>
+                                            <field name="id"/>
+                                            <field name="name"/>
+                                            <field name="image"/>
+                                            <templates>
+                                                <t t-name="kanban-box">
+                                                    <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                        <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
+                                                             t-att-title="record.name.value" 
+                                                             t-att-alt="record.name.value" 
+                                                             class="o_image_preview oe_kanban_no_global_click"
+                                                             t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
+                                                             style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
+                                                    </div>
+                                                </t>
+                                            </templates>
+                                        </kanban>
+                                        <form delete="false">
+                                            <sheet>
+                                                <field nolabel="1" width="100%" name="image" widget="image" />
+                                            </sheet>
+                                        </form>
+                                    </field>
+                                </group>
+                            </page>
+
+                            <page string="样衣挂板图" name="sample_clothing">
                                 <group>
                                     <field name="sample_clothing" nolabel="1" placeholder="请上传样衣图片或视频..." widget="html"/>
                                 </group>
+                                <group>
+                                    <field name="design_sample_ids" nolabel="1">
+                                        <kanban>
+                                            <field name="id"/>
+                                            <field name="name"/>
+                                            <field name="image"/>
+                                            <templates>
+                                                <t t-name="kanban-box">
+                                                    <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
+                                                        <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
+                                                             t-att-title="record.name.value" 
+                                                             t-att-alt="record.name.value" 
+                                                             class="o_image_preview oe_kanban_no_global_click"
+                                                             t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
+                                                             style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
+                                                    </div>
+                                                </t>
+                                            </templates>
+                                        </kanban>
+                                        <form delete="false">
+                                            <sheet>
+                                                <field nolabel="1" width="100%" name="image" widget="image" />
+                                            </sheet>
+                                        </form>
+                                    </field>
+                                </group>
                             </page>
+                            
 
                             <page name="other_info" string="其它信息">
                                 <group>
@@ -263,7 +370,7 @@
             <field name="name">服装开发申请</field>
             <field name="res_model">clothing.development.request</field>
             <field name="view_mode">list,form</field>
-            <field name="context">{}</field>
+            <field name="context">{'form_view_initial_mode': 'readonly'}</field>
             <field name="help" type="html">
                 <p class="o_view_nocontent_smiling_face">
                     创建第一个服装开发申请

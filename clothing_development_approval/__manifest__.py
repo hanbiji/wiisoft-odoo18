@@ -45,6 +45,7 @@
         'views/clothing_color_views.xml',
         'views/clothing_size_views.xml',
         'views/clothing_sku_views.xml',
+        'views/clothing_design_reference_views.xml',
         'views/views.xml',
         'views/menus.xml',
     ],
