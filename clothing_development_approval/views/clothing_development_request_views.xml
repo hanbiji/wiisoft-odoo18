@@ -21,31 +21,27 @@
                         <button name="action_approve_to_pattern" type="object" string="批准进入版型制作" 
                                 class="oe_highlight" invisible="state != 'design_review'" 
                                 groups="clothing_development_approval.group_product_manager"/>
+                        <!-- 设计师操作 -->
+                        <button name="action_design_complete" type="object" string="设计完成" 
+                                class="oe_highlight" invisible="state != 'design'" 
+                                groups="clothing_development_approval.group_designer"/>
+                        <!-- 版师操作 -->
+                        <button name="action_pattern_complete" type="object" string="版型制作完成" 
+                                class="oe_highlight" invisible="state != 'pattern_making'" 
+                                groups="clothing_development_approval.group_pattern_maker"/>
                         <button name="action_approve_to_sample" type="object" string="批准进入样衣制作" 
                                 class="oe_highlight" invisible="state != 'pattern_review'" 
                                 groups="clothing_development_approval.group_product_manager"/>
+                        <!-- 样衣工操作 -->
+                        <button name="action_sample_complete" type="object" string="样衣制作完成" 
+                                class="oe_highlight" invisible="state != 'sample_making'" 
+                                groups="clothing_development_approval.group_sample_worker"/>
                         <button name="action_final_approval" type="object" string="进入最终审批" 
                                 class="oe_highlight" invisible="state != 'sample_review'" 
                                 groups="clothing_development_approval.group_product_manager"/>
                         <button name="action_approve" type="object" string="最终批准" 
                                 class="oe_highlight" invisible="state != 'final_approval'" 
                                 groups="clothing_development_approval.group_product_manager"/>
-                        
-                        <!-- 设计师操作 -->
-                        <button name="action_design_complete" type="object" string="设计完成" 
-                                class="oe_highlight" invisible="state != 'design'" 
-                                groups="clothing_development_approval.group_designer"/>
-                        
-                        <!-- 版师操作 -->
-                        <button name="action_pattern_complete" type="object" string="版型制作完成" 
-                                class="oe_highlight" invisible="state != 'pattern_making'" 
-                                groups="clothing_development_approval.group_pattern_maker"/>
-                        
-                        <!-- 样衣工操作 -->
-                        <button name="action_sample_complete" type="object" string="样衣制作完成" 
-                                class="oe_highlight" invisible="state != 'sample_making'" 
-                                groups="clothing_development_approval.group_sample_worker"/>
-                        
                         <!-- 通用操作 -->
                         <button name="action_complete" type="object" string="完成开发" 
                                 class="oe_highlight" invisible="state != 'approved'"/>
@@ -138,6 +134,7 @@
                                     <field name="design_requirements" nolabel="1" placeholder="请描述具体的设计要求和规格..." widget="html"/>
                                 </group>
                                 <group>
+<<<<<<< HEAD
                                     <field name="design_draft_ids" nolabel="1">
                                         <kanban>
                                             <field name="id"/>
@@ -152,15 +149,46 @@
                                                              class="o_image_preview oe_kanban_no_global_click"
                                                              t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
                                                              style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
+=======
+                                    <!-- 限定仅显示本记录的附件，并在上传时自动带上res_model与当前记录id -->
+                                    <field name="board_drawing_ids"
+                                           nolabel="1"
+                                           widget="many2many_binary"
+                                           domain="[('res_model', '=', 'clothing.development.request'), ('res_id', '=', id)]"
+                                           options="{'preview_image': True, 'accepted_file_extensions': '.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp,.mp4,.avi,.mov,.wmv'}"
+                                           context="{'default_res_model': 'clothing.development.request', 'default_res_id': id}"/>
+
+                                    <separator string="预览（点击打开）"/>
+                                    <field name="board_drawing_ids" nolabel="1" readonly="1" mode="kanban" options="{'no_open': True}">
+                                        <kanban class="o_kanban_small_column o_attachments_kanban wiiboard-gallery">
+                                            <templates>
+                                                <t t-name="card">
+                                                    <div class="o_kanban_record" style="text-align:center; padding:8px;">
+                                                        <t t-if="record.mimetype and record.mimetype.raw_value and record.mimetype.raw_value.startsWith('image/')">
+                                                            <a t-att-href="'/web/image/%s?unique=1' % record.id.raw_value" class="wiiboard-thumb" target="_self" t-att-title="record.name and record.name.value" t-att-data-id="record.id.raw_value" t-att-data-src="'/web/image/%s?unique=1' % record.id.raw_value" t-att-data-name="record.name and record.name.value">
+                                                                <img t-att-src="'/web/image/%s?unique=1' % record.id.raw_value" t-att-alt="(record.name and record.name.value) or 'image'" style="max-height:140px; max-width:100%; object-fit:contain; border:1px solid #ddd; border-radius:4px;"/>
+                                                            </a>
+                                                            <div class="text-truncate" style="margin-top:6px;"><t t-esc="record.name and record.name.value"/></div>
+                                                        </t>
+                                                        <t t-else="">
+                                                            <a t-att-href="'/web/content/%s?download=false' % record.id.raw_value" target="_blank" t-att-title="record.name and record.name.value" style="display:inline-block; text-decoration:none; color:inherit;">
+                                                                <i class="fa fa-file-o fa-3x" aria-hidden="true" style="color:#888;"></i>
+                                                                <div class="text-truncate" style="margin-top:6px; max-width:180px;"><t t-esc="record.name and record.name.value"/></div>
+                                                            </a>
+                                                        </t>
+>>>>>>> bdd8369fb3ceb1a2345e68a487c950edec3d7d1c
                                                     </div>
                                                 </t>
                                             </templates>
                                         </kanban>
+<<<<<<< HEAD
                                         <form delete="false">
                                             <sheet>
                                                 <field nolabel="1" width="100%" name="image" widget="image" />
                                             </sheet>
                                         </form>
+=======
+>>>>>>> bdd8369fb3ceb1a2345e68a487c950edec3d7d1c
                                     </field>
                                 </group>
                             </page>
@@ -252,6 +280,8 @@
                                     </group>
                                 </group>
                             </page>
+                            
+                            <!-- SKU 变体 -->
                             <page name="sku_variants" string="SKU变体">
                                 <div class="oe_button_box" style="margin-bottom: 10px;">
                                     <button name="action_generate_sku_variants" type="object" 
@@ -268,17 +298,15 @@
                                 </field>
                             </page>
                         </notebook>
-                        
                     </sheet>
                     <chatter/>
-                    
                 </form>
             </field>
         </record>
         
         <!-- 服装开发申请列表视图 -->
-        <record id="view_clothing_development_request_list" model="ir.ui.view">
-            <field name="name">clothing.development.request.list</field>
+        <record id="view_clothing_development_request_tree" model="ir.ui.view">
+            <field name="name">clothing.development.request.tree</field>
             <field name="model">clothing.development.request</field>
             <field name="arch" type="xml">
                 <list string="服装开发申请" decoration-info="state=='draft'" decoration-warning="state in ['submitted','product_review']" decoration-success="state=='approved'" decoration-primary="state in ['design','pattern_making','sample_making']" decoration-muted="state in ['cancelled','rejected']">
@@ -335,27 +363,9 @@
                     <filter string="已取消" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
                     
                     <separator/>
-                    <filter string="我是产品经理" name="my_product_manager" domain="[('product_manager_id', '=', uid)]" groups="clothing_development_approval.group_product_manager"/>
-                    <filter string="我是设计师" name="my_designer" domain="[('designer_id', '=', uid)]" groups="clothing_development_approval.group_designer"/>
-                    <filter string="我是版师" name="my_pattern_maker" domain="[('pattern_maker_id', '=', uid)]" groups="clothing_development_approval.group_pattern_maker"/>
-                    <filter string="我是样衣工" name="my_sample_worker" domain="[('sample_worker_id', '=', uid)]" groups="clothing_development_approval.group_sample_worker"/>
-                    
-                    <separator/>
-                    <filter string="高优先级" name="high_priority" domain="[('priority', '=', 'high')]"/>
-                    <filter string="中优先级" name="medium_priority" domain="[('priority', '=', 'medium')]"/>
-                    <filter string="低优先级" name="low_priority" domain="[('priority', '=', 'low')]"/>
-                    
-                    <separator/>
-                    <filter string="本月申请" name="this_month" domain="[('expected_start_date', '>=', (context_today() - relativedelta(day=1)).strftime('%Y-%m-%d')), ('expected_start_date', '&lt;', (context_today() + relativedelta(months=1, day=1)).strftime('%Y-%m-%d'))]"/>
-                    <filter string="逾期项目" name="overdue" domain="[('expected_completion_date', '&lt;', context_today()), ('state', 'not in', ['completed', 'cancelled'])]"/>
-                    
-                    <!-- 分组 -->
                     <group expand="0" string="分组">
-                        <filter string="年份" name="group_by_year" context="{'group_by': 'year'}"/>
-                        <filter string="批次" name="group_by_batch" context="{'group_by': 'batch'}"/>
                         <filter string="状态" name="group_by_state" context="{'group_by': 'state'}"/>
-                        <filter string="服装类型" name="group_by_clothing_type" context="{'group_by': 'clothing_type'}"/>
-                        <filter string="季节" name="group_by_season" context="{'group_by': 'target_season'}"/>
+                        <filter string="年份" name="group_by_year" context="{'group_by': 'year'}"/>
                         <filter string="申请人" name="group_by_applicant" context="{'group_by': 'applicant_id'}"/>
                         <filter string="部门" name="group_by_department" context="{'group_by': 'department_id'}"/>
                         <filter string="优先级" name="group_by_priority" context="{'group_by': 'priority'}"/>
