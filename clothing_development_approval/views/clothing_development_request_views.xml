@@ -134,7 +134,6 @@
                                     <field name="design_requirements" nolabel="1" placeholder="请描述具体的设计要求和规格..." widget="html"/>
                                 </group>
                                 <group>
-<<<<<<< HEAD
                                     <field name="design_draft_ids" nolabel="1">
                                         <kanban>
                                             <field name="id"/>
@@ -149,46 +148,15 @@
                                                              class="o_image_preview oe_kanban_no_global_click"
                                                              t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
                                                              style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
-=======
-                                    <!-- 限定仅显示本记录的附件，并在上传时自动带上res_model与当前记录id -->
-                                    <field name="board_drawing_ids"
-                                           nolabel="1"
-                                           widget="many2many_binary"
-                                           domain="[('res_model', '=', 'clothing.development.request'), ('res_id', '=', id)]"
-                                           options="{'preview_image': True, 'accepted_file_extensions': '.png,.jpg,.jpeg,.gif,.bmp,.tiff,.webp,.mp4,.avi,.mov,.wmv'}"
-                                           context="{'default_res_model': 'clothing.development.request', 'default_res_id': id}"/>
-
-                                    <separator string="预览（点击打开）"/>
-                                    <field name="board_drawing_ids" nolabel="1" readonly="1" mode="kanban" options="{'no_open': True}">
-                                        <kanban class="o_kanban_small_column o_attachments_kanban wiiboard-gallery">
-                                            <templates>
-                                                <t t-name="card">
-                                                    <div class="o_kanban_record" style="text-align:center; padding:8px;">
-                                                        <t t-if="record.mimetype and record.mimetype.raw_value and record.mimetype.raw_value.startsWith('image/')">
-                                                            <a t-att-href="'/web/image/%s?unique=1' % record.id.raw_value" class="wiiboard-thumb" target="_self" t-att-title="record.name and record.name.value" t-att-data-id="record.id.raw_value" t-att-data-src="'/web/image/%s?unique=1' % record.id.raw_value" t-att-data-name="record.name and record.name.value">
-                                                                <img t-att-src="'/web/image/%s?unique=1' % record.id.raw_value" t-att-alt="(record.name and record.name.value) or 'image'" style="max-height:140px; max-width:100%; object-fit:contain; border:1px solid #ddd; border-radius:4px;"/>
-                                                            </a>
-                                                            <div class="text-truncate" style="margin-top:6px;"><t t-esc="record.name and record.name.value"/></div>
-                                                        </t>
-                                                        <t t-else="">
-                                                            <a t-att-href="'/web/content/%s?download=false' % record.id.raw_value" target="_blank" t-att-title="record.name and record.name.value" style="display:inline-block; text-decoration:none; color:inherit;">
-                                                                <i class="fa fa-file-o fa-3x" aria-hidden="true" style="color:#888;"></i>
-                                                                <div class="text-truncate" style="margin-top:6px; max-width:180px;"><t t-esc="record.name and record.name.value"/></div>
-                                                            </a>
-                                                        </t>
->>>>>>> bdd8369fb3ceb1a2345e68a487c950edec3d7d1c
                                                     </div>
                                                 </t>
                                             </templates>
                                         </kanban>
-<<<<<<< HEAD
                                         <form delete="false">
                                             <sheet>
                                                 <field nolabel="1" width="100%" name="image" widget="image" />
                                             </sheet>
                                         </form>
-=======
->>>>>>> bdd8369fb3ceb1a2345e68a487c950edec3d7d1c
                                     </field>
                                 </group>
                             </page>
