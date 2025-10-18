@@ -1,0 +1,40 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_partner_form_inherit_mall_leasing" model="ir.ui.view">
+        <field name="name">res.partner.form.mall.leasing</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <notebook position="inside">
+                <page string="租赁档案">
+                    <group>
+                        <field name="is_tenant"/>
+                        <field name="industry_type"/>
+                    </group>
+                    <field name="leasing_contract_ids">
+                        <list>
+                            <field name="name"/>
+                            <field name="contract_type"/>
+                            <field name="facade_id"/>
+                            <field name="state"/>
+                            <field name="lease_start_date"/>
+                            <field name="lease_end_date"/>
+                            <field name="rent_amount"/>
+                        </list>
+                    </field>
+                </page>
+                <page string="沟通日志">
+                    <field name="communication_ids">
+                        <list>
+                            <field name="date"/>
+                            <field name="method"/>
+                            <field name="content"/>
+                            <field name="contract_id"/>
+                            <field name="user_id"/>
+                        </list>
+                    </field>
+                </page>
+            </notebook>
+        </field>
+    </record>
+</odoo>

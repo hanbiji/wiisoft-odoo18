@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="cron_mall_generate_bills" model="ir.cron">
+        <field name="name">租赁合同自动出账</field>
+        <field name="model_id" ref="model_mall_leasing_contract"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_generate_periodic_bills()</field>
+        <field name="active">True</field>
+        <field name="interval_type">days</field>
+        <field name="interval_number">1</field>
+    </record>
+
+    <record id="cron_mall_expiry_reminder" model="ir.cron">
+        <field name="name">合同到期预警</field>
+        <field name="model_id" ref="model_mall_leasing_contract"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_expiry_reminder()</field>
+        <field name="active">True</field>
+        <field name="interval_type">days</field>
+        <field name="interval_number">1</field>
+    </record>
+
+    <record id="cron_mall_payment_reminders" model="ir.cron">
+        <field name="name">收付款提醒与欠费预警</field>
+        <field name="model_id" ref="model_mall_leasing_contract"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_payment_reminders()</field>
+        <field name="active">True</field>
+        <field name="interval_type">days</field>
+        <field name="interval_number">1</field>
+    </record>
+
+    <record id="cron_mall_vacancy_warning" model="ir.cron">
+        <field name="name">空置率预警</field>
+        <field name="model_id" ref="base.model_res_config_settings"/>
+        <field name="state">code</field>
+        <field name="code">model.cron_vacancy_warning()</field>
+        <field name="active">True</field>
+        <field name="interval_type">days</field>
+        <field name="interval_number">1</field>
+    </record>
+</odoo>

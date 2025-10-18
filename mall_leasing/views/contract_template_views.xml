@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mall_contract_template_tree" model="ir.ui.view">
+        <field name="name">mall.leasing.contract.template.list</field>
+        <field name="model">mall.leasing.contract.template</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="contract_type"/>
+                <field name="rent_amount"/>
+                <field name="payment_frequency"/>
+                <field name="payment_day"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mall_contract_template_form" model="ir.ui.view">
+        <field name="name">mall.leasing.contract.template.form</field>
+        <field name="model">mall.leasing.contract.template</field>
+        <field name="arch" type="xml">
+            <form string="合同模板">
+                <header>
+                    <button name="action_create_contract" type="object" string="基于模板创建合同" class="oe_highlight"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="contract_type"/>
+                            <field name="currency_id"/>
+                            <field name="payment_frequency"/>
+                            <field name="payment_day"/>
+                            <field name="escalation_rate"/>
+                        </group>
+                        <group>
+                            <field name="rent_amount"/>
+                            <field name="deposit"/>
+                            <field name="water_fee"/>
+                            <field name="electric_fee"/>
+                            <field name="property_fee"/>
+                            <field name="garbage_fee"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="introducer_id"/>
+                        <field name="commission_type"/>
+                        <field name="commission_amount"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_mall_contract_template" model="ir.actions.act_window">
+        <field name="name">合同模板</field>
+        <field name="res_model">mall.leasing.contract.template</field>
+        <field name="view_mode">list,form</field>
+    </record>
+
+    <menuitem id="menu_mall_contract_template" name="合同模板" parent="menu_mall_contract" action="action_mall_contract_template" sequence="15"/>
+</odoo>

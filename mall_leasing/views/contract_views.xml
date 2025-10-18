@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mall_contract_tree" model="ir.ui.view">
+        <field name="name">mall.leasing.contract.list</field>
+        <field name="model">mall.leasing.contract</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="name"/>
+                <field name="contract_type"/>
+                <field name="facade_id"/>
+                <field name="partner_id"/>
+                <field name="state"/>
+                <field name="lease_start_date"/>
+                <field name="lease_end_date"/>
+                <field name="payment_frequency"/>
+                <field name="rent_amount"/>
+                <field name="next_bill_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mall_contract_form" model="ir.ui.view">
+        <field name="name">mall.leasing.contract.form</field>
+        <field name="model">mall.leasing.contract</field>
+        <field name="arch" type="xml">
+            <form string="租赁合同">
+                <header>
+                    <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight"/>
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,signed,active,renewed,terminated"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="name"/>
+                            <field name="contract_type"/>
+                            <field name="facade_id"/>
+                            <field name="partner_id"/>
+                            <field name="currency_id"/>
+                            <field name="bank_account"/>
+                        </group>
+                        <group>
+                            <field name="lease_start_date"/>
+                            <field name="lease_end_date"/>
+                            <field name="free_rent_from"/>
+                            <field name="free_rent_to"/>
+                            <field name="escalation_rate"/>
+                            <field name="payment_frequency"/>
+                            <field name="payment_day"/>
+                            <field name="next_bill_date" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="费用">
+                            <group>
+                                <field name="rent_amount"/>
+                                <field name="deposit"/>
+                                <field name="water_fee"/>
+                                <field name="electric_fee"/>
+                                <field name="property_fee"/>
+                                <field name="garbage_fee"/>
+                            </group>
+                        </page>
+                        <page string="介绍人/中介">
+                            <group>
+                                <field name="introducer_id"/>
+                                <field name="commission_type"/>
+                                <field name="commission_amount"/>
+                                <field name="commission_paid"/>
+                            </group>
+                        </page>
+                        <page string="历史版本">
+                            <field name="version_ids">
+                                <list editable="bottom">
+                                    <field name="change_date"/>
+                                    <field name="change_note"/>
+                                    <field name="data_json"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="act_mall_contract" model="ir.actions.act_window">
+        <field name="name">合同</field>
+        <field name="res_model">mall.leasing.contract</field>
+        <field name="view_mode">list,form</field>
+    </record>
+</odoo>

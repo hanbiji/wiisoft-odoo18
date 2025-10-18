@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="view_mall_communication_tree" model="ir.ui.view">
+        <field name="name">mall.communication.list</field>
+        <field name="model">mall.communication</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="date"/>
+                <field name="partner_id"/>
+                <field name="method"/>
+                <field name="contract_id"/>
+                <field name="user_id"/>
+                <field name="content"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_mall_communication_form" model="ir.ui.view">
+        <field name="name">mall.communication.form</field>
+        <field name="model">mall.communication</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="date"/>
+                            <field name="partner_id"/>
+                            <field name="contract_id"/>
+                        </group>
+                        <group>
+                            <field name="method"/>
+                            <field name="user_id"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="content" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+</odoo>

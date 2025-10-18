@@ -1,0 +1,11 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_mall_facade_user,Mall Facade user,model_mall_facade,base.group_user,1,1,1,0
+access_mall_contract_user,Mall Contract user,model_mall_leasing_contract,base.group_user,1,1,1,0
+access_mall_contract_version_user,Mall Contract Version user,model_mall_leasing_contract_version,base.group_user,1,0,0,0
+access_mall_communication_user,Mall Communication user,model_mall_communication,base.group_user,1,1,1,0
+access_mall_contract_template_user,Mall Contract Template user,model_mall_leasing_contract_template,base.group_user,1,1,1,0
+access_mall_facade_admin,Mall Facade admin,model_mall_facade,base.group_system,1,1,1,1
+access_mall_contract_admin,Mall Contract admin,model_mall_leasing_contract,base.group_system,1,1,1,1
+access_mall_contract_version_admin,Mall Contract Version admin,model_mall_leasing_contract_version,base.group_system,1,1,1,1
+access_mall_communication_admin,Mall Communication admin,model_mall_communication,base.group_system,1,1,1,1
+access_mall_contract_template_admin,Mall Contract Template admin,model_mall_leasing_contract_template,base.group_system,1,1,1,1
