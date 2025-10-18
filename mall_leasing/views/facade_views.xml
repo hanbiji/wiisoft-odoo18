@@ -1,5 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
+<data>
+    <!-- 先定义按钮引用的动作，避免占位符解析失败 -->
+    <record id="action_view_landlord_contract" model="ir.actions.act_window">
+        <field name="name">房东合同</field>
+        <field name="res_model">mall.leasing.contract</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[("facade_id", "=", active_id), ("contract_type", "=", "landlord")]</field>
+        <field name="context">{"default_facade_id": active_id, "default_contract_type": "landlord"}</field>
+    </record>
+
+    <record id="action_view_tenant_contract" model="ir.actions.act_window">
+        <field name="name">租户合同</field>
+        <field name="res_model">mall.leasing.contract</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[("facade_id", "=", active_id), ("contract_type", "=", "tenant")]</field>
+        <field name="context">{"default_facade_id": active_id, "default_contract_type": "tenant"}</field>
+    </record>
+
     <record id="view_mall_facade_tree" model="ir.ui.view">
         <field name="name">mall.facade.tree</field>
         <field name="model">mall.facade</field>
@@ -22,10 +40,10 @@
             <form>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button class="oe_stat_button" type="action" name="action_view_landlord_contract" icon="fa-file-text">
+                        <button class="oe_stat_button" type="action" name="%(mall_leasing.action_view_landlord_contract)d" icon="fa-file-text">
                             <field string="房东合同" name="landlord_contract_id" widget="statinfo"/>
                         </button>
-                        <button class="oe_stat_button" type="action" name="action_view_tenant_contract" icon="fa-file-text-o">
+                        <button class="oe_stat_button" type="action" name="%(mall_leasing.action_view_tenant_contract)d" icon="fa-file-text-o">
                             <field string="租户合同" name="tenant_contract_id" widget="statinfo"/>
                         </button>
                     </div>
@@ -44,27 +62,10 @@
                     </group>
                 </sheet>
                 <div class="oe_chatter">
-                    <field name="message_follower_ids" widget="mail_followers"/>
-                    <field name="message_ids" widget="mail_thread"/>
+                    <chatter/>
                 </div>
             </form>
         </field>
-    </record>
-
-    <record id="action_view_landlord_contract" model="ir.actions.act_window">
-        <field name="name">房东合同</field>
-        <field name="res_model">mall.leasing.contract</field>
-        <field name="view_mode">list,form</field>
-        <field name="domain">[("facade_id", "=", active_id), ("contract_type", "=", "landlord")]</field>
-        <field name="context">{"default_facade_id": active_id, "default_contract_type": "landlord"}</field>
-    </record>
-
-    <record id="action_view_tenant_contract" model="ir.actions.act_window">
-        <field name="name">租户合同</field>
-        <field name="res_model">mall.leasing.contract</field>
-        <field name="view_mode">list,form</field>
-        <field name="domain">[("facade_id", "=", active_id), ("contract_type", "=", "tenant")]</field>
-        <field name="context">{"default_facade_id": active_id, "default_contract_type": "tenant"}</field>
     </record>
 
     <record id="act_mall_facade" model="ir.actions.act_window">
@@ -72,4 +73,5 @@
         <field name="res_model">mall.facade</field>
         <field name="view_mode">list,form</field>
     </record>
+    </data>
 </odoo>
