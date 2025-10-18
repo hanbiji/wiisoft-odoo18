@@ -39,4 +39,11 @@
             </form>
         </field>
     </record>
+
+    <!-- 沟通日志动作 -->
+    <record id="action_communication" model="ir.actions.act_window">
+        <field name="name">沟通日志</field>
+        <field name="res_model">mall.communication</field>
+        <field name="view_mode">list,form</field>
+    </record>
 </odoo>

@@ -25,9 +25,13 @@
         <field name="arch" type="xml">
             <form string="租赁合同">
                 <header>
-                    <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight"/>
+                    <button name="action_sign" type="object" string="签约" class="oe_highlight" invisible="state != 'approved'"/>
+                    <button name="action_approve" type="object" string="审核通过" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_reject" type="object" string="审核拒绝" invisible="state != 'draft'"/>
+                    <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight" invisible="state != 'signed'"/>
                     <field name="state" widget="statusbar" statusbar_visible="draft,approved,signed,active,renewed,terminated"/>
                 </header>
+                
                 <sheet>
                     <group>
                         <group>
@@ -80,8 +84,7 @@
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">
-                    <field name="message_follower_ids" widget="mail_followers"/>
-                    <field name="message_ids" widget="mail_thread"/>
+                    <chatter/>
                 </div>
             </form>
         </field>
@@ -91,5 +94,23 @@
         <field name="name">合同</field>
         <field name="res_model">mall.leasing.contract</field>
         <field name="view_mode">list,form</field>
+    </record>
+
+    <!-- 租户合同动作 -->
+    <record id="action_tenant_contracts" model="ir.actions.act_window">
+        <field name="name">租户合同</field>
+        <field name="res_model">mall.leasing.contract</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('contract_type', '=', 'tenant')]</field>
+        <field name="context">{'default_contract_type': 'tenant'}</field>
+    </record>
+
+    <!-- 房东合同动作 -->
+    <record id="action_landlord_contracts" model="ir.actions.act_window">
+        <field name="name">房东合同</field>
+        <field name="res_model">mall.leasing.contract</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('contract_type', '=', 'landlord')]</field>
+        <field name="context">{'default_contract_type': 'landlord'}</field>
     </record>
 </odoo>

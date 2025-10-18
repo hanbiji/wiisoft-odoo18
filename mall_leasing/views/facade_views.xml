@@ -18,21 +18,26 @@
         <field name="context">{"default_facade_id": active_id, "default_contract_type": "tenant"}</field>
     </record>
 
+    <!-- 门面列表视图 -->
     <record id="view_mall_facade_tree" model="ir.ui.view">
         <field name="name">mall.facade.tree</field>
         <field name="model">mall.facade</field>
         <field name="arch" type="xml">
             <list>
+                <field name="mall_id"/>
                 <field name="name"/>
+                <field name="zone"/>
                 <field name="address"/>
                 <field name="area"/>
                 <field name="floor"/>
+                <field name="facade_type"/>
                 <field name="status"/>
                 <field name="tenant_contract_id"/>
             </list>
         </field>
     </record>
 
+    <!-- 门面表单视图 -->
     <record id="view_mall_facade_form" model="ir.ui.view">
         <field name="name">mall.facade.form</field>
         <field name="model">mall.facade</field>
@@ -40,25 +45,67 @@
             <form>
                 <sheet>
                     <div class="oe_button_box" name="button_box">
-                        <button class="oe_stat_button" type="action" name="%(mall_leasing.action_view_landlord_contract)d" icon="fa-file-text">
-                            <field string="房东合同" name="landlord_contract_id" widget="statinfo"/>
+                        <button class="oe_stat_button" type="object" name="action_view_landlord_contract" icon="fa-home">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">房东合同</span>
+                            </div>
                         </button>
-                        <button class="oe_stat_button" type="action" name="%(mall_leasing.action_view_tenant_contract)d" icon="fa-file-text-o">
-                            <field string="租户合同" name="tenant_contract_id" widget="statinfo"/>
+                        <button class="oe_stat_button" type="object" name="action_view_tenant_contract" icon="fa-users">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">租户合同</span>
+                            </div>
                         </button>
                     </div>
+                    
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="门面名称"/>
+                        </h1>
+                    </div>
+                    
                     <group>
-                        <group>
-                            <field name="name"/>
-                            <field name="address"/>
+                        <group name="basic_info" string="基本信息">
+                            <field name="mall_id" required="1"/>
+                            <field name="zone"/>
+                            <field name="position"/>
+                            <field name="facade_type"/>
                             <field name="area"/>
                             <field name="floor"/>
-                            <field name="status" readonly="1"/>
+                            <field name="status"/>
+                        </group>
+                        <group name="mall_info" string="商场信息">
+                            <field name="mall_name"/>
+                            <field name="mall_status"/>
+                        </group>
+                    </group>
+                    
+                    <group name="address_info" string="地址信息">
+                        <field name="address" nolabel="1"/>
+                    </group>
+                    
+                    <group name="facilities" string="设施配置">
+                        <group>
+                            <field name="has_water"/>
+                            <field name="has_electricity"/>
                         </group>
                         <group>
-                            <field name="image_main" widget="image"/>
-                            <field name="layout_plan" filename="layout_plan_name"/>
+                            <field name="has_gas"/>
+                            <field name="has_air_conditioning"/>
                         </group>
+                    </group>
+                    
+                    <group name="contract_info" string="合同信息">
+                        <group>
+                            <field name="landlord_contract_id"/>
+                        </group>
+                        <group>
+                            <field name="tenant_contract_id"/>
+                        </group>
+                    </group>
+                    
+                    <group name="images" string="图片">
+                        <field name="image_main" widget="image" class="oe_avatar"/>
+                        <field name="layout_plan" widget="image"/>
                     </group>
                 </sheet>
                 <div class="oe_chatter">
@@ -68,10 +115,66 @@
         </field>
     </record>
 
+    <!-- 门面看板视图 -->
+    <record id="view_mall_facade_kanban" model="ir.ui.view">
+        <field name="name">mall.facade.kanban</field>
+        <field name="model">mall.facade</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <field name="id"/>
+                <field name="name"/>
+                <field name="mall_id"/>
+                <field name="mall_name"/>
+                <field name="zone"/>
+                <field name="floor"/>
+                <field name="area"/>
+                <field name="facade_type"/>
+                <field name="status"/>
+                <field name="image_main"/>
+                <field name="tenant_contract_id"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_image">
+                                <img t-att-src="kanban_image('mall.facade', 'image_main', record.id.raw_value)" alt="Facade Image"/>
+                            </div>
+                            <div class="oe_kanban_details">
+                                <strong class="o_kanban_record_title">
+                                    <field name="name"/>
+                                </strong>
+                                <div class="o_kanban_record_subtitle">
+                                    <field name="mall_name"/> - <field name="zone"/> <field name="floor"/>
+                                </div>
+                                <div class="oe_kanban_content">
+                                    <div>
+                                        <span>面积: <field name="area"/>㎡</span>
+                                    </div>
+                                    <div>
+                                        <span>类型: <field name="facade_type"/></span>
+                                    </div>
+                                    <div t-if="record.tenant_contract_id.raw_value">
+                                        <span>租户: <field name="tenant_contract_id"/></span>
+                                    </div>
+                                </div>
+                                <div class="oe_kanban_bottom_left">
+                                    <field name="status" widget="label_selection" 
+                                           options="{'classes': {'vacant': 'danger', 'leased': 'success', 'expiring': 'warning'}}"/>
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <span><field name="facade_type"/></span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
     <record id="act_mall_facade" model="ir.actions.act_window">
         <field name="name">门面</field>
         <field name="res_model">mall.facade</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">kanban,list,form</field>
     </record>
     </data>
 </odoo>

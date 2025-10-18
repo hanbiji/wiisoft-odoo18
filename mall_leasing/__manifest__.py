@@ -10,13 +10,14 @@
     'depends': ['base', 'mail', 'contacts', 'account'],
     'data': [
         'security/ir.model.access.csv',
-        'views/menu.xml',
+        'views/mall_views.xml',
         'views/facade_views.xml',
         'views/contract_views.xml',
         'views/contract_template_views.xml',
         'views/res_partner_views.xml',
         'views/communication_views.xml',
         'data/ir_cron.xml',
+        'views/menu.xml',
     ],
     'application': True,
 }

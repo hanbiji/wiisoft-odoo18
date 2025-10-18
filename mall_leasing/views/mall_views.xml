@@ -1,0 +1,190 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+<data>
+    <!-- 商场列表视图 -->
+    <record id="view_mall_tree" model="ir.ui.view">
+        <field name="name">mall.mall.tree</field>
+        <field name="model">mall.mall</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="code"/>
+                <field name="name"/>
+                <field name="city"/>
+                <field name="status"/>
+                <field name="facade_count"/>
+                <field name="occupancy_rate" widget="percentage"/>
+                <field name="total_rent_income" widget="monetary"/>
+                <field name="manager_id"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- 商场表单视图 -->
+    <record id="view_mall_form" model="ir.ui.view">
+        <field name="name">mall.mall.form</field>
+        <field name="model">mall.mall</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <field name="status" widget="statusbar" statusbar_visible="planning,construction,operating"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button class="oe_stat_button" type="object" name="action_view_facades" icon="fa-building">
+                            <field string="门面" name="facade_count" widget="statinfo"/>
+                        </button>
+                        <button class="oe_stat_button" type="object" name="action_view_contracts" icon="fa-file-text">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_value">
+                                    <field name="leased_count"/>+<field name="expiring_count"/>
+                                </span>
+                                <span class="o_stat_text">合同</span>
+                            </div>
+                        </button>
+                        <button class="oe_stat_button" type="object" name="action_create_facade" icon="fa-plus-square">
+                            <div class="o_field_widget o_stat_info">
+                                <span class="o_stat_text">新建门面</span>
+                            </div>
+                        </button>
+                    </div>
+                    
+                    <widget name="web_ribbon" title="已关闭" bg_color="bg-danger" invisible="status != 'closed'"/>
+                    
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" placeholder="商场名称"/>
+                        </h1>
+                        <h2>
+                            <field name="code" placeholder="商场编码"/>
+                        </h2>
+                    </div>
+                    
+                    <group>
+                        <group name="basic_info" string="基本信息">
+                            <field name="province"/>
+                            <field name="city"/>
+                            <field name="postal_code"/>
+                            <field name="total_area"/>
+                            <field name="leasable_area"/>
+                            <field name="floors"/>
+                            <field name="status"/>
+                            <field name="opening_date"/>
+                        </group>
+                        <group name="contact_info" string="联系信息">
+                            <field name="image_main" widget="image" class="oe_avatar"/>
+                            <field name="manager_id"/>
+                            <field name="phone"/>
+                            <field name="email" widget="email"/>
+                            <field name="website" widget="url"/>
+                        </group>
+                    </group>
+                    
+                    <group name="address_info" string="地址信息">
+                        <field name="address" nolabel="1"/>
+                    </group>
+                    
+                    <group name="statistics" string="统计信息">
+                        <group>
+                            <field name="vacant_count"/>
+                            <field name="leased_count"/>
+                            <field name="expiring_count"/>
+                            <field name="occupancy_rate" widget="percentage"/>
+                        </group>
+                        <group>
+                            <field name="currency_id" invisible="1"/>
+                            <field name="total_rent_income" widget="monetary"/>
+                        </group>
+                    </group>
+                    
+                    <notebook>
+                        <page string="门面列表" name="facades">
+                            <field name="facade_ids">
+                                <list editable="bottom">
+                                    <field name="name"/>
+                                    <field name="zone"/>
+                                    <field name="floor"/>
+                                    <field name="area"/>
+                                    <field name="facade_type"/>
+                                    <field name="status"/>
+                                    <field name="tenant_contract_id"/>
+                                </list>
+                            </field>
+                        </page>
+                        <page string="图片库" name="images">
+                            <field name="image_gallery">
+                                <list editable="bottom">
+                                    <field name="sequence" widget="handle"/>
+                                    <field name="name"/>
+                                    <field name="image" widget="image"/>
+                                    <field name="description"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <chatter/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- 商场看板视图 -->
+    <record id="view_mall_kanban" model="ir.ui.view">
+        <field name="name">mall.mall.kanban</field>
+        <field name="model">mall.mall</field>
+        <field name="arch" type="xml">
+            <kanban>
+                <field name="id"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="city"/>
+                <field name="status"/>
+                <field name="facade_count"/>
+                <field name="occupancy_rate"/>
+                <field name="image_main"/>
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_card oe_kanban_global_click">
+                            <div class="o_kanban_image">
+                                <img t-att-src="kanban_image('mall.mall', 'image_main', record.id.raw_value)" alt="Mall Image"/>
+                            </div>
+                            <div class="oe_kanban_details">
+                                <strong class="o_kanban_record_title">
+                                    <field name="name"/>
+                                </strong>
+                                <div class="o_kanban_record_subtitle">
+                                    <field name="code"/> - <field name="city"/>
+                                </div>
+                                <div class="oe_kanban_bottom_left">
+                                    <field name="status" widget="label_selection"/>
+                                </div>
+                                <div class="oe_kanban_bottom_right">
+                                    <span><field name="facade_count"/> 门面</span><br/>
+                                    <span>出租率: <field name="occupancy_rate"/>%</span>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <!-- 商场动作 -->
+    <record id="action_mall" model="ir.actions.act_window">
+        <field name="name">商场管理</field>
+        <field name="res_model">mall.mall</field>
+        <field name="view_mode">kanban,list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                创建您的第一个商场项目
+            </p>
+            <p>
+                商场管理帮助您统一管理多个商场项目的门面租赁业务。
+            </p>
+        </field>
+    </record>
+
+</data>
+</odoo>

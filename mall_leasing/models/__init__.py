@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+from . import mall
 from . import facade
 from . import contract
 from . import communication

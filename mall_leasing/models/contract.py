@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
+from odoo.exceptions import UserError
 from datetime import date
 from dateutil.relativedelta import relativedelta
 
@@ -87,10 +88,10 @@ class MallLeasingContract(models.Model):
         company = self.env.company
         if self.contract_type == 'tenant':
             journal = self.env['account.journal'].search([('type', '=', 'sale'), ('company_id', '=', company.id)], limit=1)
-            account = self.env['account.account'].search([('user_type_id.type', '=', 'income'), ('company_id', '=', company.id)], limit=1)
+            account = self.env['account.account'].search([('account_type', '=', 'income'), ('company_ids', 'in', company.id)], limit=1)
         else:
             journal = self.env['account.journal'].search([('type', '=', 'purchase'), ('company_id', '=', company.id)], limit=1)
-            account = self.env['account.account'].search([('user_type_id.type', '=', 'expense'), ('company_id', '=', company.id)], limit=1)
+            account = self.env['account.account'].search([('account_type', '=', 'expense'), ('company_ids', 'in', company.id)], limit=1)
         return journal, account
 
     def _charge_lines(self, account):
@@ -114,29 +115,89 @@ class MallLeasingContract(models.Model):
             lines.append(line(_('垃圾费'), self.garbage_fee))
         return lines or [line(_('租赁费用'), 0.0)]
 
-    def action_generate_move(self):
-        for rec in self:
-            journal, account = rec._get_journal_and_account()
-            if not journal or not account:
-                raise ValueError(_('未找到合适的账簿或科目，请检查会计配置。'))
-            move_type = 'out_invoice' if rec.contract_type == 'tenant' else 'in_invoice'
-            move_vals = {
-                'move_type': move_type,
-                'partner_id': rec.partner_id.id,
-                'currency_id': rec.currency_id.id,
-                'invoice_date': date.today(),
-                'journal_id': journal.id,
-                'ref': f"合同:{rec.name} 门面:{rec.facade_id.name}",
-                'mall_contract_id': rec.id,
-                'mall_facade_id': rec.facade_id.id,
-                'invoice_line_ids': rec._charge_lines(account),
-            }
-            move = self.env['account.move'].create(move_vals)
-            # 顺延下次账单日期
-            if rec.payment_frequency and rec.next_bill_date:
-                months = {'monthly': 1, 'quarterly': 3, 'yearly': 12}.get(rec.payment_frequency, 1)
-                rec.next_bill_date = rec.next_bill_date + relativedelta(months=months)
+    def action_approve(self):
+        """审核通过"""
+        self.ensure_one()
+        if self.state != 'draft':
+            raise UserError(_('只有草稿状态的合同才能审核'))
+        
+        self.state = 'approved'
+        self.message_post(body=_('合同已审核通过'))
+        
+        # 创建活动提醒
+        self.activity_schedule(
+            'mail.mail_activity_data_todo',
+            summary=_('合同审核通过'),
+            note=_('合同 %s 已审核通过，可以进行签约') % self.name,
+            user_id=self.env.user.id
+        )
+        
         return True
+    
+    def action_reject(self):
+        """审核拒绝"""
+        self.ensure_one()
+        if self.state != 'draft':
+            raise UserError(_('只有草稿状态的合同才能拒绝'))
+        
+        # 保持草稿状态，但添加拒绝记录
+        self.message_post(body=_('合同审核被拒绝，请修改后重新提交'))
+        
+        # 创建活动提醒
+        self.activity_schedule(
+            'mail.mail_activity_data_todo',
+            summary=_('合同审核被拒绝'),
+            note=_('合同 %s 审核被拒绝，请修改后重新提交审核') % self.name,
+            user_id=self.env.user.id
+        )
+        
+        return True
+
+    def action_sign(self):
+        """签约"""
+        self.ensure_one()
+        if self.state != 'approved':
+            raise UserError(_('只有已审核通过的合同才能签约'))
+        
+        self.state = 'signed'
+        self.message_post(body=_('合同已签约'))
+        
+        # 创建活动提醒
+        self.activity_schedule(
+            'mail.mail_activity_data_todo',
+            summary=_('合同已签约'),
+            note=_('合同 %s 已签约，可以开始执行') % self.name,
+            user_id=self.env.user.id
+        )
+        
+        return True
+
+    def action_generate_move(self):
+        """生成账单"""
+        self.ensure_one()
+        
+        if not self.lease_start_date:
+            raise UserError(_('请先设置租赁开始日期'))
+        
+        journal, account = self._get_journal_and_account()
+        
+        move_vals = {
+            'move_type': 'out_invoice' if self.contract_type == 'tenant' else 'in_invoice',
+            'partner_id': self.partner_id.id,
+            'invoice_date': fields.Date.today(),
+            'journal_id': journal.id,
+            'invoice_line_ids': self._charge_lines(account),
+        }
+        
+        move = self.env['account.move'].create(move_vals)
+        
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'account.move',
+            'res_id': move.id,
+            'view_mode': 'form',
+            'target': 'current',
+            }
 
     @api.model
     def cron_generate_periodic_bills(self):
