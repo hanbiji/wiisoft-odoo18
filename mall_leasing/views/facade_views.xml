@@ -51,6 +51,22 @@
         </field>
     </record>
 
+    <record id="action_view_landlord_contract" model="ir.actions.act_window">
+        <field name="name">房东合同</field>
+        <field name="res_model">mall.leasing.contract</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[("facade_id", "=", active_id), ("contract_type", "=", "landlord")]</field>
+        <field name="context">{"default_facade_id": active_id, "default_contract_type": "landlord"}</field>
+    </record>
+
+    <record id="action_view_tenant_contract" model="ir.actions.act_window">
+        <field name="name">租户合同</field>
+        <field name="res_model">mall.leasing.contract</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[("facade_id", "=", active_id), ("contract_type", "=", "tenant")]</field>
+        <field name="context">{"default_facade_id": active_id, "default_contract_type": "tenant"}</field>
+    </record>
+
     <record id="act_mall_facade" model="ir.actions.act_window">
         <field name="name">门面</field>
         <field name="res_model">mall.facade</field>
