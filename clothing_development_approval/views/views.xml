@@ -59,6 +59,13 @@
                   action="clothing_development_approval.action_clothing_sku"
                   groups="clothing_development_approval.group_clothing_development_manager,clothing_development_approval.group_product_manager"
                   sequence="20"/>
+        <!-- 配置管理菜单 -->
+        <menuitem id="menu_clothing_config"
+                  name="系统配置"
+                  parent="menu_clothing_development_config"
+                  action="clothing_development_approval.action_clothing_config"
+                  groups="clothing_development_approval.group_clothing_development_manager"
+                  sequence="100"/>
         
     </data>
 </odoo>

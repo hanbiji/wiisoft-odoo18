@@ -100,5 +100,7 @@
                   groups="clothing_development_approval.group_sample_worker"
                   sequence="50"/>
         
+        
+        
     </data>
 </odoo>

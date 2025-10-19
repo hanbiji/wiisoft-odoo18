@@ -787,6 +787,31 @@ class ClothingSku(models.Model):
     sku = fields.Char(string='SKU', required=True)
     size_id = fields.Many2one('clothing.size', string='尺寸')
     color_id = fields.Many2one('clothing.color', string='颜色')
+    gtin = fields.Char(string='GTIN')
     # clothing.development.request id
     request_id = fields.Many2one('clothing.development.request', string='申请')
 
+    def _generate_gtin14(self):
+        """
+        生成GTIN-14条码（13位全球贸易项目代码）
+        结构：厂商代码(8位) + 商品代码(4位) + 校验位(1位)
+        厂商代码从系统参数读取，商品代码由系统内部逻辑生成，最后计算校验位
+        """
+        # 从系统参数读取厂商代码（8位数字，不足左补0）
+        company_prefix = self.env['ir.config_parameter'].sudo().get_param(
+            'clothing_dev.gs1_company_prefix', '01234567'
+        ).zfill(8)[:8]
+        
+        # 用记录ID+年份后两位生成4位商品代码
+        # 取记录ID的后2位和年份后2位组成4位商品代码
+        product_code = f"{self.id % 100:02d}{self.year[-2:]}"
+        
+        # 拼接前12位
+        gtin12 = company_prefix + product_code
+        
+        # 计算第13位校验码（EAN-13 Mod10算法）
+        odd_sum = sum(int(ch) for ch in gtin12[::2])   # 奇数位和
+        even_sum = sum(int(ch) for ch in gtin12[1::2]) # 偶数位和
+        check_digit = (10 - (odd_sum + even_sum * 3) % 10) % 10
+        
+        return gtin12 + str(check_digit)
