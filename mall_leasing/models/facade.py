@@ -36,7 +36,7 @@ class MallFacade(models.Model):
     
     # 商场信息（关联字段）
     mall_name = fields.Char('商场名称', related='mall_id.name', store=True, readonly=True)
-    mall_status = fields.Selection('商场状态', related='mall_id.status', store=True, readonly=True)
+    mall_status = fields.Selection(related='mall_id.status', string='商场状态', store=True, readonly=True)
 
     contract_ids = fields.One2many('mall.leasing.contract', 'facade_id', string='合同')
     landlord_contract_id = fields.Many2one(

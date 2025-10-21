@@ -104,12 +104,12 @@
                                 </group>
                                 <group>
                                     <field name="design_reference_ids" nolabel="1">
-                                        <kanban>
+                                        <kanban class="o_kanban_mobile" sample="1">
                                             <field name="id"/>
                                             <field name="name"/>
                                             <field name="image"/>
                                             <templates>
-                                                <t t-name="kanban-box">
+                                                <t t-name="card">
                                                     <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                                         <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
                                                              t-att-title="record.name.value" 
@@ -140,7 +140,7 @@
                                             <field name="name"/>
                                             <field name="image"/>
                                             <templates>
-                                                <t t-name="kanban-box">
+                                                <t t-name="card">
                                                     <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                                         <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
                                                              t-att-title="record.name.value" 
@@ -172,7 +172,7 @@
                                             <field name="name"/>
                                             <field name="image"/>
                                             <templates>
-                                                <t t-name="kanban-box">
+                                                <t t-name="card">
                                                     <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                                         <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
                                                              t-att-title="record.name.value" 
@@ -204,7 +204,7 @@
                                             <field name="name"/>
                                             <field name="image"/>
                                             <templates>
-                                                <t t-name="kanban-box">
+                                                <t t-name="card">
                                                     <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
                                                         <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
                                                              t-att-title="record.name.value" 

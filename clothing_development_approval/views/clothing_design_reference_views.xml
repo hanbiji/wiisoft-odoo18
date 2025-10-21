@@ -45,13 +45,13 @@
             <field name="name">clothing.design.reference.kanban</field>
             <field name="model">clothing.design.reference</field>
             <field name="arch" type="xml">
-                <kanban string="设计参考图片">
+                <kanban string="设计参考图片" class="o_kanban_mobile" sample="1">
                     <field name="id"/>
                     <field name="name"/>
                     <field name="image"/>
                     <field name="request_id"/>
                     <templates>
-                        <t t-name="kanban-box">
+                        <t t-name="card">
                             <div class="oe_kanban_card oe_kanban_global_click">
                                 <div class="o_kanban_image">
                                     <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" alt="参考图片"/>

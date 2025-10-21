@@ -5,6 +5,8 @@ class ResPartner(models.Model):
     _inherit = 'res.partner'
 
     is_tenant = fields.Boolean('是否为租户')
+    # 新增字段：是否为运营
+    is_operator = fields.Boolean('是否为运营')
 
     # 重命名字段以避免与标准type字段冲突
     industry_type = fields.Selection([

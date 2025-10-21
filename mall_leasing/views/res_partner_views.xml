@@ -9,6 +9,7 @@
                 <page string="租赁档案">
                     <group>
                         <field name="is_tenant"/>
+                        <field name="is_operator"/>
                         <field name="industry_type"/>
                     </group>
                     <field name="leasing_contract_ids">

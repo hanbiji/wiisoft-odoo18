@@ -120,7 +120,7 @@
         <field name="name">mall.facade.kanban</field>
         <field name="model">mall.facade</field>
         <field name="arch" type="xml">
-            <kanban>
+            <kanban class="o_kanban_mobile" sample="1">
                 <field name="id"/>
                 <field name="name"/>
                 <field name="mall_id"/>
@@ -133,36 +133,31 @@
                 <field name="image_main"/>
                 <field name="tenant_contract_id"/>
                 <templates>
-                    <t t-name="kanban-box">
-                        <div class="oe_kanban_card oe_kanban_global_click">
-                            <div class="o_kanban_image">
-                                <img t-att-src="kanban_image('mall.facade', 'image_main', record.id.raw_value)" alt="Facade Image"/>
+                    <t t-name="card">
+                        <div class="oe_kanban_details">
+                            <strong class="o_kanban_record_title">
+                                <field name="name"/>
+                            </strong>
+                            <div class="o_kanban_record_subtitle">
+                                <field name="mall_name"/> - <field name="zone"/> <field name="floor"/>
                             </div>
-                            <div class="oe_kanban_details">
-                                <strong class="o_kanban_record_title">
-                                    <field name="name"/>
-                                </strong>
-                                <div class="o_kanban_record_subtitle">
-                                    <field name="mall_name"/> - <field name="zone"/> <field name="floor"/>
+                            <div class="oe_kanban_content">
+                                <div>
+                                    <span>面积: <field name="area"/>㎡</span>
                                 </div>
-                                <div class="oe_kanban_content">
-                                    <div>
-                                        <span>面积: <field name="area"/>㎡</span>
-                                    </div>
-                                    <div>
-                                        <span>类型: <field name="facade_type"/></span>
-                                    </div>
-                                    <div t-if="record.tenant_contract_id.raw_value">
-                                        <span>租户: <field name="tenant_contract_id"/></span>
-                                    </div>
+                                <div>
+                                    <span>类型: <field name="facade_type"/></span>
                                 </div>
-                                <div class="oe_kanban_bottom_left">
-                                    <field name="status" widget="label_selection" 
-                                           options="{'classes': {'vacant': 'danger', 'leased': 'success', 'expiring': 'warning'}}"/>
+                                <div t-if="record.tenant_contract_id.raw_value">
+                                    <span>租户: <field name="tenant_contract_id"/></span>
                                 </div>
-                                <div class="oe_kanban_bottom_right">
-                                    <span><field name="facade_type"/></span>
-                                </div>
+                            </div>
+                            <div class="oe_kanban_bottom_left">
+                                <field name="status" widget="label_selection" 
+                                        options="{'classes': {'vacant': 'danger', 'leased': 'success', 'expiring': 'warning'}}"/>
+                            </div>
+                            <div class="oe_kanban_bottom_right">
+                                <span><field name="facade_type"/></span>
                             </div>
                         </div>
                     </t>
