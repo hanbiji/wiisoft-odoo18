@@ -258,8 +258,8 @@
                                 </div>
                                 <field name="sku_variant_ids" nolabel="1">
                                     <list editable="bottom">
-                                        <field name="name" string="名称" readonly="1"/>
                                         <field name="sku" string="SKU" readonly="1"/>
+                                        <field name="gtin" string="编码" readonly="1"/>
                                         <field name="size_id" string="尺寸" readonly="1"/>
                                         <field name="color_id" string="颜色" readonly="1"/>
                                     </list>
