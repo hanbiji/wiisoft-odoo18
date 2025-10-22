@@ -111,11 +111,9 @@
                                             <templates>
                                                 <t t-name="card">
                                                     <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                                        <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
-                                                             t-att-title="record.name.value" 
-                                                             t-att-alt="record.name.value" 
+                                                        <field name="image" 
                                                              class="o_image_preview oe_kanban_no_global_click"
-                                                             t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
+                                                             widget="image"
                                                              style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
                                                     </div>
                                                 </t>
@@ -142,11 +140,8 @@
                                             <templates>
                                                 <t t-name="card">
                                                     <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                                        <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
-                                                             t-att-title="record.name.value" 
-                                                             t-att-alt="record.name.value" 
+                                                        <field name="image" widget="image" 
                                                              class="o_image_preview oe_kanban_no_global_click"
-                                                             t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
                                                              style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
                                                     </div>
                                                 </t>
@@ -174,11 +169,8 @@
                                             <templates>
                                                 <t t-name="card">
                                                     <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                                        <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
-                                                             t-att-title="record.name.value" 
-                                                             t-att-alt="record.name.value" 
+                                                        <field name="image" widget="image" 
                                                              class="o_image_preview oe_kanban_no_global_click"
-                                                             t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
                                                              style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
                                                     </div>
                                                 </t>
@@ -191,6 +183,43 @@
                                         </form>
                                     </field>
                                 </group>
+                            </page>
+                            <page name="cloth_attr" string="服装属性">
+                                <group>
+                                    <group>
+                                        <field name="fabric_composition"/>
+                                        <field name="filler_material"/>
+                                        <field name="filler_total_weight"/>
+                                        <field name="fabric_coating"/>
+                                        <field name="fabric_press_technique"/>
+                                        <field name="transpiration_index"/>
+                                        <field name="elasticity"/>
+                                        <field name="feel"/>
+                                        <field name="overall_fit"/>
+                                        <field name="pocket"/>
+                                        <field name="ventilation"/>
+                                        <field name="cuff_design"/>
+                                        <field name="collar_design"/>
+                                        <field name="drawstring"/>
+                                    </group>
+                                    <group>
+                                        <field name="lining_composition"/>
+                                        <field name="filler_density"/>
+                                        <field name="other_material_composition"/>
+                                        <field name="waterproofing_permeability"/>
+                                        <field name="waterproofing_index"/>
+                                        <field name="wear_resistance"/>
+                                        <field name="seam_press_technique"/>
+                                        <field name="thickness"/>
+                                        <field name="fit_details"/>
+                                        <field name="zip"/>
+                                        <field name="hat_design"/>
+                                        <field name="foot_design"/>
+                                        <field name="wind_snow_design"/>
+                                        other_design_details
+                                    </group>
+                                </group>
+                                
                             </page>
 
                             <page string="样衣挂板图" name="sample_clothing">
@@ -206,11 +235,8 @@
                                             <templates>
                                                 <t t-name="card">
                                                     <div class="oe_kanban_global_click" style="width: 150px; height: 150px; margin: 5px; border: 1px solid #ddd; border-radius: 8px; overflow: hidden; display: flex; align-items: center; justify-content: center; background: #f8f9fa; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-                                                        <img t-att-src="kanban_image('clothing.design.reference', 'image', record.id.raw_value)" 
-                                                             t-att-title="record.name.value" 
-                                                             t-att-alt="record.name.value" 
+                                                        <field name="image" widget="image" 
                                                              class="o_image_preview oe_kanban_no_global_click"
-                                                             t-att-data-zoom="kanban_image('clothing.design.reference', 'image', record.id.raw_value)"
                                                              style="max-width: 100%; max-height: 100%; object-fit: cover; border-radius: 4px; cursor: pointer;"/>
                                                     </div>
                                                 </t>
