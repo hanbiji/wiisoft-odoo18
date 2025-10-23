@@ -13,10 +13,13 @@
     <menuitem id="menu_contract_management" name="合同管理" parent="menu_mall_leasing_root" sequence="30"/>
     
     <!-- 租户合同子菜单 -->
-    <menuitem id="menu_tenant_contracts" name="租户合同" parent="menu_contract_management" sequence="10" action="mall_leasing.action_tenant_contracts"/>
+    <menuitem id="menu_tenant_contracts" name="租赁合同" parent="menu_contract_management" sequence="10" action="mall_leasing.action_tenant_contracts"/>
+    
+    <!-- 物业合同子菜单 -->
+    <menuitem id="menu_property_contracts" name="物业合同" parent="menu_contract_management" sequence="20" action="mall_leasing.action_property_contracts"/>
     
     <!-- 房东合同子菜单 -->
-    <menuitem id="menu_landlord_contracts" name="房东合同" parent="menu_contract_management" sequence="20" action="mall_leasing.action_landlord_contracts"/>
+    <menuitem id="menu_landlord_contracts" name="房东合同" parent="menu_contract_management" sequence="30" action="mall_leasing.action_landlord_contracts"/>
 
     <!-- 沟通日志菜单 -->
     <menuitem id="menu_communication_log" name="沟通日志" parent="menu_mall_leasing_root" sequence="40" action="mall_leasing.action_communication"/>

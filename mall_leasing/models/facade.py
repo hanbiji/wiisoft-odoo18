@@ -44,8 +44,12 @@ class MallFacade(models.Model):
         domain="[('contract_type','=','landlord'),('state','in',['approved','signed','active']),('facade_id','=',id)]",
         compute='_compute_current_contracts', store=True)
     tenant_contract_id = fields.Many2one(
-        'mall.leasing.contract', string='租户合同',
+        'mall.leasing.contract', string='租赁合同',
         domain="[('contract_type','=','tenant'),('state','in',['approved','signed','active']),('facade_id','=',id)]",
+        compute='_compute_current_contracts', store=True)
+    property_contract_id = fields.Many2one(
+        'mall.leasing.contract', string='物业合同',
+        domain="[('contract_type','=','property'),('state','in',['approved','signed','active']),('facade_id','=',id)]",
         compute='_compute_current_contracts', store=True)
 
     status = fields.Selection([
@@ -65,8 +69,10 @@ class MallFacade(models.Model):
             valid_states = ['approved', 'signed', 'active']
             landlord = rec.contract_ids.filtered(lambda c: c.contract_type == 'landlord' and c.state in valid_states)
             tenant = rec.contract_ids.filtered(lambda c: c.contract_type == 'tenant' and c.state in valid_states)
+            property = rec.contract_ids.filtered(lambda c: c.contract_type == 'property' and c.state in valid_states)
             rec.landlord_contract_id = landlord[:1].id
             rec.tenant_contract_id = tenant[:1].id
+            rec.property_contract_id = property[:1].id
 
     @api.depends('tenant_contract_id', 'tenant_contract_id.lease_end_date', 'contract_ids')
     def _compute_status(self):
@@ -100,4 +106,14 @@ class MallFacade(models.Model):
             'res_model': 'mall.leasing.contract',
             'view_mode': 'list,form',
             'domain': [('facade_id', '=', self.id), ('contract_type', '=', 'tenant')],
+        }
+    
+    def action_view_property_contract(self):
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': '物业合同',
+            'res_model': 'mall.leasing.contract',
+            'view_mode': 'list,form',
+            'domain': [('facade_id', '=', self.id), ('contract_type', '=', 'property')],
         }
