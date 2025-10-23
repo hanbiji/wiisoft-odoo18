@@ -13,3 +13,5 @@ access_mall_communication_user,mall.communication.user,model_mall_communication,
 access_mall_communication_admin,mall.communication.admin,model_mall_communication,base.group_system,1,1,1,1
 access_mall_leasing_contract_template_user,mall.leasing.contract.template.user,model_mall_leasing_contract_template,base.group_user,1,1,1,0
 access_mall_leasing_contract_template_admin,mall.leasing.contract.template.admin,model_mall_leasing_contract_template,base.group_system,1,1,1,1
+access_mall_leasing_contract_payment_user,mall.leasing.contract.payment.user,model_mall_leasing_contract_payment,base.group_user,1,1,1,0
+access_mall_leasing_contract_payment_admin,mall.leasing.contract.payment.admin,model_mall_leasing_contract_payment,base.group_system,1,1,1,1

@@ -11,12 +11,17 @@ class MallLeasingContract(models.Model):
 
     name = fields.Char('合同编号', required=True, tracking=True)
     contract_type = fields.Selection([
+        ('tenant', '租赁合同'),
+        ('property', '物业合同'),
         ('landlord', '房东合同'),
-        ('tenant', '租户合同'),
-    ], string='合同类型', required=True, tracking=True)
+    ], string='合同类型', default='tenant', required=True, tracking=True)
 
-    facade_id = fields.Many2one('mall.facade', string='关联门面', required=True, tracking=True)
-    partner_id = fields.Many2one('res.partner', string='相对方', required=True, tracking=True)
+    # 商场项目
+    mall_id = fields.Many2one('mall.mall', string='商场', required=True, tracking=True)
+    facade_id = fields.Many2one('mall.facade', string='房号', required=True, tracking=True, domain="[('mall_id', '=', mall_id)]")
+    partner_id = fields.Many2one('res.partner', string='租赁单位（人）', required=True, tracking=True)
+    # 店铺名称
+    shop_name = fields.Char('店铺名称', required=True, tracking=True)
 
     state = fields.Selection([
         ('draft', '草稿'),
@@ -31,9 +36,12 @@ class MallLeasingContract(models.Model):
 
     rent_amount = fields.Monetary('租金', currency_field='currency_id')
     deposit = fields.Monetary('押金', currency_field='currency_id')
+    property_fee = fields.Monetary('物业费', currency_field='currency_id')
+    # 服务费
+    service_fee = fields.Monetary('服务费', currency_field='currency_id')
+
     water_fee = fields.Monetary('水费', currency_field='currency_id')
     electric_fee = fields.Monetary('电费', currency_field='currency_id')
-    property_fee = fields.Monetary('物业费', currency_field='currency_id')
     garbage_fee = fields.Monetary('垃圾费', currency_field='currency_id')
 
     payment_frequency = fields.Selection([
@@ -64,6 +72,8 @@ class MallLeasingContract(models.Model):
     next_bill_date = fields.Date('下次出账日', compute='_compute_next_bill_date', store=True)
 
     version_ids = fields.One2many('mall.leasing.contract.version', 'contract_id', string='历史版本')
+
+    contract_payment_ids = fields.One2many('mall.leasing.contract.payment', 'contract_id', string='付款记录')
 
     _sql_constraints = [
         ('name_unique', 'unique(name)', '合同编号必须唯一。')
@@ -274,6 +284,12 @@ class MallLeasingContract(models.Model):
             self._create_activity('res.partner', c.partner_id.id, summary, note)
 
     def write(self, vals):
+        # 审批后禁止修改合同类型
+        if 'contract_type' in vals:
+            prohibited_states = ['approved', 'signed', 'active', 'renewed', 'terminated']
+            for rec in self:
+                if rec.state in prohibited_states:
+                    raise UserError(_('审批通过后合同类型不可修改。'))
         res = super().write(vals)
         tracked_fields = ['state', 'rent_amount', 'deposit', 'water_fee', 'electric_fee', 'property_fee', 'garbage_fee', 'payment_frequency', 'payment_day', 'lease_start_date', 'lease_end_date']
         changed = {k: v for k, v in vals.items() if k in tracked_fields}

@@ -36,10 +36,12 @@
                     <group>
                         <group>
                             <field name="name"/>
-                            <field name="contract_type"/>
-                            <field name="facade_id"/>
-                            <field name="partner_id"/>
-                            <field name="currency_id"/>
+                            <field name="contract_type" attrs="{'readonly': [('state','in',['approved','signed','active','renewed','terminated'])]}"/>
+                            <field name="mall_id" options="{'no_create': True}"/>
+                            <field name="facade_id" options="{'no_create': True}"/>
+                            <field name="partner_id" options="{'no_create': True}"/>
+                            <field name="shop_name"/>
+                            <field name="currency_id" readonly="1" options="{'no_create': True, 'no_open': True}"/>
                             <field name="bank_account"/>
                         </group>
                         <group>
@@ -58,11 +60,22 @@
                             <group>
                                 <field name="rent_amount"/>
                                 <field name="deposit"/>
-                                <field name="water_fee"/>
-                                <field name="electric_fee"/>
                                 <field name="property_fee"/>
-                                <field name="garbage_fee"/>
+                                <field name="service_fee"/>
                             </group>
+                        </page>
+                        <page string="付款记录">
+                            <field name="contract_payment_ids" widget="one2many_list">
+                                <list editable="bottom">
+                                    <field name="payment_item"/>
+                                    <field name="period"/>
+                                    <field name="amount"/>
+                                    <field name="actual_amount"/>
+                                    <field name="unpaid_amount"/>
+                                    <field name="payment_status"/>
+                                    <field name="payment_date"/>
+                                </list>
+                            </field>
                         </page>
                         <page string="介绍人/中介">
                             <group>
@@ -72,15 +85,7 @@
                                 <field name="commission_paid"/>
                             </group>
                         </page>
-                        <page string="历史版本">
-                            <field name="version_ids">
-                                <list editable="bottom">
-                                    <field name="change_date"/>
-                                    <field name="change_note"/>
-                                    <field name="data_json"/>
-                                </list>
-                            </field>
-                        </page>
+                        
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">

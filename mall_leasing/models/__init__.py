@@ -7,3 +7,4 @@ from . import contract
 from . import communication
 from . import config
 from . import contract_template
+from . import contract_payment

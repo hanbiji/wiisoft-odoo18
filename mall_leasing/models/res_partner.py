@@ -7,6 +7,8 @@ class ResPartner(models.Model):
     is_tenant = fields.Boolean('是否为租户')
     # 新增字段：是否为运营
     is_operator = fields.Boolean('是否为运营')
+    # 身份证号
+    id_card = fields.Char('身份证号', tracking=True)
 
     # 重命名字段以避免与标准type字段冲突
     industry_type = fields.Selection([

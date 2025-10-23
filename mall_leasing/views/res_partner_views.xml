@@ -10,6 +10,7 @@
                     <group>
                         <field name="is_tenant"/>
                         <field name="is_operator"/>
+                        <field name="id_card"/>
                         <field name="industry_type"/>
                     </group>
                     <field name="leasing_contract_ids">
