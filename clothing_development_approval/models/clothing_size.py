@@ -18,23 +18,22 @@ class ClothingSize(models.Model):
     
     # ========== 基本信息字段 ==========
     clothing_type = fields.Selection([
-        ('ski_jacket', '滑雪上衣'),
-        ('ski_pants', '滑雪裤子'),
-        ('ski_suit', '连体滑雪套装'),
-        ('shirt', '衬衫'),
-        ('pants', '裤子'),
-        ('dress', '连衣裙'),
-        ('jacket', '外套'),
-        ('skirt', '裙子'),
-        ('suit', '套装'),
-    ], string='服装类型', required=True, help='选择服装的类型')
+        ('SU', 'One-piece suit - 连体'),
+        ('JK', 'Jacket - 夹克'),
+        ('PT', 'Pants - 裤子'),
+        ('BB', 'Bibs - 背带裤'),
+        ('GG', 'Goggles - 雪镜'),
+        ('HM', 'Helmet - 头盔'),
+        ('GL', 'Gloves - 手套'),
+        ('SK', 'Socks - 袜子')
+    ], string='服装分类', required=True)
     
     target_gender = fields.Selection([
-        ('male', '男性'),
-        ('female', '女性'),
-        ('unisex', '中性'),
-         ('child', '儿童')
-    ], string='目标性别', required=True, help='该尺寸适用的性别')
+        ('M', 'Men - 男'),
+        ('W', 'Women - 女'),
+        ('U', 'Unisex - 中性'),
+        ('K', 'Kids - 小孩')
+    ], string='目标性别', required=True)
     
     size = fields.Char(
         string='尺寸',
@@ -57,4 +56,4 @@ class ClothingSize(models.Model):
             clothing_type_label = dict(record._fields['clothing_type'].selection).get(record.clothing_type, '')
             gender_label = dict(record._fields['target_gender'].selection).get(record.target_gender, '')
             size_label = record.size
-            record.display_name = f"{clothing_type_label} - {gender_label} - {size_label}"
+            record.display_name = f"{size_label}"

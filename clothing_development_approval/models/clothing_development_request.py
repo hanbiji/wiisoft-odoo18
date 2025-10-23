@@ -29,13 +29,20 @@ class ClothingDevelopmentRequest(models.Model):
     )
     
     year = fields.Selection([
-        ('2025', '2025'),
-        ('2026', '2026'),
-        ('2027', '2027'),
-        ('2028', '2028'),
-        ('2029', '2029'),
-        ('2030', '2030')
+        ('25', '2025'),
+        ('26', '2026'),
+        ('27', '2027'),
+        ('28', '2028'),
+        ('29', '2029'),
+        ('30', '2030')
     ], string='年份', help='服装开发的年份', required=True)
+
+    target_gender = fields.Selection([
+        ('M', 'Men - 男'),
+        ('W', 'Women - 女'),
+        ('U', 'Unisex - 中性'),
+        ('K', 'Kids - 小孩')
+    ], string='目标性别', required=True)
     
     batch = fields.Char(
         string='批次',
@@ -101,19 +108,19 @@ class ClothingDevelopmentRequest(models.Model):
     brand = fields.Selection([
         ('GS', 'GSOUSNOW'),
         ('OT', '其他')
-    ], string='服装品牌', required=True, help='选择要开发的服装品牌')
+    ], string='服装品牌', required=True)
 
     clothing_type = fields.Selection([
-        ('ski_jacket', '滑雪上衣'),
-        ('ski_pants', '滑雪裤子'),
-        ('ski_suit', '连体滑雪套装'),
-        ('shirt', '衬衫'),
-        ('pants', '裤子'),
-        ('dress', '连衣裙'),
-        ('jacket', '外套'),
-        ('skirt', '裙子'),
-        ('suit', '套装'),
-    ], string='服装类别', required=True, help='选择要开发的服装类型')
+        ('SU', 'One-piece suit - 连体'),
+        ('JK', 'Jacket - 夹克'),
+        ('PT', 'Pants - 裤子'),
+        ('BB', 'Bibs - 背带裤'),
+        ('GG', 'Goggles - 雪镜'),
+        ('HM', 'Helmet - 头盔'),
+        ('GL', 'Gloves - 手套'),
+        ('SK', 'Socks - 袜子')
+    ], string='服装分类', required=True)
+
     # 服装风格: 工装,时装,潮酷,复古,常规,其他
     style = fields.Selection([
         ('formal', '工装'),
@@ -122,7 +129,7 @@ class ClothingDevelopmentRequest(models.Model):
         ('retro', '复古'),
         ('regular', '常规'),
         ('other', '其他'),
-    ], string='服装风格', required=True, help='选择服装的设计风格')
+    ], string='服装风格', required=True)
     
     target_season = fields.Selection([
         ('spring', '春季'),
@@ -143,13 +150,6 @@ class ClothingDevelopmentRequest(models.Model):
         string='次要颜色',
         help='服装的次要颜色或配色方案'
     )
-    
-    target_gender = fields.Selection([
-        ('male', '男性'),
-        ('female', '女性'),
-        ('unisex', '中性'),
-        ('child', '儿童')
-    ], string='目标性别', required=True, help='该服装的目标客户群体性别')
     
     clothing_size_ids = fields.Many2many(
         'clothing.size',
@@ -362,6 +362,135 @@ class ClothingDevelopmentRequest(models.Model):
         string='备注',
         help='其他备注信息'
     )
+
+    # 面料成分
+    fabric_composition = fields.Char(
+        string='面料成分',
+        help='描述服装面料的成分，例如：100% Cotton'
+    )
+    # 里衬成分
+    lining_composition = fields.Char(
+        string='里衬成分',
+        help='描述服装里衬的成分，例如：100% Polyester'
+    )
+    # 填充物材料
+    filler_material = fields.Char(
+        string='填充物材料',
+        help='描述服装填充物的材料，例如：100% Polyester'
+    )
+    # 填充物密度(gsm)
+    filler_density = fields.Char(
+        string='填充物密度(gsm)',
+        help='描述服装填充物的密度，例如：100gsm'
+    )
+    # 填充物总克重
+    filler_total_weight = fields.Char(
+        string='填充物总克重',
+        help='描述服装填充物的总克重，例如：100g'
+    )
+    # 其他材料成分
+    other_material_composition = fields.Char(
+        string='其他材料成分',
+        help='描述服装其他材料的成分，例如：100% Polyester'
+    )
+    # 面料涂层(抗污)
+    fabric_coating = fields.Char(
+        string='面料涂层(抗污)',
+        help='描述服装面料的涂层，例如：100% Polyester'
+    )
+    # 防水透气膜
+    waterproofing_permeability = fields.Char(
+        string='防水透气膜',
+        help='描述服装面料的防水透气膜，例如：100% Polyester'
+    )
+    # 布料压合工艺
+    fabric_press_technique = fields.Char(
+        string='布料压合工艺',
+    )
+    # 防水指数(mm)
+    waterproofing_index = fields.Float(
+        string='防水指数(mm)',
+        help='描述服装面料的防水指数，例如：10mm'
+    )
+    # 透湿指数(g/㎡/24h)
+    transpiration_index = fields.Float(
+        string='透湿指数(g/㎡/24h)',
+        help='描述服装面料的透湿指数，例如：10g/㎡/24h'
+    )
+    # 耐磨指数(次)
+    wear_resistance = fields.Char(
+        string='耐磨指数(次)',
+        help='描述服装面料的耐磨指数，例如：10次'
+    )
+    # 弹性
+    elasticity = fields.Char(
+        string='弹性',
+    )
+    # 接缝压胶工艺
+    seam_press_technique = fields.Char(
+        string='接缝压胶工艺',
+        help='描述服装面料的接缝压胶工艺，例如：100% Polyester'
+    )
+    # 手感
+    feel = fields.Char(
+        string='手感',
+    )
+    # 厚度
+    thickness = fields.Char(
+        string='厚度',
+    )
+    # 版型(总体)
+    overall_fit = fields.Char(
+        string='版型(总体)',
+    )
+    # 版型细节
+    fit_details = fields.Text(
+        string='版型细节',
+        help='描述服装面料的版型细节，例如：100% Polyester'
+    )
+    # 口袋
+    pocket = fields.Text(
+        string='口袋',
+    )
+    # 拉链
+    zip = fields.Char(
+        string='拉链',
+    )
+    # 通风
+    ventilation = fields.Char(
+        string='通风',
+    )
+    # 帽子设计
+    hat_design = fields.Text(
+        string='帽子设计',
+    )
+    # 袖口设计
+    cuff_design = fields.Text(
+        string='袖口设计',
+    )
+    # 脚口设计
+    foot_design = fields.Text(
+        string='脚口设计',
+    )
+    # 衣领设计
+    collar_design = fields.Char(
+        string='衣领设计',
+    )
+    # 防风雪倒灌设计
+    wind_snow_design = fields.Text(
+        string='防风雪倒灌设计',
+    )
+    # 抽绳/扣
+    drawstring = fields.Char(
+        string='抽绳/扣',
+    )
+    # 其他设计细节
+    other_design_details = fields.Text(
+        string='其他设计细节'
+    )
+
+
+
     
     # ========== 计算字段 ==========
     duration_days = fields.Integer(
@@ -725,8 +854,8 @@ class ClothingDevelopmentRequest(models.Model):
         
         # 为每个尺寸生成SKU
         for size in self.clothing_size_ids:
-            # 构建SKU代码：brand-year+batch+style_number-clothing_type-target_gender-color_code-size
-            sku_code = f"{self.brand}-{self.year}{self.batch}{self.style_number}-{self.clothing_type}-{self.target_gender}-{self.color_id.color_code}-{size.size}"
+            # 构建SKU代码：GS-性别分类年份序号-颜色-尺寸
+            sku_code = f"{self.brand}-{self.target_gender}{self.clothing_type}{self.year}{self.batch}{self.style_number}-{self.color_id.color_code}-{size.size}"
             # 把sku_code转换为大写
             sku_code = sku_code.upper()
             # 构建SKU名称
