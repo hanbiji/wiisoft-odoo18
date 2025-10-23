@@ -36,7 +36,7 @@
                     <group>
                         <group>
                             <field name="name"/>
-                            <field name="contract_type" attrs="{'readonly': [('state','in',['approved','signed','active','renewed','terminated'])]}"/>
+                            <field name="contract_type" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="mall_id" options="{'no_create': True}"/>
                             <field name="facade_id" options="{'no_create': True}"/>
                             <field name="partner_id" options="{'no_create': True}"/>
