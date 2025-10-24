@@ -4,9 +4,13 @@ from odoo import fields, models
 class ResPartner(models.Model):
     _inherit = 'res.partner'
 
-    is_tenant = fields.Boolean('是否为租户')
-    # 新增字段：是否为运营
-    is_operator = fields.Boolean('是否为运营')
+    # 联系人类别
+    mall_contact_type = fields.Selection([
+        ('tenant', '租户'),
+        ('operator', '运营公司(人)'),
+        ('property_company', '物业公司'),
+        ('landlord', '房东'),
+    ], string='联系人类别')
     # 身份证号
     id_card = fields.Char('身份证号', tracking=True)
 

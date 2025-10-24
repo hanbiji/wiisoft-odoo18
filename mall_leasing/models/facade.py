@@ -38,18 +38,19 @@ class MallFacade(models.Model):
     mall_name = fields.Char('商场名称', related='mall_id.name', store=True, readonly=True)
     mall_status = fields.Selection(related='mall_id.status', string='商场状态', store=True, readonly=True)
 
-    contract_ids = fields.One2many('mall.leasing.contract', 'facade_id', string='合同')
+    # 与合同的关联改为多对多
+    contract_ids = fields.Many2many('mall.leasing.contract', 'mall_contract_facade_rel', 'facade_id', 'contract_id', string='合同')
     landlord_contract_id = fields.Many2one(
         'mall.leasing.contract', string='房东合同',
-        domain="[('contract_type','=','landlord'),('state','in',['approved','signed','active']),('facade_id','=',id)]",
+        domain="[('contract_type','=','landlord'),('state','in',['approved','signed','active'])]",
         compute='_compute_current_contracts', store=True)
     tenant_contract_id = fields.Many2one(
         'mall.leasing.contract', string='租赁合同',
-        domain="[('contract_type','=','tenant'),('state','in',['approved','signed','active']),('facade_id','=',id)]",
+        domain="[('contract_type','=','tenant'),('state','in',['approved','signed','active'])]",
         compute='_compute_current_contracts', store=True)
     property_contract_id = fields.Many2one(
         'mall.leasing.contract', string='物业合同',
-        domain="[('contract_type','=','property'),('state','in',['approved','signed','active']),('facade_id','=',id)]",
+        domain="[('contract_type','=','property'),('state','in',['approved','signed','active'])]",
         compute='_compute_current_contracts', store=True)
 
     status = fields.Selection([
@@ -95,7 +96,7 @@ class MallFacade(models.Model):
             'name': '房东合同',
             'res_model': 'mall.leasing.contract',
             'view_mode': 'list,form',
-            'domain': [('facade_id', '=', self.id), ('contract_type', '=', 'landlord')],
+            'domain': [('facade_ids', 'in', [self.id]), ('contract_type', '=', 'landlord')],
         }
 
     def action_view_tenant_contract(self):
@@ -105,7 +106,7 @@ class MallFacade(models.Model):
             'name': '租户合同',
             'res_model': 'mall.leasing.contract',
             'view_mode': 'list,form',
-            'domain': [('facade_id', '=', self.id), ('contract_type', '=', 'tenant')],
+            'domain': [('facade_ids', 'in', [self.id]), ('contract_type', '=', 'tenant')],
         }
     
     def action_view_property_contract(self):
@@ -115,5 +116,5 @@ class MallFacade(models.Model):
             'name': '物业合同',
             'res_model': 'mall.leasing.contract',
             'view_mode': 'list,form',
-            'domain': [('facade_id', '=', self.id), ('contract_type', '=', 'property')],
+            'domain': [('facade_ids', 'in', [self.id]), ('contract_type', '=', 'property')],
         }

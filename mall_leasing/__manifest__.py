@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'Mall Leasing 管理',
-    'version': '1.0',
+    'version': '18.0.1.0.1',
     'summary': '商场门面租赁项目管理（门面/合同/财务/预警/CRM）',
     'description': '管理门面、双合同（房东/租户）、自动账单、到期与欠费预警、租户档案与沟通日志。',
     'author': 'wiisoft',
@@ -15,6 +15,7 @@
         'views/contract_views.xml',
         'views/contract_template_views.xml',
         'views/communication_views.xml',
+        'data/ir_sequence.xml',
         'data/ir_cron.xml',
         'views/res_partner_views.xml',
         'views/menu.xml',

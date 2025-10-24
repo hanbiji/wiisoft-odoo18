@@ -103,7 +103,7 @@ class Mall(models.Model):
             'name': f'{self.name} - 合同列表',
             'res_model': 'mall.leasing.contract',
             'view_mode': 'list,form',
-            'domain': [('facade_id', 'in', facade_ids)],
+            'domain': [('facade_ids', 'in', facade_ids)],
         }
 
     def action_create_facade(self):

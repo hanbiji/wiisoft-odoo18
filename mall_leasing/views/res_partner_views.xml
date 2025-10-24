@@ -8,20 +8,26 @@
             <notebook position="inside">
                 <page string="租赁档案">
                     <group>
-                        <field name="is_tenant"/>
-                        <field name="is_operator"/>
-                        <field name="id_card"/>
-                        <field name="industry_type"/>
+                        <group>
+                            <field name="mall_contact_type"/>
+                        </group>
+                        <group>
+                            <field name="industry_type"/>
+                        </group>
+                        <group>
+                            <field name="id_card"/>
+                        </group>
+                                                
                     </group>
                     <field name="leasing_contract_ids">
-                        <list>
+                        <list no_create="1">
                             <field name="name"/>
                             <field name="contract_type"/>
-                            <field name="facade_id"/>
-                            <field name="state"/>
+                            <field name="facade_ids" widget="many2many_tags"/>
                             <field name="lease_start_date"/>
                             <field name="lease_end_date"/>
                             <field name="rent_amount"/>
+                            <field name="state"/>
                         </list>
                     </field>
                 </page>

@@ -124,6 +124,7 @@
                                     </field>
                                 </group>
                             </page>
+
                             <page string="设计稿图" name="design_requirements">
                                 <group>
                                     <field name="design_requirements" nolabel="1" placeholder="请描述具体的设计要求和规格..." widget="html"/>
@@ -151,33 +152,7 @@
                                 </group>
                             </page>
 
-                            <page string="打板图" name="board_drawing">
-                                <group>
-                                    <field name="board_drawing_html" nolabel="1" widget="html" />
-                                </group>
-                                <group>
-                                    <field name="design_board_ids" nolabel="1">
-                                        <kanban>
-                                            <field name="id"/>
-                                            <field name="name"/>
-                                            <field name="image"/>
-                                            <templates>
-                                                <t t-name="card">
-                                                    <div class="oe_kanban_global_click">
-                                                        <field name="image" widget="image" class="o_image_preview oe_kanban_no_global_click"/>
-                                                    </div>
-                                                </t>
-                                            </templates>
-                                        </kanban>
-                                        <form delete="false">
-                                            <sheet>
-                                                <field nolabel="1" width="100%" name="image" widget="image" />
-                                            </sheet>
-                                        </form>
-                                    </field>
-                                </group>
-                            </page>
-                            <page name="cloth_attr" string="服装属性">
+                            <page name="cloth_attr" string="设计细节">
                                 <group>
                                     <group>
                                         <field name="fabric_composition"/>
@@ -209,11 +184,39 @@
                                         <field name="hat_design"/>
                                         <field name="foot_design"/>
                                         <field name="wind_snow_design"/>
-                                        other_design_details
+                                        <field name="other_design_details"/>
                                     </group>
                                 </group>
                                 
                             </page>
+
+                            <page string="打板图" name="board_drawing">
+                                <group>
+                                    <field name="board_drawing_html" nolabel="1" widget="html" />
+                                </group>
+                                <group>
+                                    <field name="design_board_ids" nolabel="1">
+                                        <kanban>
+                                            <field name="id"/>
+                                            <field name="name"/>
+                                            <field name="image"/>
+                                            <templates>
+                                                <t t-name="card">
+                                                    <div class="oe_kanban_global_click">
+                                                        <field name="image" widget="image" class="o_image_preview oe_kanban_no_global_click"/>
+                                                    </div>
+                                                </t>
+                                            </templates>
+                                        </kanban>
+                                        <form delete="false">
+                                            <sheet>
+                                                <field nolabel="1" width="100%" name="image" widget="image" />
+                                            </sheet>
+                                        </form>
+                                    </field>
+                                </group>
+                            </page>
+                            
 
                             <page string="样衣挂板图" name="sample_clothing">
                                 <group>

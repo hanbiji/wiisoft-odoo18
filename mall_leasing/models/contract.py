@@ -9,7 +9,7 @@ class MallLeasingContract(models.Model):
     _description = '租赁合同（房东/租户）'
     _inherit = ['mail.thread', 'mail.activity.mixin']
 
-    name = fields.Char('合同编号', required=True, tracking=True)
+    name = fields.Char('合同编号', required=True, tracking=True, copy=False, default=lambda self: _('New'))
     contract_type = fields.Selection([
         ('tenant', '租赁合同'),
         ('property', '物业合同'),
@@ -18,10 +18,17 @@ class MallLeasingContract(models.Model):
 
     # 商场项目
     mall_id = fields.Many2one('mall.mall', string='商场', required=True, tracking=True)
-    facade_id = fields.Many2one('mall.facade', string='房号', required=True, tracking=True, domain="[('mall_id', '=', mall_id)]")
-    partner_id = fields.Many2one('res.partner', string='租赁单位（人）', required=True, tracking=True)
+    # 房产（支持多选）
+    facade_ids = fields.Many2many(
+        'mall.facade', 'mall_contract_facade_rel', 'contract_id', 'facade_id', 
+        string='房号', required=True
+    )
+    # 运营单位（人）
+    operator_id = fields.Many2one('res.partner', string='运营单位（人）', required=True, domain=[('mall_contact_type', 'in', ['operator', 'property_company'])])
+    # 租赁单位（人）
+    partner_id = fields.Many2one('res.partner', string='租赁单位（人）', required=True, domain=[('mall_contact_type', '=', 'tenant')])
     # 店铺名称
-    shop_name = fields.Char('店铺名称', required=True, tracking=True)
+    shop_name = fields.Char('店铺名称', required=True)
 
     state = fields.Selection([
         ('draft', '草稿'),
@@ -52,7 +59,9 @@ class MallLeasingContract(models.Model):
     payment_day = fields.Integer('支付日(1-31)', default=1)
 
     bank_account = fields.Char('收款账户')
-
+    
+    # 租赁期限（年）
+    lease_term = fields.Integer('租赁期限（年）', default=1)
     lease_start_date = fields.Date('租赁开始日')
     lease_end_date = fields.Date('租赁结束日')
 
@@ -74,13 +83,29 @@ class MallLeasingContract(models.Model):
     version_ids = fields.One2many('mall.leasing.contract.version', 'contract_id', string='历史版本')
 
     contract_payment_ids = fields.One2many('mall.leasing.contract.payment', 'contract_id', string='付款记录')
+    
+    # 发票关联
+    invoice_ids = fields.One2many('account.move', 'mall_contract_id', string='相关发票', 
+                                  domain=[('move_type', 'in', ['out_invoice', 'in_invoice'])])
+    invoice_count = fields.Integer('发票数量', compute='_compute_invoice_count')
 
     _sql_constraints = [
         ('name_unique', 'unique(name)', '合同编号必须唯一。')
     ]
 
+    @api.model_create_multi
+    def create(self, vals_list):
+        for vals in vals_list:
+            if vals.get('name', _('New')) in [False, _('New')]:
+                vals['name'] = self.env['ir.sequence'].next_by_code('mall.leasing.contract') or _('New')
+        return super().create(vals_list)
+
     @api.depends('lease_start_date', 'payment_frequency', 'payment_day')
     def _compute_next_bill_date(self):
+        """
+        计算合同的下次出账日
+        :return: None
+        """
         for rec in self:
             if not rec.lease_start_date or not rec.payment_frequency:
                 rec.next_bill_date = False
@@ -94,9 +119,19 @@ class MallLeasingContract(models.Model):
                 first = first + relativedelta(months=delta)
             rec.next_bill_date = first
 
+    @api.depends('invoice_ids')
+    def _compute_invoice_count(self):
+        """计算关联发票数量"""
+        for record in self:
+            record.invoice_count = len(record.invoice_ids)
+
     def _get_journal_and_account(self):
+        """
+        获取合同对应的会计凭证和资产账户
+        :return: 包含journal和account的元组
+        """
         company = self.env.company
-        if self.contract_type == 'tenant':
+        if self.contract_type in ['tenant', 'property']:
             journal = self.env['account.journal'].search([('type', '=', 'sale'), ('company_id', '=', company.id)], limit=1)
             account = self.env['account.account'].search([('account_type', '=', 'income'), ('company_ids', 'in', company.id)], limit=1)
         else:
@@ -105,6 +140,11 @@ class MallLeasingContract(models.Model):
         return journal, account
 
     def _charge_lines(self, account):
+        """
+        生成合同的费用行项目
+        :param account: 费用对应的资产账户
+        :return: 费用行项目列表
+        """
         def line(name, amount):
             return (0, 0, {
                 'name': name,
@@ -121,9 +161,41 @@ class MallLeasingContract(models.Model):
             lines.append(line(_('电费'), self.electric_fee))
         if self.property_fee:
             lines.append(line(_('物业费'), self.property_fee))
+        if self.service_fee:
+            lines.append(line(_('服务费'), self.service_fee))
         if self.garbage_fee:
             lines.append(line(_('垃圾费'), self.garbage_fee))
         return lines or [line(_('租赁费用'), 0.0)]
+
+    def _create_single_move(self, fee_name, fee_amount, journal, account):
+        """
+        为单个费用类型创建会计凭证
+        :param fee_name: 费用名称
+        :param fee_amount: 费用金额
+        :param journal: 会计账簿
+        :param account: 费用对应的资产账户
+        :return: 创建的会计凭证
+        """
+        if not fee_amount or fee_amount <= 0:
+            return None
+            
+        move_vals = {
+            'move_type': 'out_invoice' if self.contract_type in ['tenant', 'property'] else 'in_invoice',
+            'partner_id': self.partner_id.id,
+            'ref': f'合同# {self.name} - {fee_name}',
+            'invoice_date': fields.Date.today(),
+            'invoice_date_due': fields.Date.today() + relativedelta(days=15),
+            'journal_id': journal.id,
+            'invoice_line_ids': [(0, 0, {
+                'name': fee_name,
+                'quantity': 1.0,
+                'price_unit': fee_amount,
+                'account_id': account.id,
+            })],
+            'mall_contract_id': self.id,  # 建立与合同的关联
+        }
+        
+        return self.env['account.move'].create(move_vals)
 
     def action_approve(self):
         """审核通过"""
@@ -183,7 +255,10 @@ class MallLeasingContract(models.Model):
         return True
 
     def action_generate_move(self):
-        """生成账单"""
+        """
+        生成合同对应的会计凭证 - 为每种费用类型生成单独的凭证
+        :return: 包含所有凭证ID的字典
+        """
         self.ensure_one()
         
         if not self.lease_start_date:
@@ -191,23 +266,76 @@ class MallLeasingContract(models.Model):
         
         journal, account = self._get_journal_and_account()
         
-        move_vals = {
-            'move_type': 'out_invoice' if self.contract_type == 'tenant' else 'in_invoice',
-            'partner_id': self.partner_id.id,
-            'invoice_date': fields.Date.today(),
-            'journal_id': journal.id,
-            'invoice_line_ids': self._charge_lines(account),
-        }
+        # 定义费用类型和对应的金额
+        fee_types = [
+            (_('租金'), self.rent_amount),
+            (_('水费'), self.water_fee),
+            (_('电费'), self.electric_fee),
+            (_('物业费'), self.property_fee),
+            (_('服务费'), self.service_fee),
+            (_('垃圾费'), self.garbage_fee),
+        ]
         
-        move = self.env['account.move'].create(move_vals)
+        # 为每种费用类型生成单独的会计凭证
+        created_moves = []
+        for fee_name, fee_amount in fee_types:
+            move = self._create_single_move(fee_name, fee_amount, journal, account)
+            if move:
+                created_moves.append(move)
         
+        if not created_moves:
+            raise UserError(_('没有需要生成凭证的费用项目'))
+        
+        # 如果只有一个凭证，直接返回该凭证的表单视图
+        if len(created_moves) == 1:
+            return {
+                'type': 'ir.actions.act_window',
+                'res_model': 'account.move',
+                'res_id': created_moves[0].id,
+                'view_mode': 'form',
+                'target': 'current',
+            }
+        
+        # 如果有多个凭证，返回列表视图显示所有生成的凭证
         return {
             'type': 'ir.actions.act_window',
             'res_model': 'account.move',
-            'res_id': move.id,
-            'view_mode': 'form',
+            'domain': [('id', 'in', [move.id for move in created_moves])],
+            'view_mode': 'list,form',
             'target': 'current',
-            }
+            'name': _('生成的会计凭证'),
+        }
+
+    def action_view_invoices(self):
+        """查看关联的发票"""
+        self.ensure_one()
+        action = self.env.ref('account.action_move_out_invoice_type').read()[0]
+        if len(self.invoice_ids) > 1:
+            action['domain'] = [('id', 'in', self.invoice_ids.ids)]
+        elif len(self.invoice_ids) == 1:
+            action['views'] = [(self.env.ref('account.view_move_form').id, 'form')]
+            action['res_id'] = self.invoice_ids.ids[0]
+        else:
+            action = {'type': 'ir.actions.act_window_close'}
+        return action
+
+    def get_invoice_summary(self):
+        """获取发票汇总信息"""
+        self.ensure_one()
+        invoices = self.invoice_ids
+        total_amount = sum(invoices.mapped('amount_total'))
+        paid_amount = sum(invoices.filtered(lambda x: x.payment_state == 'paid').mapped('amount_total'))
+        unpaid_amount = total_amount - paid_amount
+        overdue_invoices = invoices.filtered(lambda x: x.invoice_date_due and x.invoice_date_due < fields.Date.today() and x.payment_state != 'paid')
+        
+        return {
+            'total_invoices': len(invoices),
+            'total_amount': total_amount,
+            'paid_amount': paid_amount,
+            'unpaid_amount': unpaid_amount,
+            'overdue_count': len(overdue_invoices),
+            'overdue_amount': sum(overdue_invoices.mapped('amount_total')),
+        }
 
     @api.model
     def cron_generate_periodic_bills(self):
