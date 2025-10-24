@@ -107,6 +107,7 @@ class ClothingDevelopmentRequest(models.Model):
     # 服装品牌
     brand = fields.Selection([
         ('GS', 'GSOUSNOW'),
+        ('AD', 'ApoDrome'),
         ('OT', '其他')
     ], string='服装品牌', required=True)
 
@@ -139,14 +140,20 @@ class ClothingDevelopmentRequest(models.Model):
         ('all_season', '四季通用')
     ], string='目标季节', required=True, help='该服装适用的季节')
     
-    color_id = fields.Many2one(
+    color_ids = fields.Many2many(
         'clothing.color',
+        'clothing_development_request_color_rel',
+        'request_id',
+        'color_id',
         string='主要颜色',
         help='服装的主要颜色'
     )
     
     secondary_color_ids = fields.Many2many(
         'clothing.color',
+        'clothing_development_request_secondary_color_rel',
+        'request_id',
+        'color_id',
         string='次要颜色',
         help='服装的次要颜色或配色方案'
     )
@@ -834,7 +841,7 @@ class ClothingDevelopmentRequest(models.Model):
         """生成所有SKU变体
         
         根据SKU规则生成所有可能的变体组合：
-        'brand'-'year''batch''style_number'-'clothing_type'-'target_gender'-'color_id.color_code'-'clothing_size_ids.size'
+        'brand'-'year''batch''style_number'-'clothing_type'-'target_gender'-'color_ids.color_code'-'clothing_size_ids.size'
         
         Returns:
             list: 生成的SKU变体列表
@@ -843,7 +850,7 @@ class ClothingDevelopmentRequest(models.Model):
         
         # 验证必要字段
         if not all([self.brand, self.year, self.batch, self.style_number, 
-                   self.clothing_type, self.target_gender, self.color_id, self.clothing_size_ids]):
+                   self.clothing_type, self.target_gender, self.color_ids, self.clothing_size_ids]):
             raise UserError(_("请确保所有必要字段都已填写：品牌、年份、批次、款号、服装类型、目标性别、主要颜色、关联尺寸"))
         
         # 清除现有的SKU变体
@@ -852,26 +859,27 @@ class ClothingDevelopmentRequest(models.Model):
         
         sku_variants = []
         
-        # 为每个尺寸生成SKU
-        for size in self.clothing_size_ids:
-            # 构建SKU代码：GS-性别分类年份序号-颜色-尺寸
-            sku_code = f"{self.brand}-{self.target_gender}{self.clothing_type}{self.year}{self.batch}{self.style_number}-{self.color_id.color_code}-{size.size}"
-            # 把sku_code转换为大写
-            sku_code = sku_code.upper()
-            # 构建SKU名称
-            sku_name = f"{dict(self._fields['brand'].selection)[self.brand]} {self.year}年{self.batch}批次 {self.style_number}款 {dict(self._fields['clothing_type'].selection)[self.clothing_type]} {dict(self._fields['target_gender'].selection)[self.target_gender]} {self.color_id.name} {size.size.upper()}码"
-            gtin = self._generate_gtin14()
-            # 创建SKU记录
-            sku_variant = self.env['clothing.sku'].create({
-                'name': sku_name,
-                'sku': sku_code,
-                'gtin': gtin,
-                'size_id': size.id,
-                'color_id': self.color_id.id,
-                'request_id': self.id,
-            })
-            
-            sku_variants.append(sku_variant)
+        # 为每个颜色和尺寸的组合生成SKU
+        for color in self.color_ids:
+            for size in self.clothing_size_ids:
+                # 构建SKU代码：GS-性别分类年份序号-颜色-尺寸
+                sku_code = f"{self.brand}-{self.target_gender}{self.clothing_type}{self.year}{self.batch}{self.style_number}-{color.color_code}-{size.size}"
+                # 把sku_code转换为大写
+                sku_code = sku_code.upper()
+                # 构建SKU名称
+                sku_name = f"{dict(self._fields['brand'].selection)[self.brand]} {self.year}年{self.batch}批次 {self.style_number}款 {dict(self._fields['clothing_type'].selection)[self.clothing_type]} {dict(self._fields['target_gender'].selection)[self.target_gender]} {color.name} {size.size.upper()}码"
+                gtin = self._generate_gtin14()
+                # 创建SKU记录
+                sku_variant = self.env['clothing.sku'].create({
+                    'name': sku_name,
+                    'sku': sku_code,
+                    'gtin': gtin,
+                    'size_id': size.id,
+                    'color_id': color.id,
+                    'request_id': self.id,
+                })
+                
+                sku_variants.append(sku_variant)
         
         return sku_variants
     

@@ -90,7 +90,7 @@
                                 <field name="duration_days" invisible="state in ['completed', 'cancelled']"/>
                                 <field name="applicant_id"/>
                                 <field name="clothing_size_ids" widget="many2many_tags"/>
-                                <field name="color_id"/>
+                                <field name="color_ids" widget="many2many_tags"/>
                                 <field name="secondary_color_ids" widget="many2many_tags"/>
                                 <field name="priority"/>
                             </group>
