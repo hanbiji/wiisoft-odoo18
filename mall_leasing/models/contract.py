@@ -195,7 +195,10 @@ class MallLeasingContract(models.Model):
             'mall_contract_id': self.id,  # 建立与合同的关联
         }
         
-        return self.env['account.move'].create(move_vals)
+        account_move = self.env['account.move'].create(move_vals)
+        # 自动确认凭证
+        account_move.action_post()
+        return account_move
 
     def action_approve(self):
         """审核通过"""
@@ -253,6 +256,28 @@ class MallLeasingContract(models.Model):
         )
         
         return True
+    
+    def action_active(self):
+        """
+        激活合同 - 合同状态变更为活动
+        """
+        self.ensure_one()
+        if self.state != 'signed':
+            raise UserError(_('只有已签约的合同才能激活'))
+        
+        self.state = 'active'
+        self.message_post(body=_('合同已激活'))
+        
+        # 创建活动提醒
+        self.activity_schedule(
+            'mail.mail_activity_data_todo',
+            summary=_('合同已激活'),
+            note=_('合同 %s 已激活，可以开始执行') % self.name,
+            user_id=self.env.user.id
+        )
+        
+        return True
+        
 
     def action_generate_move(self):
         """
@@ -339,6 +364,9 @@ class MallLeasingContract(models.Model):
 
     @api.model
     def cron_generate_periodic_bills(self):
+        """
+        自动生成合同的周期性账单
+        """
         today = date.today()
         contracts = self.search([('state', '=', 'active'), ('next_bill_date', '<=', today)])
         for c in contracts:
@@ -348,6 +376,9 @@ class MallLeasingContract(models.Model):
                 c.next_bill_date = c.next_bill_date + relativedelta(months=months)
                 continue
             c.action_generate_move()
+            # 更新下一个账单日期
+            months = {'monthly': 1, 'quarterly': 3, 'yearly': 12}.get(c.payment_frequency, 1)
+            c.next_bill_date = c.next_bill_date + relativedelta(months=months)
 
     @api.model
     def _create_activity(self, res_model, res_id, summary, note):

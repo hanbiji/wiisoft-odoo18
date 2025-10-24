@@ -26,11 +26,13 @@
             <form string="租赁合同">
                 <header>
                     <button name="action_reject" type="object" string="审核拒绝" invisible="state != 'draft'"/>
-                    <button name="action_sign" type="object" string="签约" class="oe_highlight" invisible="state != 'approved'"/>
                     <button name="action_approve" type="object" string="审核通过" class="oe_highlight" invisible="state != 'draft'"/>
+                    <button name="action_sign" type="object" string="签约" class="oe_highlight" invisible="state != 'approved'"/>
                     
-                    <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight" invisible="state != 'signed'"/>
+                    
+                    <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight" invisible="state != 'active'"/>
                     <button name="action_view_invoices" type="object" string="查看发票" class="btn-secondary" invisible="invoice_count == 0"/>
+                    <button name="action_active" type="object" string="激活合同" class="oe_highlight" invisible="state != 'signed'"/>
 
                     <field name="state" widget="statusbar" statusbar_visible="draft,approved,signed,active,renewed,terminated"/>
                 </header>
