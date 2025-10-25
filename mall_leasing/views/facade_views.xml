@@ -33,6 +33,7 @@
                 <field name="facade_type"/>
                 <field name="status"/>
                 <field name="tenant_contract_id"/>
+                <field name="tenant_partner_id"/>
             </list>
         </field>
     </record>

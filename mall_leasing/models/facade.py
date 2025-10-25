@@ -48,6 +48,7 @@ class MallFacade(models.Model):
         'mall.leasing.contract', string='租赁合同',
         domain="[('contract_type','=','tenant'),('state','in',['approved','signed','active'])]",
         compute='_compute_current_contracts', store=True)
+    tenant_partner_id = fields.Many2one('res.partner', string='承租人', related='tenant_contract_id.partner_id', store=True, readonly=True)
     property_contract_id = fields.Many2one(
         'mall.leasing.contract', string='物业合同',
         domain="[('contract_type','=','property'),('state','in',['approved','signed','active'])]",
