@@ -24,9 +24,20 @@ class MallLeasingContract(models.Model):
         string='房号', required=True
     )
     # 运营单位（人）
-    operator_id = fields.Many2one('res.partner', string='运营单位（人）', required=True, domain=[('mall_contact_type', 'in', ['operator', 'property_company'])])
+    operator_id = fields.Many2one('res.partner', 
+        string='运营单位（人）', 
+        required=True, 
+        domain=[('mall_contact_type', '=', 'operator')])
     # 租赁单位（人）
-    partner_id = fields.Many2one('res.partner', string='租赁单位（人）', required=True, domain=[('mall_contact_type', '=', 'tenant')])
+    partner_id = fields.Many2one('res.partner', 
+        string='租赁单位（人）', 
+        required=True, 
+        domain=[('mall_contact_type', '=', 'tenant')])
+    # 物业单位（人）
+    property_company_id = fields.Many2one('res.partner', 
+        string='物业单位（人）', 
+        required=True, 
+        domain=[('mall_contact_type', '=', 'property_company')])
     # 店铺名称
     shop_name = fields.Char('店铺名称', required=True)
 
@@ -41,11 +52,10 @@ class MallLeasingContract(models.Model):
 
     currency_id = fields.Many2one('res.currency', string='币种', default=lambda self: self.env.company.currency_id.id)
 
-    rent_amount = fields.Monetary('租金', currency_field='currency_id')
+    rent_amount = fields.Monetary('每期租金', currency_field='currency_id')
     deposit = fields.Monetary('押金', currency_field='currency_id')
-    property_fee = fields.Monetary('物业费', currency_field='currency_id')
-    # 服务费
-    service_fee = fields.Monetary('服务费', currency_field='currency_id')
+    property_fee = fields.Monetary('每期物业费', currency_field='currency_id')
+    service_fee = fields.Monetary('每期服务费', currency_field='currency_id')
 
     water_fee = fields.Monetary('水费', currency_field='currency_id')
     electric_fee = fields.Monetary('电费', currency_field='currency_id')
@@ -277,7 +287,126 @@ class MallLeasingContract(models.Model):
         )
         
         return True
-        
+
+    def action_create_property_contract(self):
+        self.ensure_one()
+        vals = {
+            'contract_type': 'property',
+            'mall_id': self.mall_id.id,
+            'facade_ids': [(6, 0, self.facade_ids.ids)],
+            'operator_id': self.operator_id.id,
+            'partner_id': self.partner_id.id,
+            'shop_name': self.shop_name,
+            'currency_id': self.currency_id.id,
+            'bank_account': self.bank_account,
+            'lease_term': self.lease_term,
+            'lease_start_date': self.lease_start_date,
+            'lease_end_date': self.lease_end_date,
+            'payment_frequency': self.payment_frequency,
+            'payment_day': self.payment_day,
+            'free_rent_from': self.free_rent_from,
+            'free_rent_to': self.free_rent_to,
+            'escalation_rate': self.escalation_rate,
+        }
+        new = self.env['mall.leasing.contract'].create(vals)
+        return {
+            'type': 'ir.actions.act_window',
+            'res_model': 'mall.leasing.contract',
+            'res_id': new.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
+    def action_view_property_contracts(self):
+        """查看相关的物业合同"""
+        self.ensure_one()
+        # 读取已有的动作定义（若存在）
+        try:
+            action = self.env.ref('mall_leasing.action_property_contracts').read()[0]
+        except Exception:
+            action = {
+                'type': 'ir.actions.act_window',
+                'name': _('物业合同'),
+                'res_model': 'mall.leasing.contract',
+                'view_mode': 'list,form',
+            }
+        # 基础筛选：物业合同
+        domain = [('contract_type', '=', 'property')]
+        # 同商场
+        if self.mall_id:
+            domain.append(('mall_id', '=', self.mall_id.id))
+        # 关联相同房号（多选）
+        if self.facade_ids:
+            domain.append(('facade_ids', 'in', self.facade_ids.ids))
+        if self.partner_id:
+            domain.append(('partner_id', '=', self.partner_id.id))
+        action['domain'] = domain
+
+        # 传递默认上下文，便于快速创建物业合同
+        ctx = dict(self.env.context or {})
+        ctx.update({
+            'default_contract_type': 'property',
+            'default_mall_id': self.mall_id.id,
+            'default_facade_ids': [(6, 0, self.facade_ids.ids)],
+            'default_operator_id': self.operator_id.id,
+            'default_partner_id': self.partner_id.id,
+            'default_property_company_id': self.property_company_id.id,
+        })
+        action['context'] = ctx
+
+        # 若仅有一个匹配，直接打开表单视图
+        records = self.env['mall.leasing.contract'].search(domain, limit=2)
+        if len(records) == 1:
+            try:
+                form_view = self.env.ref('mall_leasing.view_mall_contract_form').id
+                action['views'] = [(form_view, 'form')]
+            except Exception:
+                # 无特定视图引用时，保持默认
+                pass
+            action['res_id'] = records.id
+        return action
+
+    def action_view_tenant_contracts(self):
+        """查看相关的租户合同"""
+        self.ensure_one()
+        try:
+            action = self.env.ref('mall_leasing.action_tenant_contracts').read()[0]
+        except Exception:
+            action = {
+                'type': 'ir.actions.act_window',
+                'name': _('租户合同'),
+                'res_model': 'mall.leasing.contract',
+                'view_mode': 'list,form',
+            }
+        domain = [('contract_type', '=', 'tenant')]
+        if self.mall_id:
+            domain.append(('mall_id', '=', self.mall_id.id))
+        if self.facade_ids:
+            domain.append(('facade_ids', 'in', self.facade_ids.ids))
+        if self.partner_id:
+            domain.append(('partner_id', '=', self.partner_id.id))
+        action['domain'] = domain
+
+        ctx = dict(self.env.context or {})
+        ctx.update({
+            'default_contract_type': 'tenant',
+            'default_mall_id': self.mall_id.id,
+            'default_facade_ids': [(6, 0, self.facade_ids.ids)],
+            'default_operator_id': self.operator_id.id,
+            'default_partner_id': self.partner_id.id,
+            'default_property_company_id': self.property_company_id.id,
+        })
+        action['context'] = ctx
+
+        records = self.env['mall.leasing.contract'].search(domain, limit=2)
+        if len(records) == 1:
+            try:
+                form_view = self.env.ref('mall_leasing.view_mall_contract_form').id
+                action['views'] = [(form_view, 'form')]
+            except Exception:
+                pass
+            action['res_id'] = records.id
+        return action
 
     def action_generate_move(self):
         """
@@ -304,6 +433,8 @@ class MallLeasingContract(models.Model):
         # 为每种费用类型生成单独的会计凭证
         created_moves = []
         for fee_name, fee_amount in fee_types:
+            if not fee_amount:
+                continue
             move = self._create_single_move(fee_name, fee_amount, journal, account)
             if move:
                 created_moves.append(move)

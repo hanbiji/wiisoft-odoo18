@@ -6,14 +6,21 @@
         <field name="arch" type="xml">
             <list>
                 <field name="name"/>
+                <field name="mall_id"/>
                 <field name="contract_type"/>
+                <field name="shop_name"/>
                 <field name="facade_ids" widget="many2many_tags"/>
                 <field name="partner_id"/>
+                <field name="operator_id"/>
+                <field name="property_company_id"/>
                 <field name="state"/>
                 <field name="lease_start_date"/>
                 <field name="lease_end_date"/>
                 <field name="payment_frequency"/>
-                <field name="rent_amount"/>
+                <field name="deposit" column_invisible="context.get('default_contract_type') == 'property'"/>
+                <field name="rent_amount" column_invisible="context.get('default_contract_type') == 'property'"/>
+                <field name="property_fee" column_invisible="context.get('default_contract_type') == 'tenant'"/>
+                <field name="service_fee" column_invisible="context.get('default_contract_type') == 'tenant'"/>
                 <field name="next_bill_date"/>
             </list>
         </field>
@@ -29,6 +36,12 @@
                     <button name="action_approve" type="object" string="审核通过" class="oe_highlight" invisible="state != 'draft'"/>
                     <button name="action_sign" type="object" string="签约" class="oe_highlight" invisible="state != 'approved'"/>
                     
+                    <!-- 新增：创建物业合同按钮 -->
+                    <button name="action_create_property_contract" 
+                        type="object" 
+                        string="创建物业合同" 
+                        class="btn" 
+                        invisible="contract_type == 'property'"/>
                     
                     <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight" invisible="state != 'active'"/>
                     <button name="action_view_invoices" type="object" string="查看发票" class="btn-secondary" invisible="invoice_count == 0"/>
@@ -42,6 +55,18 @@
                         <button name="action_view_invoices" type="object" class="oe_stat_button" icon="fa-file-text-o" invisible="invoice_count == 0">
                             <field name="invoice_count" widget="statinfo" string="发票"/>
                         </button>
+                        <button name="action_view_property_contracts" 
+                            string="物业合同"
+                            type="object" 
+                            class="oe_stat_button" 
+                            icon="fa-building" 
+                            invisible="contract_type == 'property'"/>
+                        <button name="action_view_tenant_contracts" 
+                            string="租赁合同"
+                            type="object" 
+                            class="oe_stat_button" 
+                            icon="fa-user" 
+                            invisible="contract_type == 'tenant'"/>
                     </div>
                     <group>
                         <group>
@@ -49,7 +74,14 @@
                             <field name="contract_type" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="mall_id" options="{'no_create': True}" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="facade_ids" domain="[('mall_id', '=', mall_id), ('status', '=', 'vacant')]" widget="many2many_tags" options="{'no_create': True}" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                            <field name="operator_id" options="{'no_create': True}" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                            <field name="operator_id" 
+                                invisible="contract_type == 'property'"
+                                options="{'no_create': True}" 
+                                readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                            <field name="property_company_id" 
+                                invisible="contract_type == 'tenant'"
+                                options="{'no_create': True}" 
+                                readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="partner_id" options="{'no_create': True}" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="shop_name" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="currency_id" readonly="1" options="{'no_create': True, 'no_open': True}"/>
@@ -70,16 +102,17 @@
                     <notebook>
                         <page string="费用">
                             <group>
-                                <field name="rent_amount"/>
-                                <field name="deposit"/>
-                                <field name="property_fee"/>
-                                <field name="service_fee"/>
+                                <field name="rent_amount" invisible="contract_type == 'property'"/>
+                                <field name="deposit" invisible="contract_type == 'property'"/>
+                                <field name="property_fee" invisible="contract_type == 'tenant'"/>
+                                <field name="service_fee" invisible="contract_type == 'tenant'"/>
                             </group>
                         </page>
                         
-                        <page string="介绍人/中介">
+                        <page string="介绍人/中介" invisible="contract_type == 'property'">
                             <group>
-                                <field name="introducer_id"/>
+                                <field name="introducer_id" options="{'no_create': True, 'no_open': True}" domain="[('mall_contact_type', '=', 'intermediary')]"
+                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                                 <field name="commission_type"/>
                                 <field name="commission_amount"/>
                                 <field name="commission_paid"/>
