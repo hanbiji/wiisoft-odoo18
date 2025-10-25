@@ -22,6 +22,7 @@
                 <field name="property_fee" column_invisible="context.get('default_contract_type') == 'tenant'"/>
                 <field name="service_fee" column_invisible="context.get('default_contract_type') == 'tenant'"/>
                 <field name="next_bill_date"/>
+                <field name="pending_amount" string="待付款金额"/>
             </list>
         </field>
     </record>
@@ -97,6 +98,7 @@
                             <field name="payment_frequency"/>
                             <field name="payment_day"/>
                             <field name="next_bill_date" readonly="1"/>
+                            <field name="pending_amount" readonly="1" string="待付款金额"/>
                         </group>
                     </group>
                     <notebook>

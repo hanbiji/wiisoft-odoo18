@@ -98,6 +98,7 @@ class MallLeasingContract(models.Model):
     invoice_ids = fields.One2many('account.move', 'mall_contract_id', string='相关发票', 
                                   domain=[('move_type', 'in', ['out_invoice', 'in_invoice'])])
     invoice_count = fields.Integer('发票数量', compute='_compute_invoice_count')
+    pending_amount = fields.Monetary('待付款金额', currency_field='currency_id', compute='_compute_pending_amount', store=True, readonly=True)
 
     _sql_constraints = [
         ('name_unique', 'unique(name)', '合同编号必须唯一。')
@@ -134,6 +135,12 @@ class MallLeasingContract(models.Model):
         """计算关联发票数量"""
         for record in self:
             record.invoice_count = len(record.invoice_ids)
+
+    @api.depends('invoice_ids.amount_residual', 'invoice_ids.payment_state', 'invoice_ids.state')
+    def _compute_pending_amount(self):
+        for record in self:
+            moves = record.invoice_ids.filtered(lambda m: m.state == 'posted' and m.payment_state in ('not_paid', 'partial'))
+            record.pending_amount = sum(m.amount_residual for m in moves)
 
     def _get_journal_and_account(self):
         """
