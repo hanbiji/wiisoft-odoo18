@@ -158,8 +158,8 @@
                                 <div>
                                     <span>类型: <field name="facade_type"/></span>
                                 </div>
-                                <div t-if="record.tenant_contract_id.raw_value">
-                                    <span>租户: <field name="tenant_contract_id"/></span>
+                                <div t-if="record.tenant_partner_id">
+                                    <span>租户: <field name="tenant_partner_id"/></span>
                                 </div>
                             </div>
                             <div class="oe_kanban_bottom_left">
