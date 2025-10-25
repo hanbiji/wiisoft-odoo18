@@ -54,6 +54,7 @@ class MallLeasingContract(models.Model):
 
     rent_amount = fields.Monetary('每期租金', currency_field='currency_id')
     deposit = fields.Monetary('押金', currency_field='currency_id')
+    deposit_generated = fields.Boolean('押金已生成', default=False, help='标记押金是否已经生成过账单')
     property_fee = fields.Monetary('每期物业费', currency_field='currency_id')
     service_fee = fields.Monetary('每期服务费', currency_field='currency_id')
 
@@ -303,6 +304,7 @@ class MallLeasingContract(models.Model):
             'facade_ids': [(6, 0, self.facade_ids.ids)],
             'operator_id': self.operator_id.id,
             'partner_id': self.partner_id.id,
+            'property_company_id': self.property_company_id.id,
             'shop_name': self.shop_name,
             'currency_id': self.currency_id.id,
             'bank_account': self.bank_account,
@@ -437,14 +439,26 @@ class MallLeasingContract(models.Model):
             (_('垃圾费'), self.garbage_fee),
         ]
         
+        # 押金只在第一次生成账单时包含
+        if not self.deposit_generated and self.deposit:
+            fee_types.insert(1, (_('押金'), self.deposit))
+        
         # 为每种费用类型生成单独的会计凭证
         created_moves = []
+        deposit_move_created = False
         for fee_name, fee_amount in fee_types:
             if not fee_amount:
                 continue
             move = self._create_single_move(fee_name, fee_amount, journal, account)
             if move:
                 created_moves.append(move)
+                # 如果生成了押金账单，标记为已生成
+                if fee_name == _('押金'):
+                    deposit_move_created = True
+        
+        # 更新押金生成状态
+        if deposit_move_created:
+            self.deposit_generated = True
         
         if not created_moves:
             raise UserError(_('没有需要生成凭证的费用项目'))

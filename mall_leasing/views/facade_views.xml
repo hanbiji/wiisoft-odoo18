@@ -176,10 +176,47 @@
         </field>
     </record>
 
+    <!-- 门面搜索视图 -->
+    <record id="view_mall_facade_search" model="ir.ui.view">
+        <field name="name">mall.facade.search</field>
+        <field name="model">mall.facade</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="mall_id" string="商场" filter_domain="[('mall_id', 'ilike', self)]"/>
+                <field name="name" string="门面编号" filter_domain="[('name', 'ilike', self)]"/>
+                <field name="zone" string="区域" filter_domain="[('zone', 'ilike', self)]"/>
+                <field name="address" string="地址" filter_domain="[('address', 'ilike', self)]"/>
+                <field name="tenant_partner_id" string="租户" filter_domain="[('tenant_partner_id', 'ilike', self)]"/>
+                <separator/>
+                <filter string="空置" name="vacant" domain="[('status', '=', 'vacant')]"/>
+                <filter string="已租" name="leased" domain="[('status', '=', 'leased')]"/>
+                <filter string="即将到期" name="expiring" domain="[('status', '=', 'expiring')]"/>
+                <separator/>
+                <filter string="商铺" name="shop" domain="[('facade_type', '=', 'shop')]"/>
+                <filter string="餐饮" name="restaurant" domain="[('facade_type', '=', 'restaurant')]"/>
+                <filter string="办公" name="office" domain="[('facade_type', '=', 'office')]"/>
+                <filter string="仓储" name="warehouse" domain="[('facade_type', '=', 'warehouse')]"/>
+                <separator/>
+                <filter string="有上下水" name="has_water" domain="[('has_water', '=', True)]"/>
+                <filter string="有电力" name="has_electricity" domain="[('has_electricity', '=', True)]"/>
+                <filter string="有燃气" name="has_gas" domain="[('has_gas', '=', True)]"/>
+                <filter string="有空调" name="has_air_conditioning" domain="[('has_air_conditioning', '=', True)]"/>
+                <group expand="0" string="分组">
+                    <filter string="商场" name="group_by_mall" context="{'group_by': 'mall_id'}"/>
+                    <filter string="状态" name="group_by_status" context="{'group_by': 'status'}"/>
+                    <filter string="门面类型" name="group_by_facade_type" context="{'group_by': 'facade_type'}"/>
+                    <filter string="区域" name="group_by_zone" context="{'group_by': 'zone'}"/>
+                    <filter string="楼层" name="group_by_floor" context="{'group_by': 'floor'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="act_mall_facade" model="ir.actions.act_window">
         <field name="name">门面</field>
         <field name="res_model">mall.facade</field>
         <field name="view_mode">kanban,list,form</field>
+        <field name="search_view_id" ref="view_mall_facade_search"/>
     </record>
     </data>
 </odoo>

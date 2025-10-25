@@ -80,7 +80,6 @@
                                 options="{'no_create': True}" 
                                 readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="property_company_id" 
-                                invisible="contract_type == 'tenant'"
                                 options="{'no_create': True}" 
                                 readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="partner_id" options="{'no_create': True}" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
@@ -104,10 +103,14 @@
                     <notebook>
                         <page string="费用">
                             <group>
-                                <field name="rent_amount" invisible="contract_type == 'property'"/>
-                                <field name="deposit" invisible="contract_type == 'property'"/>
-                                <field name="property_fee" invisible="contract_type == 'tenant'"/>
-                                <field name="service_fee" invisible="contract_type == 'tenant'"/>
+                                <field name="rent_amount" invisible="contract_type == 'property'"
+                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="deposit" invisible="contract_type == 'property'"
+                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="property_fee" invisible="contract_type == 'tenant'"
+                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="service_fee" invisible="contract_type == 'tenant'"
+                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             </group>
                         </page>
                         
@@ -150,10 +153,61 @@
         </field>
     </record>
 
+    <!-- 搜索视图 -->
+    <record id="view_mall_contract_search" model="ir.ui.view">
+        <field name="name">mall.leasing.contract.search</field>
+        <field name="model">mall.leasing.contract</field>
+        <field name="arch" type="xml">
+            <search>
+                <!-- 搜索字段 -->
+                <field name="name" string="合同编号" filter_domain="[('name', 'ilike', self)]"/>
+                <field name="shop_name" string="店铺名称" filter_domain="[('shop_name', 'ilike', self)]"/>
+                <field name="partner_id" string="租赁单位" filter_domain="[('partner_id.name', 'ilike', self)]"/>
+                <field name="operator_id" string="运营单位" filter_domain="[('operator_id.name', 'ilike', self)]"/>
+                <field name="property_company_id" string="物业单位" filter_domain="[('property_company_id.name', 'ilike', self)]"/>
+                <field name="mall_id" string="商场"/>
+                <field name="facade_ids" string="房号"/>
+                
+                <separator/>
+                <filter string="草稿" name="draft" domain="[('state', '=', 'draft')]"/>
+                <filter string="审批通过" name="approved" domain="[('state', '=', 'approved')]"/>
+                <filter string="已签约" name="signed" domain="[('state', '=', 'signed')]"/>
+                <filter string="执行中" name="active" domain="[('state', '=', 'active')]"/>
+                <filter string="已续约" name="renewed" domain="[('state', '=', 'renewed')]"/>
+                <filter string="已终止" name="terminated" domain="[('state', '=', 'terminated')]"/>
+                
+                <separator/>
+                <filter string="本月开始" name="this_month_start" 
+                    domain="[('lease_start_date', '&gt;=', (context_today() + relativedelta(day=1)).strftime('%Y-%m-%d')),
+                             ('lease_start_date', '&lt;', (context_today() + relativedelta(months=1, day=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="本月结束" name="this_month_end" 
+                    domain="[('lease_end_date', '&gt;=', (context_today() + relativedelta(day=1)).strftime('%Y-%m-%d')),
+                             ('lease_end_date', '&lt;', (context_today() + relativedelta(months=1, day=1)).strftime('%Y-%m-%d'))]"/>
+                <filter string="即将到期" name="expiring_soon" 
+                    domain="[('lease_end_date', '&gt;=', context_today().strftime('%Y-%m-%d')),
+                             ('lease_end_date', '&lt;=', (context_today() + relativedelta(months=3)).strftime('%Y-%m-%d')),
+                             ('state', 'in', ['signed', 'active'])]"/>
+                
+                <separator/>
+                <filter string="有待付款" name="has_pending_amount" domain="[('pending_amount', '&gt;', 0)]"/>
+                
+                <!-- 分组 -->
+                <group expand="0" string="分组">
+                    <filter string="状态" name="group_state" context="{'group_by': 'state'}"/>
+                    <filter string="商场" name="group_mall" context="{'group_by': 'mall_id'}"/>
+                    <filter string="租赁单位" name="group_partner" context="{'group_by': 'partner_id'}"/>
+                    <filter string="开始月份" name="group_start_month" context="{'group_by': 'lease_start_date:month'}"/>
+                    <filter string="结束月份" name="group_end_month" context="{'group_by': 'lease_end_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
     <record id="act_mall_contract" model="ir.actions.act_window">
         <field name="name">合同</field>
         <field name="res_model">mall.leasing.contract</field>
         <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_mall_contract_search"/>
     </record>
 
     <!-- 租户合同动作 -->
@@ -162,7 +216,8 @@
         <field name="res_model">mall.leasing.contract</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('contract_type', '=', 'tenant')]</field>
-        <field name="context">{'default_contract_type': 'tenant'}</field>
+        <field name="context">{'default_contract_type': 'tenant', 'search_default_tenant_contracts': 1}</field>
+        <field name="search_view_id" ref="view_mall_contract_search"/>
     </record>
     <!-- 物业合同动作 -->
     <record id="action_property_contracts" model="ir.actions.act_window">
@@ -170,7 +225,8 @@
         <field name="res_model">mall.leasing.contract</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('contract_type', '=', 'property')]</field>
-        <field name="context">{'default_contract_type': 'property'}</field>
+        <field name="context">{'default_contract_type': 'property', 'search_default_property_contracts': 1}</field>
+        <field name="search_view_id" ref="view_mall_contract_search"/>
     </record>
 
     <!-- 房东合同动作 -->
@@ -179,6 +235,7 @@
         <field name="res_model">mall.leasing.contract</field>
         <field name="view_mode">list,form</field>
         <field name="domain">[('contract_type', '=', 'landlord')]</field>
-        <field name="context">{'default_contract_type': 'landlord'}</field>
+        <field name="context">{'default_contract_type': 'landlord', 'search_default_landlord_contracts': 1}</field>
+        <field name="search_view_id" ref="view_mall_contract_search"/>
     </record>
 </odoo>
