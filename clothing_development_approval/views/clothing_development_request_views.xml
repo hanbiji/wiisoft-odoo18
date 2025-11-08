@@ -216,7 +216,12 @@
                                     </field>
                                 </group>
                             </page>
-                            
+
+                            <page string="尺码表" name="size_table">
+                                <group>
+                                    <field name="size_table" nolabel="1" widget="html"/>
+                                </group>
+                            </page>
 
                             <page string="样衣挂板图" name="sample_clothing">
                                 <group>

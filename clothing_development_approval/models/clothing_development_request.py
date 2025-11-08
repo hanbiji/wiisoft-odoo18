@@ -63,6 +63,12 @@ class ClothingDevelopmentRequest(models.Model):
         string='设计要求',
         help='详细的设计要求和规格说明'
     )
+    # 尺码表
+    size_table = fields.Text(
+        string='尺码表',
+        help='上传尺码表',
+        default=lambda self: self._get_default_size_table()
+    )
     # 打板图
     board_drawing_html = fields.Html(
         string='打板图',
@@ -809,6 +815,20 @@ class ClothingDevelopmentRequest(models.Model):
             })
             record.message_post(body=_('申请已重置为草稿状态。'))
     
+    def _get_default_size_table(self):
+        """默认尺码表模板"""
+        cell = '<td style="border:1px solid #000; padding:6px;">&nbsp;</td>'
+        header_cell = '<td style="border:1px solid #000; padding:6px; background-color:#f0f0f0;">&nbsp;</td>'
+        body_rows = ''.join(f'<tr>{cell}{cell}</tr>' for _ in range(6))
+        return (
+            '<table style="width:50%; border-collapse:collapse; border:1px solid #666;">'
+            '<tbody>'
+            f'<tr>{header_cell}{header_cell}</tr>'
+            f'{body_rows}'
+            '</tbody>'
+            '</table>'
+        )
+
     def _get_default_product_manager(self):
         """获取默认产品经理"""
         product_manager = self.env['res.users'].search([
