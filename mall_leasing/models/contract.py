@@ -52,14 +52,23 @@ class MallLeasingContract(models.Model):
 
     currency_id = fields.Many2one('res.currency', string='币种', default=lambda self: self.env.company.currency_id.id)
 
+    # 首期租金
+    first_rent_amount = fields.Monetary('首期租金', currency_field='currency_id')
+    # 每期租金
     rent_amount = fields.Monetary('每期租金', currency_field='currency_id')
+    # 押金
     deposit = fields.Monetary('押金', currency_field='currency_id')
+    # 押金已生成
     deposit_generated = fields.Boolean('押金已生成', default=False, help='标记押金是否已经生成过账单')
+    # 每期物业费
     property_fee = fields.Monetary('每期物业费', currency_field='currency_id')
+    # 每期服务费
     service_fee = fields.Monetary('每期服务费', currency_field='currency_id')
-
+    # 水费
     water_fee = fields.Monetary('水费', currency_field='currency_id')
+    # 电费
     electric_fee = fields.Monetary('电费', currency_field='currency_id')
+    # 垃圾费
     garbage_fee = fields.Monetary('垃圾费', currency_field='currency_id')
 
     payment_frequency = fields.Selection([
@@ -74,7 +83,7 @@ class MallLeasingContract(models.Model):
     # 租赁期限（年）
     lease_term = fields.Integer('租赁期限（年）', default=1)
     lease_start_date = fields.Date('租赁开始日')
-    lease_end_date = fields.Date('租赁结束日')
+    lease_end_date = fields.Date('租赁结束日', compute='_compute_lease_end_date', store=True, readonly=False)
 
     free_rent_from = fields.Date('免租开始')
     free_rent_to = fields.Date('免租结束')
@@ -111,6 +120,19 @@ class MallLeasingContract(models.Model):
             if vals.get('name', _('New')) in [False, _('New')]:
                 vals['name'] = self.env['ir.sequence'].next_by_code('mall.leasing.contract') or _('New')
         return super().create(vals_list)
+
+    @api.depends('lease_term', 'lease_start_date')
+    def _compute_lease_end_date(self):
+        """
+        根据租赁期限和开始日期自动计算租赁结束日期
+        :return: None
+        """
+        for rec in self:
+            if rec.lease_start_date and rec.lease_term:
+                # 租赁结束日期 = 开始日期 + 租赁年限 - 1天
+                rec.lease_end_date = rec.lease_start_date + relativedelta(years=rec.lease_term, days=-1)
+            else:
+                rec.lease_end_date = False
 
     @api.depends('lease_start_date', 'payment_frequency', 'payment_day')
     def _compute_next_bill_date(self):

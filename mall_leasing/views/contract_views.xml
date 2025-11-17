@@ -103,14 +103,14 @@
                     <notebook>
                         <page string="费用">
                             <group>
-                                <field name="rent_amount" invisible="contract_type == 'property'"
-                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                                <field name="deposit" invisible="contract_type == 'property'"
-                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                                <field name="property_fee" invisible="contract_type == 'tenant'"
-                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                                <field name="service_fee" invisible="contract_type == 'tenant'"
-                                    readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="first_rent_amount" invisible="contract_type == 'property'" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="rent_amount" invisible="contract_type == 'property'" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="deposit" invisible="contract_type == 'property'" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="property_fee" invisible="contract_type == 'tenant'" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="service_fee" invisible="contract_type == 'tenant'" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="water_fee" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="electric_fee" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                <field name="garbage_fee" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             </group>
                         </page>
                         
