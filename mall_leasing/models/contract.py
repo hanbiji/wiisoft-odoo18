@@ -455,7 +455,6 @@ class MallLeasingContract(models.Model):
         
         # 定义费用类型和对应的金额
         fee_types = [
-            (_('租金'), self.rent_amount),
             (_('水费'), self.water_fee),
             (_('电费'), self.electric_fee),
             (_('物业费'), self.property_fee),
@@ -467,9 +466,14 @@ class MallLeasingContract(models.Model):
         if not self.deposit_generated and self.deposit:
             fee_types.insert(1, (_('押金'), self.deposit))
         
+        if not self.first_rent_generated and self.first_rent_amount:
+            fee_types.insert(0, (_('首期租金'), self.first_rent_amount))
+        else:
+            fee_types.insert(0, (_('租金'), self.rent_amount))
         # 为每种费用类型生成单独的会计凭证
         created_moves = []
         deposit_move_created = False
+        first_rent_move_created = False
         for fee_name, fee_amount in fee_types:
             if not fee_amount:
                 continue
@@ -479,10 +483,14 @@ class MallLeasingContract(models.Model):
                 # 如果生成了押金账单，标记为已生成
                 if fee_name == _('押金'):
                     deposit_move_created = True
-        
+                if fee_name == _('首期租金'):
+                    first_rent_move_created = True
         # 更新押金生成状态
         if deposit_move_created:
             self.deposit_generated = True
+        
+        if first_rent_move_created:
+            self.first_rent_generated = True
         
         if not created_moves:
             raise UserError(_('没有需要生成凭证的费用项目'))

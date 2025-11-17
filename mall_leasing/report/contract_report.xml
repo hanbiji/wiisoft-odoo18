@@ -1,0 +1,323 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- 定义报表动作 -->
+    <record id="action_report_contract" model="ir.actions.report">
+        <field name="name">租赁合同</field>
+        <field name="model">mall.leasing.contract</field>
+        <field name="report_type">qweb-pdf</field>
+        <field name="report_name">mall_leasing.report_contract_document</field>
+        <field name="report_file">mall_leasing.report_contract_document</field>
+        <field name="binding_model_id" ref="model_mall_leasing_contract"/>
+        <field name="binding_type">report</field>
+        <field name="print_report_name">'合同-%s' % (object.name)</field>
+    </record>
+
+    <!-- 报表模板 -->
+    <template id="report_contract_document">
+        <t t-call="web.html_container">
+            <style>
+                @page {
+                    margin: 20mm 15mm;
+                }
+                body, .page, table, span, div, p, td, th, h1, h2, h3, h4, h5, h6 {
+                    font-family: 'Noto Sans CJK SC', 'Noto Sans', 'DejaVu Sans', 'SimSun', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif !important;
+                }
+            </style>
+            <t t-foreach="docs" t-as="o">
+                <t t-call="web.external_layout">
+                    <div class="page">
+                        <!-- 标题 -->
+                        <div style="text-align: center; margin-bottom: 30px;">
+                            <h2 style="font-weight: bold; margin-bottom: 5px; font-family: 'Noto Sans', 'DejaVu Sans', 'SimSun', 'Microsoft YaHei', sans-serif;">
+                                <t t-if="o.contract_type == 'tenant'">租赁合同</t>
+                                <t t-elif="o.contract_type == 'property'">物业合同</t>
+                                <t t-elif="o.contract_type == 'landlord'">房东合同</t>
+                            </h2>
+                            <h4 style="color: #666; font-family: 'Noto Sans', 'DejaVu Sans', 'SimSun', 'Microsoft YaHei', sans-serif;">
+                                合同编号：<span t-field="o.name"/>
+                            </h4>
+                        </div>
+
+                        <!-- 合同状态 -->
+                        <div style="margin-bottom: 20px;">
+                            <span class="badge" 
+                                  t-att-class="'badge-primary' if o.state == 'draft' else 'badge-success' if o.state == 'active' else 'badge-info' if o.state == 'signed' else 'badge-secondary'">
+                                <t t-if="o.state == 'draft'">草稿</t>
+                                <t t-elif="o.state == 'approved'">审批通过</t>
+                                <t t-elif="o.state == 'signed'">已签约</t>
+                                <t t-elif="o.state == 'active'">执行中</t>
+                                <t t-elif="o.state == 'renewed'">已续约</t>
+                                <t t-elif="o.state == 'terminated'">已终止</t>
+                            </span>
+                        </div>
+
+                        <!-- 基本信息 -->
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 15px;">
+                                基本信息
+                            </h4>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td style="width: 25%; font-weight: bold;">商场：</td>
+                                    <td style="width: 25%;"><span t-field="o.mall_id"/></td>
+                                    <td style="width: 25%; font-weight: bold;">店铺名称：</td>
+                                    <td style="width: 25%;"><span t-field="o.shop_name"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;">房号：</td>
+                                    <td colspan="3">
+                                        <span t-foreach="o.facade_ids" t-as="facade">
+                                            <span t-field="facade.name"/>
+                                            <t t-if="not facade_last">, </t>
+                                        </span>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;">运营单位（人）：</td>
+                                    <td><span t-field="o.operator_id"/></td>
+                                    <td style="font-weight: bold;">租赁单位（人）：</td>
+                                    <td><span t-field="o.partner_id"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;">物业单位（人）：</td>
+                                    <td colspan="3"><span t-field="o.property_company_id"/></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 租赁条款 -->
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 15px;">
+                                租赁条款
+                            </h4>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td style="width: 25%; font-weight: bold;">租赁期限：</td>
+                                    <td style="width: 25%;"><span t-field="o.lease_term"/> 年</td>
+                                    <td style="width: 25%; font-weight: bold;">开始日期：</td>
+                                    <td style="width: 25%;"><span t-field="o.lease_start_date"/></td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;">结束日期：</td>
+                                    <td><span t-field="o.lease_end_date"/></td>
+                                    <td style="font-weight: bold;">支付方式：</td>
+                                    <td>
+                                        <t t-if="o.payment_frequency == 'monthly'">月付</t>
+                                        <t t-elif="o.payment_frequency == 'quarterly'">季付</t>
+                                        <t t-elif="o.payment_frequency == 'yearly'">年付</t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;">支付日：</td>
+                                    <td>每月 <span t-field="o.payment_day"/> 日</td>
+                                    <td style="font-weight: bold;">递增率：</td>
+                                    <td><span t-field="o.escalation_rate"/>%</td>
+                                </tr>
+                                <tr t-if="o.free_rent_from or o.free_rent_to">
+                                    <td style="font-weight: bold;">免租期：</td>
+                                    <td colspan="3">
+                                        <span t-field="o.free_rent_from"/> ~ <span t-field="o.free_rent_to"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 费用信息 -->
+                        <div style="margin-bottom: 25px;">
+                            <h4 style="border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 15px;">
+                                费用信息
+                            </h4>
+                            <table class="table table-bordered table-sm">
+                                <thead style="background-color: #f5f5f5;">
+                                    <tr>
+                                        <th style="width: 40%;">费用项目</th>
+                                        <th style="width: 30%; text-align: right;">金额</th>
+                                        <th style="width: 30%;">备注</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <tr t-if="o.first_rent_amount">
+                                        <td>首期租金</td>
+                                        <td style="text-align: right;">
+                                            <span t-field="o.first_rent_amount" 
+                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                        </td>
+                                        <td>
+                                            <t t-if="o.first_rent_generated">
+                                                <span class="text-success">✓ 已生成</span>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                    <tr t-if="o.rent_amount">
+                                        <td>每期租金</td>
+                                        <td style="text-align: right;">
+                                            <span t-field="o.rent_amount" 
+                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    <tr t-if="o.deposit">
+                                        <td>押金</td>
+                                        <td style="text-align: right;">
+                                            <span t-field="o.deposit" 
+                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                        </td>
+                                        <td>
+                                            <t t-if="o.deposit_generated">
+                                                <span class="text-success">✓ 已生成</span>
+                                            </t>
+                                        </td>
+                                    </tr>
+                                    <tr t-if="o.property_fee">
+                                        <td>每期物业费</td>
+                                        <td style="text-align: right;">
+                                            <span t-field="o.property_fee" 
+                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    <tr t-if="o.service_fee">
+                                        <td>每期服务费</td>
+                                        <td style="text-align: right;">
+                                            <span t-field="o.service_fee" 
+                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    <tr t-if="o.water_fee">
+                                        <td>水费</td>
+                                        <td style="text-align: right;">
+                                            <span t-field="o.water_fee" 
+                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    <tr t-if="o.electric_fee">
+                                        <td>电费</td>
+                                        <td style="text-align: right;">
+                                            <span t-field="o.electric_fee" 
+                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                    <tr t-if="o.garbage_fee">
+                                        <td>垃圾费</td>
+                                        <td style="text-align: right;">
+                                            <span t-field="o.garbage_fee" 
+                                                  t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                        </td>
+                                        <td></td>
+                                    </tr>
+                                </tbody>
+                            </table>
+                        </div>
+
+                        <!-- 中介信息 -->
+                        <div t-if="o.introducer_id" style="margin-bottom: 25px;">
+                            <h4 style="border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 15px;">
+                                中介信息
+                            </h4>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td style="width: 25%; font-weight: bold;">介绍人/中介：</td>
+                                    <td style="width: 25%;"><span t-field="o.introducer_id"/></td>
+                                    <td style="width: 25%; font-weight: bold;">中介费类型：</td>
+                                    <td style="width: 25%;">
+                                        <t t-if="o.commission_type == 'fixed'">固定金额</t>
+                                        <t t-elif="o.commission_type == 'percent'">租金比例</t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <td style="font-weight: bold;">中介费金额/比例：</td>
+                                    <td><span t-field="o.commission_amount"/></td>
+                                    <td style="font-weight: bold;">支付状态：</td>
+                                    <td>
+                                        <t t-if="o.commission_paid">
+                                            <span class="text-success">已支付</span>
+                                        </t>
+                                        <t t-else="">
+                                            <span class="text-danger">未支付</span>
+                                        </t>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 收款账户 -->
+                        <div t-if="o.bank_account" style="margin-bottom: 25px;">
+                            <h4 style="border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 15px;">
+                                收款信息
+                            </h4>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td style="width: 25%; font-weight: bold;">收款账户：</td>
+                                    <td style="width: 75%;"><span t-field="o.bank_account"/></td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 发票统计 -->
+                        <div t-if="o.invoice_count > 0" style="margin-bottom: 25px;">
+                            <h4 style="border-bottom: 2px solid #333; padding-bottom: 5px; margin-bottom: 15px;">
+                                发票统计
+                            </h4>
+                            <table class="table table-sm">
+                                <tr>
+                                    <td style="width: 25%; font-weight: bold;">发票数量：</td>
+                                    <td style="width: 25%;"><span t-field="o.invoice_count"/></td>
+                                    <td style="width: 25%; font-weight: bold;">待付款金额：</td>
+                                    <td style="width: 25%;">
+                                        <span t-field="o.pending_amount" 
+                                              t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 签名区域 -->
+                        <div style="margin-top: 50px;">
+                            <table style="width: 100%;">
+                                <tr>
+                                    <td style="width: 50%; text-align: left;">
+                                        <div style="margin-bottom: 60px;">
+                                            <strong>甲方（运营方）：</strong><span t-field="o.operator_id"/>
+                                        </div>
+                                        <div>
+                                            签字：_________________
+                                        </div>
+                                        <div style="margin-top: 10px;">
+                                            日期：_________________
+                                        </div>
+                                    </td>
+                                    <td style="width: 50%; text-align: left;">
+                                        <div style="margin-bottom: 60px;">
+                                            <strong>乙方（租赁方）：</strong><span t-field="o.partner_id"/>
+                                        </div>
+                                        <div>
+                                            签字：_________________
+                                        </div>
+                                        <div style="margin-top: 10px;">
+                                            日期：_________________
+                                        </div>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+
+                        <!-- 页脚信息 -->
+                        <div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; font-size: 10pt; color: #666;">
+                            <div style="text-align: center;">
+                                本合同一式两份，双方各执一份，具有同等法律效力
+                            </div>
+                            <div style="text-align: center; margin-top: 5px;">
+                                打印日期：<span t-esc="time.strftime('%Y-%m-%d %H:%M:%S')"/>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </t>
+        </t>
+    </template>
+
+</odoo>
+

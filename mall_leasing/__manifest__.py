@@ -19,6 +19,7 @@
         'data/ir_cron.xml',
         'views/res_partner_views.xml',
         'views/menu.xml',
+        'report/contract_report.xml',
     ],
     'application': True,
 }

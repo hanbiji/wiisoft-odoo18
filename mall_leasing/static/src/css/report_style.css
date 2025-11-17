@@ -1,0 +1,25 @@
+/* PDF报表中文字体支持 */
+@page {
+    margin: 20mm 15mm;
+}
+
+body {
+    font-family: 'Noto Sans CJK SC', 'Noto Sans', 'DejaVu Sans', 'SimSun', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif !important;
+}
+
+.page {
+    font-family: 'Noto Sans CJK SC', 'Noto Sans', 'DejaVu Sans', 'SimSun', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif !important;
+}
+
+h1, h2, h3, h4, h5, h6 {
+    font-family: 'Noto Sans CJK SC', 'Noto Sans', 'DejaVu Sans', 'SimSun', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif !important;
+}
+
+table {
+    font-family: 'Noto Sans CJK SC', 'Noto Sans', 'DejaVu Sans', 'SimSun', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif !important;
+}
+
+span, div, p, td, th {
+    font-family: 'Noto Sans CJK SC', 'Noto Sans', 'DejaVu Sans', 'SimSun', 'Microsoft YaHei', 'WenQuanYi Micro Hei', sans-serif !important;
+}
+
