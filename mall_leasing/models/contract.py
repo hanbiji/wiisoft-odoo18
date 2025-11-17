@@ -54,6 +54,8 @@ class MallLeasingContract(models.Model):
 
     # 首期租金
     first_rent_amount = fields.Monetary('首期租金', currency_field='currency_id')
+    # 首期租金已生成
+    first_rent_generated = fields.Boolean('首期租金已生成', default=False, help='标记首期租金是否已经生成过账单')
     # 每期租金
     rent_amount = fields.Monetary('每期租金', currency_field='currency_id')
     # 押金
