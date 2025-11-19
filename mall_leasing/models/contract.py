@@ -23,21 +23,22 @@ class MallLeasingContract(models.Model):
         'mall.facade', 'mall_contract_facade_rel', 'contract_id', 'facade_id', 
         string='房号', required=True
     )
-    # 运营单位（人）
-    operator_id = fields.Many2one('res.partner', 
-        string='运营单位（人）', 
+    # 运营单位
+    operator_id = fields.Many2one('res.company', 
+        string='运营公司', 
         required=True, 
-        domain=[('mall_contact_type', '=', 'operator')])
+        default=lambda self: self.env.company)
+    # 物业单位
+    property_company_id = fields.Many2one('res.company', 
+        string='物业公司', 
+        required=True, 
+        default=lambda self: self.env.company)
     # 租赁单位（人）
     partner_id = fields.Many2one('res.partner', 
         string='租赁单位（人）', 
         required=True, 
         domain=[('mall_contact_type', '=', 'tenant')])
-    # 物业单位（人）
-    property_company_id = fields.Many2one('res.partner', 
-        string='物业单位（人）', 
-        required=True, 
-        domain=[('mall_contact_type', '=', 'property_company')])
+    
     # 店铺名称
     shop_name = fields.Char('店铺名称', required=True)
 
@@ -170,16 +171,57 @@ class MallLeasingContract(models.Model):
     def _get_journal_and_account(self):
         """
         获取合同对应的会计凭证和资产账户
-        :return: 包含journal和account的元组
+        :return: 包含journal、account和company的元组
         """
-        company = self.env.company
-        if self.contract_type in ['tenant', 'property']:
-            journal = self.env['account.journal'].search([('type', '=', 'sale'), ('company_id', '=', company.id)], limit=1)
-            account = self.env['account.account'].search([('account_type', '=', 'income'), ('company_ids', 'in', company.id)], limit=1)
-        else:
-            journal = self.env['account.journal'].search([('type', '=', 'purchase'), ('company_id', '=', company.id)], limit=1)
-            account = self.env['account.account'].search([('account_type', '=', 'expense'), ('company_ids', 'in', company.id)], limit=1)
-        return journal, account
+        # 根据合同类型确定使用哪个公司
+        if self.contract_type == 'tenant':
+            # 租赁合同：运营公司向租户收款
+            company = self.operator_id
+            journal = self.env['account.journal'].search([
+                ('type', '=', 'sale'), 
+                ('company_id', '=', company.id)
+            ], limit=1)
+            account = self.env['account.account'].search([
+                ('account_type', '=', 'income'), 
+                ('company_ids', 'in', [company.id])
+            ], limit=1)
+        elif self.contract_type == 'property':
+            # 物业合同：物业公司向租户收取物业费
+            company = self.property_company_id
+            journal = self.env['account.journal'].search([
+                ('type', '=', 'sale'), 
+                ('company_id', '=', company.id)
+            ], limit=1)
+            account = self.env['account.account'].search([
+                ('account_type', '=', 'income'), 
+                ('company_ids', 'in', [company.id])
+            ], limit=1)
+        else:  # landlord
+            # 房东合同：公司向房东支付租金
+            company = self.operator_id
+            journal = self.env['account.journal'].search([
+                ('type', '=', 'purchase'), 
+                ('company_id', '=', company.id)
+            ], limit=1)
+            account = self.env['account.account'].search([
+                ('account_type', '=', 'expense'), 
+                ('company_ids', 'in', [company.id])
+            ], limit=1)
+        
+        # 检查是否找到了必需的 Journal 和 Account
+        if not journal:
+            raise UserError(_(
+                '未找到公司 "%s" 的会计账簿。\n'
+                '请在"会计 → 配置 → 账簿"中为该公司创建%s账簿。'
+            ) % (company.name, _('销售') if self.contract_type in ['tenant', 'property'] else _('采购')))
+        
+        if not account:
+            raise UserError(_(
+                '未找到公司 "%s" 的会计科目。\n'
+                '请在"会计 → 配置 → 会计科目表"中为该公司配置%s科目。'
+            ) % (company.name, _('收入') if self.contract_type in ['tenant', 'property'] else _('费用')))
+        
+        return journal, account, company
 
     def _charge_lines(self, account):
         """
@@ -209,18 +251,18 @@ class MallLeasingContract(models.Model):
             lines.append(line(_('垃圾费'), self.garbage_fee))
         return lines or [line(_('租赁费用'), 0.0)]
 
-    def _create_single_move(self, fee_name, fee_amount, journal, account):
+    def _create_single_move(self, fee_name, fee_amount, journal, account, company):
         """
         为单个费用类型创建会计凭证
         :param fee_name: 费用名称
         :param fee_amount: 费用金额
         :param journal: 会计账簿
         :param account: 费用对应的资产账户
+        :param company: 公司对象
         :return: 创建的会计凭证
         """
         if not fee_amount or fee_amount <= 0:
             return None
-            
         move_vals = {
             'move_type': 'out_invoice' if self.contract_type in ['tenant', 'property'] else 'in_invoice',
             'partner_id': self.partner_id.id,
@@ -228,6 +270,7 @@ class MallLeasingContract(models.Model):
             'invoice_date': fields.Date.today(),
             'invoice_date_due': fields.Date.today() + relativedelta(days=15),
             'journal_id': journal.id,
+            'company_id': company.id,
             'invoice_line_ids': [(0, 0, {
                 'name': fee_name,
                 'quantity': 1.0,
@@ -321,6 +364,7 @@ class MallLeasingContract(models.Model):
         return True
 
     def action_create_property_contract(self):
+        """创建物业合同"""
         self.ensure_one()
         vals = {
             'contract_type': 'property',
@@ -451,7 +495,7 @@ class MallLeasingContract(models.Model):
         if not self.lease_start_date:
             raise UserError(_('请先设置租赁开始日期'))
         
-        journal, account = self._get_journal_and_account()
+        journal, account, company = self._get_journal_and_account()
         
         # 定义费用类型和对应的金额
         fee_types = [
@@ -477,7 +521,7 @@ class MallLeasingContract(models.Model):
         for fee_name, fee_amount in fee_types:
             if not fee_amount:
                 continue
-            move = self._create_single_move(fee_name, fee_amount, journal, account)
+            move = self._create_single_move(fee_name, fee_amount, journal, account, company)
             if move:
                 created_moves.append(move)
                 # 如果生成了押金账单，标记为已生成

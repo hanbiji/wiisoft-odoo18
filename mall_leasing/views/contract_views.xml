@@ -171,8 +171,8 @@
                 <field name="name" string="合同编号" filter_domain="[('name', 'ilike', self)]"/>
                 <field name="shop_name" string="店铺名称" filter_domain="[('shop_name', 'ilike', self)]"/>
                 <field name="partner_id" string="租赁单位" filter_domain="[('partner_id.name', 'ilike', self)]"/>
-                <field name="operator_id" string="运营单位" filter_domain="[('operator_id.name', 'ilike', self)]"/>
-                <field name="property_company_id" string="物业单位" filter_domain="[('property_company_id.name', 'ilike', self)]"/>
+                <field name="operator_id" string="运营公司" options="{'no_create': True}"/>
+                <field name="property_company_id" string="物业公司" options="{'no_create': True}"/>
                 <field name="mall_id" string="商场"/>
                 <field name="facade_ids" string="房号"/>
                 
