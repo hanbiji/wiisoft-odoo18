@@ -180,22 +180,36 @@ class MallLeasingContract(models.Model):
         if self.contract_type == 'tenant':
             # 租赁合同：运营公司向租户收款
             company = self.operator_id
-            journal = self.env['account.journal'].sudo().search([
-                ('type', '=', 'sale'), 
-                ('company_id', '=', company.id)
-            ], limit=1)
+            # 获取销售账簿，如果是分公司，则获取分公司的销售账簿
+            if company.parent_id:
+                journal = self.env['account.journal'].sudo().search([
+                    ('type', '=', 'sale'), 
+                    ('company_id', '=', company.parent_id.id)
+                ], limit=1)
+            else:
+                journal = self.env['account.journal'].sudo().search([
+                    ('type', '=', 'sale'), 
+                    ('company_id', '=', company.id)
+                ], limit=1)
             account = self.env['account.account'].sudo().search([
                 ('account_type', '=', 'income'),
                 ('company_ids', 'in', [company.id])
             ], limit=1)
-            
+
         elif self.contract_type == 'property':
             # 物业合同：物业公司向租户收取物业费
             company = self.property_company_id
-            journal = self.env['account.journal'].sudo().search([
-                ('type', '=', 'sale'), 
-                ('company_id', '=', company.id)
-            ], limit=1)
+            # 获取销售账簿，如果是分公司，则获取分公司的销售账簿
+            if company.parent_id:
+                journal = self.env['account.journal'].sudo().search([
+                    ('type', '=', 'sale'), 
+                    ('company_id', '=', company.parent_id.id)
+                ], limit=1)
+            else:
+                journal = self.env['account.journal'].sudo().search([
+                    ('type', '=', 'sale'), 
+                    ('company_id', '=', company.id)
+                ], limit=1)
             account = self.env['account.account'].sudo().search([
                 ('account_type', '=', 'income'),
                 ('company_ids', 'in', [company.id])
