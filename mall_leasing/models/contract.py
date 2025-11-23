@@ -111,10 +111,19 @@ class MallLeasingContract(models.Model):
     contract_payment_ids = fields.One2many('mall.leasing.contract.payment', 'contract_id', string='付款记录')
     
     # 发票关联
-    invoice_ids = fields.One2many('account.move', 'mall_contract_id', string='相关发票', 
-                                  domain=[('move_type', 'in', ['out_invoice', 'in_invoice'])])
+    invoice_ids = fields.One2many(
+        'account.move', 
+        'mall_contract_id', string='相关发票', 
+        domain=[('move_type', 'in', ['out_invoice', 'in_invoice'])]
+    )
     invoice_count = fields.Integer('发票数量', compute='_compute_invoice_count')
-    pending_amount = fields.Monetary('待付款金额', currency_field='currency_id', compute='_compute_pending_amount', store=True, readonly=True)
+    pending_amount = fields.Monetary(
+        '待付款金额', 
+        currency_field='currency_id', 
+        compute='_compute_pending_amount', 
+        store=True, 
+        readonly=True
+    )
 
     _sql_constraints = [
         ('name_unique', 'unique(name)', '合同编号必须唯一。')
@@ -191,10 +200,17 @@ class MallLeasingContract(models.Model):
                     ('type', '=', 'sale'), 
                     ('company_id', '=', company.id)
                 ], limit=1)
-            account = self.env['account.account'].sudo().search([
-                ('account_type', '=', 'income'),
-                ('company_ids', 'in', [company.id])
-            ], limit=1)
+            # 获取收入科目，如果是分公司，则获取分公司的收入科目
+            if company.parent_id:
+                account = self.env['account.account'].sudo().search([
+                    ('account_type', '=', 'income'),
+                    ('company_ids', 'in', [company.parent_id.id])
+                ], limit=1)
+            else:
+                account = self.env['account.account'].sudo().search([
+                    ('account_type', '=', 'income'),
+                    ('company_ids', 'in', [company.id])
+                ], limit=1)
 
         elif self.contract_type == 'property':
             # 物业合同：物业公司向租户收取物业费
@@ -210,10 +226,17 @@ class MallLeasingContract(models.Model):
                     ('type', '=', 'sale'), 
                     ('company_id', '=', company.id)
                 ], limit=1)
-            account = self.env['account.account'].sudo().search([
-                ('account_type', '=', 'income'),
-                ('company_ids', 'in', [company.id])
-            ], limit=1)
+            # 获取收入科目，如果是分公司，则获取分公司的收入科目
+            if company.parent_id:
+                account = self.env['account.account'].sudo().search([
+                    ('account_type', '=', 'income'),
+                    ('company_ids', 'in', [company.parent_id.id])
+                ], limit=1)
+            else:
+                account = self.env['account.account'].sudo().search([
+                    ('account_type', '=', 'income'),
+                    ('company_ids', 'in', [company.id])
+                ], limit=1)
         else:  # landlord
             # 房东合同：公司向房东支付租金
             company = self.operator_id
@@ -228,10 +251,17 @@ class MallLeasingContract(models.Model):
                     ('type', '=', 'purchase'), 
                     ('company_id', '=', company.id)
                 ], limit=1)
-            account = self.env['account.account'].sudo().search([
-                ('account_type', '=', 'expense'),
-                ('company_ids', 'in', [company.id])
-            ], limit=1)
+            # 获取费用科目，如果是分公司，则获取分公司的费用科目
+            if company.parent_id:
+                account = self.env['account.account'].sudo().search([
+                    ('account_type', '=', 'expense'),
+                    ('company_ids', 'in', [company.parent_id.id])
+                ], limit=1)
+            else:
+                account = self.env['account.account'].sudo().search([
+                    ('account_type', '=', 'expense'),
+                    ('company_ids', 'in', [company.id])
+                ], limit=1)
 
         _logger.info(f"Contract: {self.name}, Journal: {journal.name if journal else 'None'}, Account: {account.display_name if account else 'None'}, Company: {company.name}")
         
