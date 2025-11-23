@@ -276,7 +276,7 @@ class MallLeasingContract(models.Model):
             'mall_contract_id': self.id,  # 建立与合同的关联
         }
         
-        account_move = self.env['account.move'].create(move_vals)
+        account_move = self.env['account.move'].sudo().create(move_vals)
         # 自动确认凭证
         account_move.action_post()
         return account_move
