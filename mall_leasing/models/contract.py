@@ -210,6 +210,8 @@ class MallLeasingContract(models.Model):
                 ('account_type', '=', 'expense'), 
                 ('company_ids', 'in', [company.id])
             ], limit=1)
+
+        _logger.info(f"journal: {journal.name}, account: {account.name}, company: {company.name}")
         
         # 检查是否找到了必需的 Journal 和 Account
         if not journal:
@@ -223,7 +225,7 @@ class MallLeasingContract(models.Model):
                 '未找到公司 "%s" 的会计科目。\n'
                 '请在"会计 → 配置 → 会计科目表"中为该公司配置%s科目。'
             ) % (company.name, _('收入') if self.contract_type in ['tenant', 'property'] else _('费用')))
-        _logger.info(f"journal: {journal.name}, account: {account.name}, company: {company.name}")
+        
         return journal, account, company
 
     def _charge_lines(self, account):
