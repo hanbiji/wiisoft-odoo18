@@ -188,6 +188,7 @@ class MallLeasingContract(models.Model):
                 ('account_type', '=', 'income'),
                 ('company_ids', 'in', [company.id])
             ], limit=1)
+            
         elif self.contract_type == 'property':
             # 物业合同：物业公司向租户收取物业费
             company = self.property_company_id
