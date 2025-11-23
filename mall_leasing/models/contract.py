@@ -261,7 +261,7 @@ class MallLeasingContract(models.Model):
             return None
         move_vals = {
             'move_type': 'out_invoice' if self.contract_type in ['tenant', 'property'] else 'in_invoice',
-            'partner_id': self.partner_id.id,
+            'partner_id': account.id,
             'ref': f'合同# {self.name} - {fee_name}',
             'invoice_date': fields.Date.today(),
             'invoice_date_due': fields.Date.today() + relativedelta(days=15),
