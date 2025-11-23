@@ -184,7 +184,7 @@ class MallLeasingContract(models.Model):
                 ('type', '=', 'sale'), 
                 ('company_id', '=', company.id)
             ], limit=1)
-            account = company.partner_id.id
+            account = company.partner_id
         elif self.contract_type == 'property':
             # 物业合同：物业公司向租户收取物业费
             company = self.property_company_id
@@ -192,7 +192,7 @@ class MallLeasingContract(models.Model):
                 ('type', '=', 'sale'), 
                 ('company_id', '=', company.id)
             ], limit=1)
-            account = company.partner_id.id
+            account = company.partner_id
         else:  # landlord
             # 房东合同：公司向房东支付租金
             company = self.operator_id
@@ -200,7 +200,7 @@ class MallLeasingContract(models.Model):
                 ('type', '=', 'purchase'), 
                 ('company_id', '=', company.id)
             ], limit=1)
-            account = company.partner_id.id
+            account = company.partner_id
 
         _logger.info(f"journal: {journal.name}, account: {account.name}, company: {company.name}")
         
