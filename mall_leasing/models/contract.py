@@ -217,10 +217,17 @@ class MallLeasingContract(models.Model):
         else:  # landlord
             # 房东合同：公司向房东支付租金
             company = self.operator_id
-            journal = self.env['account.journal'].sudo().search([
-                ('type', '=', 'purchase'), 
-                ('company_id', '=', company.id)
-            ], limit=1)
+            # 获取采购账簿，如果是分公司，则获取分公司的采购账簿
+            if company.parent_id:
+                journal = self.env['account.journal'].sudo().search([
+                    ('type', '=', 'purchase'), 
+                    ('company_id', '=', company.parent_id.id)
+                ], limit=1)
+            else:
+                journal = self.env['account.journal'].sudo().search([
+                    ('type', '=', 'purchase'), 
+                    ('company_id', '=', company.id)
+                ], limit=1)
             account = self.env['account.account'].sudo().search([
                 ('account_type', '=', 'expense'),
                 ('company_ids', 'in', [company.id])
