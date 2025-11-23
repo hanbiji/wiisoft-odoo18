@@ -182,7 +182,7 @@ class MallLeasingContract(models.Model):
             company = self.operator_id
             journal = self.env['account.journal'].search([
                 ('type', '=', 'sale'), 
-                ('company_id', '=', company)
+                ('company_id', '=', company.id)
             ], limit=1)
             account = company.partner_id
         elif self.contract_type == 'property':
@@ -190,7 +190,7 @@ class MallLeasingContract(models.Model):
             company = self.property_company_id
             journal = self.env['account.journal'].search([
                 ('type', '=', 'sale'), 
-                ('company_id', '=', company)
+                ('company_id', '=', company.id)
             ], limit=1)
             account = company.partner_id
         else:  # landlord
