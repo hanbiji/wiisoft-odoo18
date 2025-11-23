@@ -3,6 +3,9 @@ from odoo import api, fields, models, _
 from odoo.exceptions import UserError
 from datetime import date
 from dateutil.relativedelta import relativedelta
+import logging
+
+_logger = logging.getLogger(__name__)
 
 class MallLeasingContract(models.Model):
     _name = 'mall.leasing.contract'
@@ -220,7 +223,7 @@ class MallLeasingContract(models.Model):
                 '未找到公司 "%s" 的会计科目。\n'
                 '请在"会计 → 配置 → 会计科目表"中为该公司配置%s科目。'
             ) % (company.name, _('收入') if self.contract_type in ['tenant', 'property'] else _('费用')))
-        
+        _logger.info(f"journal: {journal.name}, account: {account.name}, company: {company.name}")
         return journal, account, company
 
     def _charge_lines(self, account):
