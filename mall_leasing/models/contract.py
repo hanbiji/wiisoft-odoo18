@@ -184,7 +184,10 @@ class MallLeasingContract(models.Model):
                 ('type', '=', 'sale'), 
                 ('company_id', '=', company.id)
             ], limit=1)
-            account = company.partner_id
+            account = self.env['account.account'].sudo().search([
+                ('account_type', '=', 'income'),
+                ('company_ids', 'in', [company.id])
+            ], limit=1)
         elif self.contract_type == 'property':
             # 物业合同：物业公司向租户收取物业费
             company = self.property_company_id
@@ -192,7 +195,10 @@ class MallLeasingContract(models.Model):
                 ('type', '=', 'sale'), 
                 ('company_id', '=', company.id)
             ], limit=1)
-            account = company.partner_id
+            account = self.env['account.account'].sudo().search([
+                ('account_type', '=', 'income'),
+                ('company_ids', 'in', [company.id])
+            ], limit=1)
         else:  # landlord
             # 房东合同：公司向房东支付租金
             company = self.operator_id
@@ -200,9 +206,12 @@ class MallLeasingContract(models.Model):
                 ('type', '=', 'purchase'), 
                 ('company_id', '=', company.id)
             ], limit=1)
-            account = company.partner_id
+            account = self.env['account.account'].sudo().search([
+                ('account_type', '=', 'expense'),
+                ('company_ids', 'in', [company.id])
+            ], limit=1)
 
-        _logger.info(f"journal: {journal.name}, account: {account.name}, company: {company.name}")
+        _logger.info(f"Contract: {self.name}, Journal: {journal.name if journal else 'None'}, Account: {account.display_name if account else 'None'}, Company: {company.name}")
         
         # 检查是否找到了必需的 Journal 和 Account
         if not journal:
@@ -261,7 +270,7 @@ class MallLeasingContract(models.Model):
             return None
         move_vals = {
             'move_type': 'out_invoice' if self.contract_type in ['tenant', 'property'] else 'in_invoice',
-            'partner_id': account.id,
+            'partner_id': self.partner_id.id,  # 租户或房东
             'ref': f'合同# {self.name} - {fee_name}',
             'invoice_date': fields.Date.today(),
             'invoice_date_due': fields.Date.today() + relativedelta(days=15),
