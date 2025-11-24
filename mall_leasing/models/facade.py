@@ -18,6 +18,7 @@ class MallFacade(models.Model):
     
     # 门面位置信息
     zone = fields.Char('区域', help='如：A区、B区、中庭等')
+    
     position = fields.Char('位置描述', help='如：临街、内铺、转角等')
     
     # 门面特征
