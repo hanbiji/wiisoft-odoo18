@@ -1,0 +1,15 @@
+{
+    "extraPaths": [
+        "D:/Odoo/odoo-18.0/odoo-18.0",
+        "D:/Odoo/odoo-18.0/odoo-18.0/addons",
+        "D:/Odoo/odoo-18.0/odoo-18.0/odoo/addons"
+    ],
+    "typeCheckingMode": "off",
+    "reportMissingImports": false,
+    "reportMissingTypeStubs": false,
+    "reportGeneralTypeIssues": false,
+    "reportOptionalMemberAccess": false,
+    "reportOptionalSubscript": false,
+    "reportPrivateImportUsage": false
+}
+

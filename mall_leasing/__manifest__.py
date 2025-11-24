@@ -15,6 +15,7 @@
         'views/contract_views.xml',
         'views/contract_template_views.xml',
         'views/communication_views.xml',
+        'views/account_move_views.xml',
         'data/ir_sequence.xml',
         'data/ir_cron.xml',
         'views/res_partner_views.xml',
