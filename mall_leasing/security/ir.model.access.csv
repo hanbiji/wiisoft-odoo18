@@ -7,7 +7,7 @@ access_mall_facade_user,mall.facade.user,model_mall_facade,base.group_user,1,1,1
 access_mall_facade_admin,mall.facade.admin,model_mall_facade,base.group_system,1,1,1,1
 access_mall_leasing_contract_user,mall.leasing.contract.user,model_mall_leasing_contract,base.group_user,1,1,1,0
 access_mall_leasing_contract_admin,mall.leasing.contract.admin,model_mall_leasing_contract,base.group_system,1,1,1,1
-access_mall_leasing_contract_version_user,mall.leasing.contract.version.user,model_mall_leasing_contract_version,base.group_user,1,0,0,0
+access_mall_leasing_contract_version_user,mall.leasing.contract.version.user,model_mall_leasing_contract_version,base.group_user,1,1,1,0
 access_mall_leasing_contract_version_admin,mall.leasing.contract.version.admin,model_mall_leasing_contract_version,base.group_system,1,1,1,1
 access_mall_communication_user,mall.communication.user,model_mall_communication,base.group_user,1,1,1,0
 access_mall_communication_admin,mall.communication.admin,model_mall_communication,base.group_system,1,1,1,1

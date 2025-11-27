@@ -9,6 +9,7 @@
     'license': 'LGPL-3',
     'depends': ['base', 'mail', 'contacts', 'account'],
     'data': [
+        'security/mall_leasing_security.xml',
         'security/ir.model.access.csv',
         'views/mall_views.xml',
         'views/facade_views.xml',

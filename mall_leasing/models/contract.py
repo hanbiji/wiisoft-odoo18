@@ -296,10 +296,10 @@ class MallLeasingContract(models.Model):
         lines = []
         if self.rent_amount:
             lines.append(line(_('租金'), self.rent_amount))
-        if self.water_fee:
-            lines.append(line(_('水费'), self.water_fee))
-        if self.electric_fee:
-            lines.append(line(_('电费'), self.electric_fee))
+        # if self.water_fee:
+        #     lines.append(line(_('水费'), self.water_fee))
+        # if self.electric_fee:
+        #     lines.append(line(_('电费'), self.electric_fee))
         if self.property_fee:
             lines.append(line(_('物业费'), self.property_fee))
         if self.service_fee:
@@ -556,8 +556,8 @@ class MallLeasingContract(models.Model):
         
         # 定义费用类型和对应的金额
         fee_types = [
-            (_('水费'), self.water_fee),
-            (_('电费'), self.electric_fee),
+            # (_('水费'), self.water_fee),
+            # (_('电费'), self.electric_fee),
             (_('物业费'), self.property_fee),
             (_('服务费'), self.service_fee),
             (_('垃圾费'), self.garbage_fee),
@@ -619,14 +619,39 @@ class MallLeasingContract(models.Model):
     def action_view_invoices(self):
         """查看关联的发票"""
         self.ensure_one()
-        action = self.env.ref('account.action_move_out_invoice_type').read()[0]
-        if len(self.invoice_ids) > 1:
-            action['domain'] = [('id', 'in', self.invoice_ids.ids)]
-        elif len(self.invoice_ids) == 1:
-            action['views'] = [(self.env.ref('account.view_move_form').id, 'form')]
-            action['res_id'] = self.invoice_ids.ids[0]
+        
+        if not self.invoice_ids:
+            return {'type': 'ir.actions.act_window_close'}
+        
+        # 获取自定义视图ID
+        tree_view_id = self.env.ref('mall_leasing.view_lease_invoice_tree').id
+        form_view_id = self.env.ref('mall_leasing.view_lease_invoice_form').id
+        
+        action = {
+            'type': 'ir.actions.act_window',
+            'name': '租赁合同发票',
+            'res_model': 'account.move',
+            'domain': [('id', 'in', self.invoice_ids.ids)],
+            'context': {
+                'default_move_type': 'out_invoice',
+                'create': False,  # 禁止从此视图创建发票
+            },
+            'target': 'current',
+        }
+        
+        if len(self.invoice_ids) == 1:
+            # 单条记录：直接打开表单视图
+            action['view_mode'] = 'form'
+            action['res_id'] = self.invoice_ids.id
+            action['views'] = [(form_view_id, 'form')]
         else:
-            action = {'type': 'ir.actions.act_window_close'}
+            # 多条记录：显示列表视图
+            action['view_mode'] = 'list,form'
+            action['views'] = [
+                (tree_view_id, 'list'),
+                (form_view_id, 'form'),
+            ]
+        
         return action
 
     def get_invoice_summary(self):

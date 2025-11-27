@@ -1,0 +1,33 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <data noupdate="1">
+        <!-- 租赁合同记录规则：用户只能看到其负责公司的记录 -->
+        <record id="mall_leasing_contract_company_rule" model="ir.rule">
+            <field name="name">租赁合同：用户负责的公司</field>
+            <field name="model_id" ref="model_mall_leasing_contract"/>
+            <field name="domain_force">[
+                '|',
+                ('operator_id', 'in', user.company_ids.ids),
+                ('property_company_id', 'in', user.company_ids.ids)
+            ]</field>
+            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <!-- 管理员可以看到所有记录 -->
+        <record id="mall_leasing_contract_admin_rule" model="ir.rule">
+            <field name="name">租赁合同：管理员查看所有</field>
+            <field name="model_id" ref="model_mall_leasing_contract"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+    </data>
+</odoo>
+

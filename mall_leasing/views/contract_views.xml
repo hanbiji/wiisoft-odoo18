@@ -85,7 +85,7 @@
                             <field name="partner_id" options="{'no_create': True}" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="shop_name" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="currency_id" readonly="1" options="{'no_create': True, 'no_open': True}"/>
-                            <field name="bank_account" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                            
                         </group>
                         <group>
                             <field name="lease_term" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
