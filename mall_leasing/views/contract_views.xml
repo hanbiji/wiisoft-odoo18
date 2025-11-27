@@ -4,7 +4,7 @@
         <field name="name">mall.leasing.contract.list</field>
         <field name="model">mall.leasing.contract</field>
         <field name="arch" type="xml">
-            <list>
+            <list default_order="id desc">
                 <field name="name"/>
                 <field name="mall_id"/>
                 <field name="contract_type"/>
@@ -218,11 +218,25 @@
         <field name="search_view_id" ref="view_mall_contract_search"/>
     </record>
 
+    <!-- 租赁合同专用列表视图 -->
+    <record id="view_tenant_contract_tree" model="ir.ui.view">
+        <field name="name">mall.leasing.contract.tenant.list</field>
+        <field name="model">mall.leasing.contract</field>
+        <field name="inherit_id" ref="view_mall_contract_tree"/>
+        <field name="mode">primary</field>
+        <field name="arch" type="xml">
+            <xpath expr="//list" position="attributes">
+                <attribute name="default_order">id desc</attribute>
+            </xpath>
+        </field>
+    </record>
+
     <!-- 租户合同动作 -->
     <record id="action_tenant_contracts" model="ir.actions.act_window">
         <field name="name">租赁合同</field>
         <field name="res_model">mall.leasing.contract</field>
         <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_tenant_contract_tree"/>
         <field name="domain">[('contract_type', '=', 'tenant')]</field>
         <field name="context">{'default_contract_type': 'tenant', 'search_default_tenant_contracts': 1}</field>
         <field name="search_view_id" ref="view_mall_contract_search"/>
