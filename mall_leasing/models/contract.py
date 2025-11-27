@@ -41,6 +41,10 @@ class MallLeasingContract(models.Model):
         string='租赁单位（人）', 
         required=True, 
         domain=[('mall_contact_type', '=', 'tenant')])
+    # 房东
+    landlord_id = fields.Many2one('res.partner', 
+        string='房东', 
+        domain=[('mall_contact_type', '=', 'landlord')])
     
     # 店铺名称
     shop_name = fields.Char('店铺名称', required=True)
