@@ -10,15 +10,21 @@
                     <group>
                         <group>
                             <field name="mall_contact_type"/>
+                            <field name="id_card"/>
                         </group>
                         <group>
                             <field name="industry_type"/>
                         </group>
                         <group>
-                            <field name="id_card"/>
+                            <field name="id_card_front" widget="image" options="{'zoom': false, 'zoom_delay': 0}"/>
+                            <span class="text-muted">身份证正面（人像面）</span>
                         </group>
-                                                
+                        <group>
+                            <field name="id_card_back" widget="image" options="{'zoom': false, 'zoom_delay': 0}"/>
+                            <span class="text-muted">身份证反面（国徽面）</span>
+                        </group>
                     </group>
+                    
                     <field name="leasing_contract_ids">
                         <list no_create="1">
                             <field name="name"/>

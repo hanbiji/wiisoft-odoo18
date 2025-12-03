@@ -84,6 +84,7 @@ class MallLeasingContract(models.Model):
     payment_frequency = fields.Selection([
         ('monthly', '月付'),
         ('quarterly', '季付'),
+        ('half_yearly', '半年付'),
         ('yearly', '年付'),
     ], string='支付方式')
     payment_day = fields.Integer('支付日(1-31)', default=1)
@@ -99,6 +100,37 @@ class MallLeasingContract(models.Model):
     free_rent_to = fields.Date('免租结束')
 
     escalation_rate = fields.Float('递增率(%)', help='例如每年递增5%，填写5')
+    # 递增起始年（从第几年开始递增）
+    escalation_start_year = fields.Integer(
+        '递增起始年', 
+        default=1, 
+        help='从第几年开始执行递增，例如：1表示第1年就开始递增，3表示前2年不变、从第3年开始递增'
+    )
+    # 递增周期（每隔几年递增一次）
+    escalation_term = fields.Integer('递增周期（年）', default=1, help='每隔几年执行一次递增')
+    # 递增周期已递增
+    escalation_term_generated = fields.Boolean('本周期已递增', default=False, help='标记当前递增周期是否已经执行过递增')
+    # 下次递增日期
+    escalation_term_end_date = fields.Date('下次递增日期', compute='_compute_escalation_term_end_date', store=True)
+
+    @api.depends('escalation_term', 'escalation_start_year', 'lease_start_date')
+    def _compute_escalation_term_end_date(self):
+        """
+        计算下次递增日期
+        逻辑：
+        - 如果递增起始年=1，则第一次递增日期 = 租赁开始日 + 递增周期
+        - 如果递增起始年>1，则第一次递增日期 = 租赁开始日 + (递增起始年-1) + 递增周期
+        - 例如：起始年=3，周期=1年，则从第3年开始，每年递增一次
+        """
+        for rec in self:
+            if rec.lease_start_date and rec.escalation_term:
+                start_year = rec.escalation_start_year or 1
+                # 首次递增日期 = 开始日期 + (起始年-1)年 + 递增周期
+                # 即：如果起始年=1，周期=1，则1年后递增；如果起始年=3，周期=1，则3年后递增
+                years_until_escalation = (start_year - 1) + rec.escalation_term
+                rec.escalation_term_end_date = rec.lease_start_date + relativedelta(years=years_until_escalation)
+            else:
+                rec.escalation_term_end_date = False
 
     introducer_id = fields.Many2one('res.partner', string='介绍人/中介')
     commission_type = fields.Selection([
@@ -107,6 +139,13 @@ class MallLeasingContract(models.Model):
     ], string='中介费类型')
     commission_amount = fields.Float('中介费金额/比例')
     commission_paid = fields.Boolean('中介费已支付')
+
+    # 账单提前生成天数
+    bill_advance_days = fields.Integer(
+        '账单提前天数', 
+        default=0, 
+        help='账单在到期日前提前多少天生成，0表示到期当天生成'
+    )
 
     next_bill_date = fields.Date('下次出账日', compute='_compute_next_bill_date', store=True)
 
@@ -153,24 +192,37 @@ class MallLeasingContract(models.Model):
             else:
                 rec.lease_end_date = False
 
-    @api.depends('lease_start_date', 'payment_frequency', 'payment_day')
+    @api.depends('lease_start_date', 'payment_frequency', 'payment_day', 'bill_advance_days')
     def _compute_next_bill_date(self):
         """
-        计算合同的下次出账日
-        :return: None
+        计算合同的下次出账日（考虑提前天数）
+        逻辑：
+        1. 首先计算账单到期日（基于支付日和支付周期）
+        2. 然后减去提前天数，得到实际出账日
         """
         for rec in self:
             if not rec.lease_start_date or not rec.payment_frequency:
                 rec.next_bill_date = False
                 continue
+            
             start = rec.lease_start_date
-            # 设置首次账单为开始日期对应的支付日所在月
-            first = date(start.year, start.month, min(rec.payment_day or 1, 28))
-            if first < start:
+            # 设置首次账单到期日为开始日期对应的支付日所在月
+            payment_due_date = date(start.year, start.month, min(rec.payment_day or 1, 28))
+            
+            if payment_due_date < start:
                 # 若支付日早于开始日，顺延一个周期
                 delta = {'monthly': 1, 'quarterly': 3, 'yearly': 12}.get(rec.payment_frequency, 1)
-                first = first + relativedelta(months=delta)
-            rec.next_bill_date = first
+                payment_due_date = payment_due_date + relativedelta(months=delta)
+            
+            # 考虑提前天数：出账日 = 到期日 - 提前天数
+            advance_days = rec.bill_advance_days or 0
+            bill_date = payment_due_date - relativedelta(days=advance_days)
+            
+            # 确保出账日不早于租赁开始日
+            if bill_date < start:
+                bill_date = start
+            
+            rec.next_bill_date = bill_date
 
     @api.depends('invoice_ids')
     def _compute_invoice_count(self):

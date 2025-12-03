@@ -91,7 +91,9 @@
                             <field name="landlord_id" options="{'no_create': True}" invisible="contract_type in ['tenant', 'property']" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="shop_name" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="currency_id" readonly="1" options="{'no_create': True, 'no_open': True}"/>
-                            
+                            <field name="payment_frequency"/>
+                            <field name="payment_day"/>
+                            <field name="pending_amount" readonly="1" string="待付款金额"/>
                         </group>
                         <group>
                             <field name="lease_term" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
@@ -100,10 +102,12 @@
                             <field name="free_rent_from"/>
                             <field name="free_rent_to"/>
                             <field name="escalation_rate"/>
-                            <field name="payment_frequency"/>
-                            <field name="payment_day"/>
+                            <field name="escalation_start_year"/>
+                            <field name="escalation_term"/>
+                            <field name="escalation_term_end_date" readonly="1"/>
+                            <field name="escalation_term_generated" readonly="1"/>
+                            <field name="bill_advance_days"/>
                             <field name="next_bill_date" readonly="1"/>
-                            <field name="pending_amount" readonly="1" string="待付款金额"/>
                         </group>
                     </group>
                     <notebook>
