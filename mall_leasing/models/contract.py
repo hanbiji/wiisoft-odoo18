@@ -78,8 +78,8 @@ class MallLeasingContract(models.Model):
     water_fee = fields.Monetary('水费', currency_field='currency_id')
     # 电费
     electric_fee = fields.Monetary('电费', currency_field='currency_id')
-    # 垃圾费
-    garbage_fee = fields.Monetary('垃圾费', currency_field='currency_id')
+    # 装修垃圾清理费
+    garbage_fee = fields.Monetary('装修垃圾清理费', currency_field='currency_id')
 
     payment_frequency = fields.Selection([
         ('monthly', '月付'),
@@ -361,7 +361,7 @@ class MallLeasingContract(models.Model):
         if self.service_fee:
             lines.append(line(_('服务费'), self.service_fee))
         if self.garbage_fee:
-            lines.append(line(_('垃圾费'), self.garbage_fee))
+            lines.append(line(_('装修垃圾清理费'), self.garbage_fee))
         return lines or [line(_('租赁费用'), 0.0)]
 
     def _create_single_move(self, fee_name, fee_amount, journal, account, company):
@@ -616,7 +616,7 @@ class MallLeasingContract(models.Model):
             # (_('电费'), self.electric_fee),
             (_('物业费'), self.property_fee),
             (_('服务费'), self.service_fee),
-            (_('垃圾费'), self.garbage_fee),
+            (_('装修垃圾清理费'), self.garbage_fee),
         ]
         
         # 押金只在第一次生成账单时包含
