@@ -102,6 +102,10 @@ class MallLeasingContract(models.Model):
     payment_day = fields.Integer('支付日(1-31)', default=1)
 
     bank_account = fields.Char('收款账户')
+    # 银行账户详细信息（用于付款通知单）
+    bank_account_name = fields.Char('户名', help='收款账户户名')
+    bank_name = fields.Char('开户行', help='开户银行名称')
+    bank_account_number = fields.Char('账号', help='银行账号')
     
     # 租赁期限（年）
     lease_term = fields.Integer('租赁期限（年）', default=1)
@@ -860,6 +864,91 @@ class MallLeasingContract(models.Model):
             'unpaid_amount': unpaid_amount,
             'overdue_count': len(overdue_invoices),
             'overdue_amount': sum(overdue_invoices.mapped('amount_total')),
+        }
+
+    def get_payment_notice_data(self):
+        """
+        获取付款通知单所需的数据
+        用于报表模板中显示费用产生时间和合计金额
+        """
+        self.ensure_one()
+        
+        # 获取周期月数
+        period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(self.payment_frequency, 1)
+        
+        # 计算费用产生时间段
+        start_date = self.next_bill_date or self.lease_start_date or date.today()
+        end_date = start_date + relativedelta(months=period_months, days=-1)
+        
+        # 格式化日期
+        period_start_str = start_date.strftime('%Y年%m月%d日') if start_date else ''
+        period_end_str = end_date.strftime('%Y年%m月%d日') if end_date else ''
+        period_str = f"{period_start_str} 至 {period_end_str}" if period_start_str else ''
+        
+        # 构建费用项目列表
+        fee_items = []
+        total_amount = 0.0
+        
+        # 商铺租金
+        if self.rent_amount and self.contract_type != 'property':
+            fee_items.append({
+                'name': '商铺租金',
+                'period': period_str,
+                'months': period_months,
+                'amount': self.rent_amount,
+                'remark': '',
+            })
+            total_amount += self.rent_amount
+        
+        # 物业费
+        if self.property_fee:
+            fee_items.append({
+                'name': '物业费',
+                'period': period_str,
+                'months': period_months,
+                'amount': self.property_fee,
+                'remark': '',
+            })
+            total_amount += self.property_fee
+        
+        # 服务费
+        if self.service_fee:
+            fee_items.append({
+                'name': '服务费',
+                'period': period_str,
+                'months': period_months,
+                'amount': self.service_fee,
+                'remark': '',
+            })
+            total_amount += self.service_fee
+        
+        # 押金（仅首次）
+        if self.deposit and not self.deposit_generated and self.contract_type != 'property':
+            fee_items.append({
+                'name': '押金',
+                'period': '一次性',
+                'months': '-',
+                'amount': self.deposit,
+                'remark': '',
+            })
+            total_amount += self.deposit
+        
+        # 装修垃圾清理费
+        if self.garbage_fee:
+            fee_items.append({
+                'name': '装修垃圾清理费',
+                'period': '一次性',
+                'months': '-',
+                'amount': self.garbage_fee,
+                'remark': '',
+            })
+            total_amount += self.garbage_fee
+        
+        return {
+            'fee_items': fee_items,
+            'total_amount': total_amount,
+            'period_months': period_months,
+            'period_str': period_str,
         }
 
     @api.model

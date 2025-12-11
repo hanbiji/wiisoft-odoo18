@@ -11,6 +11,7 @@
     'data': [
         'security/mall_leasing_security.xml',
         'security/ir.model.access.csv',
+        'report/contract_report.xml',  # 报表需要在视图之前加载
         'views/mall_views.xml',
         'views/facade_views.xml',
         'views/contract_views.xml',
@@ -21,7 +22,6 @@
         'data/ir_cron.xml',
         'views/res_partner_views.xml',
         'views/menu.xml',
-        'report/contract_report.xml',
     ],
     'application': True,
 }

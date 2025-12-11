@@ -47,6 +47,7 @@
                     <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight" invisible="state != 'active' or contract_type == 'landlord'"/>
                     <button name="action_view_invoices" type="object" string="查看发票" class="btn-secondary" invisible="invoice_count == 0"/>
                     <button name="action_active" type="object" string="激活合同" class="oe_highlight" invisible="state != 'signed'"/>
+                    <button name="%(mall_leasing.action_report_payment_notice)d" type="action" string="打印缴费通知单" class="btn-secondary" invisible="state not in ['signed', 'active'] or contract_type == 'landlord'"/>
 
                     <field name="state" widget="statusbar" statusbar_visible="draft,approved,signed,active,renewed,terminated"/>
                 </header>
@@ -134,6 +135,18 @@
                             
                         </page>
                         
+                        <page string="收款信息">
+                            <group>
+                                <group string="银行账户信息">
+                                    <field name="bank_account_name" placeholder="请输入收款户名"/>
+                                    <field name="bank_name" placeholder="请输入开户银行"/>
+                                    <field name="bank_account_number" placeholder="请输入银行账号"/>
+                                </group>
+                                <group string="其他">
+                                    <field name="bank_account" string="备用收款账户"/>
+                                </group>
+                            </group>
+                        </page>
                         <page string="介绍人/中介" invisible="contract_type == 'property'">
                             <group>
                                 <field name="introducer_id" options="{'no_create': True, 'no_open': True}" domain="[('mall_contact_type', '=', 'intermediary')]"
