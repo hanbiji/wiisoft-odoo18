@@ -229,11 +229,12 @@ class MallLeasingContract(models.Model):
                 rec.property_fee = rec.lease_area * rec.property_fee_unit
             # 如果没有设置单价或面积，保持原有值不变（允许手动输入）
 
-    @api.depends('lease_start_date', 'payment_frequency')
+    @api.depends('lease_start_date', 'payment_frequency', 'free_rent_from', 'free_rent_to')
     def _compute_first_period_ratio(self):
         """
         计算首期账单比例
         按租赁开始日到下一个自然周期起始日的天数占整个周期天数的比例
+        优化：考虑免租期，从首期天数中扣除免租天数
         """
         for rec in self:
             if not rec.lease_start_date or not rec.payment_frequency:
@@ -243,23 +244,82 @@ class MallLeasingContract(models.Model):
             start = rec.lease_start_date
             # 计算下一个自然周期的起始日
             next_period_start = self._get_next_natural_period_start(start, rec.payment_frequency)
+            _logger.info(f"合同 {rec.name}: 下一个自然周期的起始日: {next_period_start}")
             
-            # 如果开始日正好是自然周期起始日，比例为1
+            # 如果开始日正好是自然周期起始日，需要检查是否有免租期
             if start.day == 1 and self._is_period_start_month(start, rec.payment_frequency):
-                rec.first_period_ratio = 1.0
+                # 计算一个完整周期的天数
+                period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(rec.payment_frequency, 1)
+                full_period_end = start + relativedelta(months=period_months)
+                full_period_days = (full_period_end - start).days
+                
+                # 检查免租期
+                free_days = rec._calculate_free_rent_days_in_period(start, full_period_end)
+                if free_days > 0:
+                    billable_days = full_period_days - free_days
+                    rec.first_period_ratio = round(billable_days / full_period_days, 2) if full_period_days > 0 else 1.0
+                    _logger.info(f"合同 {rec.name}: 完整周期有免租期 - 总天数: {full_period_days}, 免租天数: {free_days}, 应收天数: {billable_days}, 比例: {rec.first_period_ratio}")
+                else:
+                    rec.first_period_ratio = 1.0
+                    _logger.info(f"合同 {rec.name}: 完整周期无免租期，比例: 1.0")
+                rec.first_rent_amount = rec.rent_amount * rec.first_period_ratio
             else:
-                # 计算首期天数和整个周期天数
+                # 计算首期天数
                 first_period_days = (next_period_start - start).days
+                _logger.info(f"合同 {rec.name}: 首期总天数: {first_period_days}")
+                
+                # 计算首期内的免租天数
+                free_days = rec._calculate_free_rent_days_in_period(start, next_period_start)
+                _logger.info(f"合同 {rec.name}: 首期免租天数: {free_days}")
+                
+                # 实际应收费天数 = 首期天数 - 免租天数
+                billable_days = first_period_days - free_days
+                _logger.info(f"合同 {rec.name}: 首期应收费天数: {billable_days}")
+                
                 # 计算一个完整周期的天数
                 period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(rec.payment_frequency, 1)
                 full_period_end = next_period_start + relativedelta(months=period_months)
                 full_period_days = (full_period_end - next_period_start).days
+                _logger.info(f"合同 {rec.name}: 完整周期天数: {full_period_days}")
                 
                 # 计算比例，保留4位小数
-                if full_period_days > 0:
-                    rec.first_period_ratio = round(first_period_days / full_period_days, 4)
+                if full_period_days > 0 and billable_days >= 0:
+                    rec.first_period_ratio = round(billable_days / full_period_days, 2)
+                    _logger.info(f"合同 {rec.name}: 首期比例: {rec.first_period_ratio}")
+                elif billable_days < 0:
+                    # 免租天数超过首期天数，首期不收费
+                    rec.first_period_ratio = 0.0
+                    _logger.info(f"合同 {rec.name}: 免租期覆盖整个首期，比例: 0.0")
                 else:
                     rec.first_period_ratio = 1.0
+                    _logger.info(f"合同 {rec.name}: 默认比例: 1.0")
+                rec.first_rent_amount = rec.rent_amount * rec.first_period_ratio
+    
+    def _calculate_free_rent_days_in_period(self, period_start, period_end):
+        """
+        计算指定期间内的免租天数
+        :param period_start: 期间开始日期
+        :param period_end: 期间结束日期（不包含）
+        :return: 免租天数
+        """
+        self.ensure_one()
+        
+        if not self.free_rent_from or not self.free_rent_to:
+            return 0
+        
+        # 计算免租期与账单期间的重叠部分
+        # 重叠开始日 = max(免租开始日, 期间开始日)
+        overlap_start = max(self.free_rent_from, period_start)
+        # 重叠结束日 = min(免租结束日, 期间结束日-1天)
+        overlap_end = min(self.free_rent_to, period_end - relativedelta(days=1))
+        
+        # 如果有重叠
+        if overlap_start <= overlap_end:
+            free_days = (overlap_end - overlap_start).days + 1
+            _logger.info(f"合同 {self.name}: 免租期 ({self.free_rent_from} ~ {self.free_rent_to}) 与期间 ({period_start} ~ {period_end}) 重叠 {free_days} 天")
+            return free_days
+        
+        return 0
 
     def _is_period_start_month(self, check_date, frequency):
         """判断日期是否是自然周期的起始月"""
@@ -333,32 +393,19 @@ class MallLeasingContract(models.Model):
             else:
                 rec.lease_end_date = False
 
-    @api.depends('lease_start_date', 'payment_frequency', 'bill_advance_days')
+    @api.depends('lease_start_date', 'payment_frequency')
     def _compute_next_bill_date(self):
         """
-        计算合同的下次出账日（按自然月周期，考虑提前天数）
+        计算合同的下次出账日（按自然月周期）
         逻辑：
         1. 首期账单从租赁开始日生成（按比例计算费用）
         2. 后续账单按自然月周期生成
-        3. 考虑提前天数
         """
         for rec in self:
             if not rec.lease_start_date or not rec.payment_frequency:
                 rec.next_bill_date = False
                 continue
-            
-            start = rec.lease_start_date
-            advance_days = rec.bill_advance_days or 0
-            
-            # 首期账单：从租赁开始日生成
-            # 提前天数生效：开始日 - 提前天数
-            bill_date = start - relativedelta(days=advance_days)
-            
-            # 确保出账日不早于今天减去合理天数（避免出账日过早）
-            if bill_date < start - relativedelta(days=advance_days):
-                bill_date = start
-            
-            rec.next_bill_date = bill_date
+            rec.next_bill_date = rec.lease_start_date
 
     @api.depends('invoice_ids')
     def _compute_invoice_count(self):
@@ -512,12 +559,18 @@ class MallLeasingContract(models.Model):
         """
         if not fee_amount or fee_amount <= 0:
             return None
+        # 账单周期起始日期为next_bill_date
+        bill_period_start_date = self.next_bill_date
+        # 账单周期结束日期为next_bill_date+付款周期
+        period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(self.payment_frequency, 1)
+        bill_period_end_date = self.next_bill_date + relativedelta(months=period_months)
+        
         move_vals = {
             'move_type': 'out_invoice' if self.contract_type in ['tenant', 'property'] else 'in_invoice',
             'partner_id': self.partner_id.id,  # 租户或房东
             'ref': f'合同# {self.name} - {fee_name}',
-            'invoice_date': fields.Date.today(),
-            'invoice_date_due': fields.Date.today() + relativedelta(days=15),
+            'invoice_date': self.next_bill_date,
+            'invoice_date_due': self.next_bill_date + relativedelta(days=30),
             'journal_id': journal.id,
             'company_id': company.id,
             'invoice_line_ids': [(0, 0, {
@@ -527,6 +580,8 @@ class MallLeasingContract(models.Model):
                 'account_id': account.id,
             })],
             'mall_contract_id': self.id,  # 建立与合同的关联
+            'bill_period_start_date': bill_period_start_date,
+            'bill_period_end_date': bill_period_end_date,
         }
         # _logger.info(f"move_vals: {move_vals}")
         
@@ -823,14 +878,7 @@ class MallLeasingContract(models.Model):
         if not created_moves:
             raise UserError(_('没有需要生成凭证的费用项目'))
 
-        
-        # 跳过免租期
-        if self.free_rent_from and self.free_rent_to and self.free_rent_from <= date.today() <= self.free_rent_to:
-            # 跳过免租期，更新到下一个自然周期
-            self.next_bill_date = self._get_next_bill_date_after_current()
-        else:
-            # 不跳过免租期，更新到下一个自然周期
-            self.next_bill_date = self._get_next_bill_date_after_current()
+        self.next_bill_date = self._get_next_bill_date_after_current()
         
         
         # 如果只有一个凭证，直接返回该凭证的表单视图
@@ -1003,14 +1051,11 @@ class MallLeasingContract(models.Model):
         2. 跳过免租期内的账单
         3. 记录详细的生成日志
         """
-        today = date.today()
-        _logger.info(f"开始执行自动出账任务，当前日期: {today}")
         
         # 查找所有执行中的合同，且到达出账日期
         active_contracts = self.search([
             ('state', '=', 'active'),
-            ('next_bill_date', '!=', False),
-            ('next_bill_date', '<=', today)
+            ('next_bill_date', '!=', False)
         ])
         
         generated_count = 0
@@ -1018,10 +1063,12 @@ class MallLeasingContract(models.Model):
         error_count = 0
         
         for c in active_contracts:
+            today = date.today() + relativedelta(days=c.bill_advance_days or 0)
+            _logger.info(f"开始执行自动出账任务，当前日期: {today}")
             try:
                 # 1. 检查是否在免租期内
                 if c.free_rent_from and c.free_rent_to:
-                    if c.free_rent_from <= today <= c.free_rent_to:
+                    if c.free_rent_from <= date.today() <= c.free_rent_to:
                         _logger.info(f"合同 {c.name}: 当前在免租期内 ({c.free_rent_from} 至 {c.free_rent_to})，跳过")
                         # 更新到下一个自然周期
                         c.next_bill_date = c._get_next_bill_date_after_current()
@@ -1029,15 +1076,14 @@ class MallLeasingContract(models.Model):
                         continue
                 
                 # 2. 生成账单
-                advance_days = c.bill_advance_days or 0
-                _logger.info(f"合同 {c.name}: 开始生成账单，出账日: {c.next_bill_date}，提前天数: {advance_days}")
-                c.action_generate_move()
-                generated_count += 1
-                
-                # 3. 更新下一个账单日期（按自然月周期）
-                next_date = c._get_next_bill_date_after_current()
-                c.next_bill_date = next_date
-                _logger.info(f"合同 {c.name}: 账单生成成功，下次出账日: {next_date}")
+                if c.next_bill_date <= today:
+                    _logger.info(f"合同 {c.name}: 开始生成账单，出账日: {c.next_bill_date}")
+                    c.action_generate_move()
+                    generated_count += 1
+                    
+                    # 3. 更新下一个账单日期（按自然月周期）
+                    next_date = c._get_next_bill_date_after_current()
+                    _logger.info(f"合同 {c.name}: 账单生成成功，下次出账日: {next_date}")
                 
             except Exception as e:
                 error_count += 1

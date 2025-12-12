@@ -8,6 +8,8 @@
         <field name="arch" type="xml">
             <!-- 在支付状态后面添加开票字段 -->
             <field name="status_in_payment" position="after">
+                <field name="bill_period_start_date" string="账单起始" readonly="1"/>
+                <field name="bill_period_end_date" string="账单结束" readonly="1"/>
                 <field name="is_invoiced" string="是否开票" widget="boolean_toggle" optional="show"/>
                 <field name="invoice_time" string="开票时间" optional="hide"/>
             </field>
@@ -32,6 +34,8 @@
                     <group>
                         <group string="租赁合同信息">
                             <field name="mall_contract_id" readonly="1"/>
+                            <field name="bill_period_start_date" readonly="1"/>
+                            <field name="bill_period_end_date" readonly="1"/>
                         </group>
                     </group>
                 </page>

@@ -6,7 +6,10 @@ class AccountMove(models.Model):
 
     mall_contract_id = fields.Many2one('mall.leasing.contract', string='租赁合同')
     mall_facade_id = fields.Many2one('mall.facade', string='门面')
-    
+    # 账单周期起始日期
+    bill_period_start_date = fields.Date('账单周期起始日期', tracking=True)
+    # 账单周期结束日期
+    bill_period_end_date = fields.Date('账单周期结束日期', tracking=True)
     # 开票信息
     is_invoiced = fields.Boolean('是否开票', default=False, tracking=True, help='标记该账单是否已开具发票')
     invoice_time = fields.Datetime('开票时间', tracking=True, help='实际开具发票的时间')
