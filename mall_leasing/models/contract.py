@@ -998,24 +998,71 @@ class MallLeasingContract(models.Model):
     def cron_generate_periodic_bills(self):
         """
         自动生成合同的周期性账单（按自然月周期）
+        优化逻辑：
+        1. 使用 next_bill_date 判断出账时间（已考虑 bill_advance_days）
+        2. 跳过免租期内的账单
+        3. 记录详细的生成日志
         """
         today = date.today()
-        contracts = self.search([('state', '=', 'active'), ('next_bill_date', '<=', today)])
-        for c in contracts:
-            # 跳过免租期
-            if c.free_rent_from and c.free_rent_to and c.free_rent_from <= today <= c.free_rent_to:
-                # 更新到下一个自然周期
-                c.next_bill_date = c._get_next_bill_date_after_current()
-                continue
-            
+        _logger.info(f"开始执行自动出账任务，当前日期: {today}")
+        
+        # 查找所有执行中的合同，且到达出账日期
+        active_contracts = self.search([
+            ('state', '=', 'active'),
+            ('next_bill_date', '!=', False),
+            ('next_bill_date', '<=', today)
+        ])
+        
+        generated_count = 0
+        skipped_count = 0
+        error_count = 0
+        
+        for c in active_contracts:
             try:
+                # 1. 检查是否在免租期内
+                if c.free_rent_from and c.free_rent_to:
+                    if c.free_rent_from <= today <= c.free_rent_to:
+                        _logger.info(f"合同 {c.name}: 当前在免租期内 ({c.free_rent_from} 至 {c.free_rent_to})，跳过")
+                        # 更新到下一个自然周期
+                        c.next_bill_date = c._get_next_bill_date_after_current()
+                        skipped_count += 1
+                        continue
+                
+                # 2. 生成账单
+                advance_days = c.bill_advance_days or 0
+                _logger.info(f"合同 {c.name}: 开始生成账单，出账日: {c.next_bill_date}，提前天数: {advance_days}")
                 c.action_generate_move()
+                generated_count += 1
+                
+                # 3. 更新下一个账单日期（按自然月周期）
+                next_date = c._get_next_bill_date_after_current()
+                c.next_bill_date = next_date
+                _logger.info(f"合同 {c.name}: 账单生成成功，下次出账日: {next_date}")
+                
             except Exception as e:
-                _logger.error(f"合同 {c.name} 生成账单失败: {e}")
+                error_count += 1
+                _logger.error(f"合同 {c.name} 生成账单失败: {str(e)}", exc_info=True)
+                # 发送错误通知
+                try:
+                    c.message_post(
+                        body=f"自动生成账单失败: {str(e)}",
+                        subject="账单生成错误",
+                        message_type='notification'
+                    )
+                except:
+                    pass
                 continue
-            
-            # 更新下一个账单日期（按自然月周期）
-            # c.next_bill_date = c._get_next_bill_date_after_current()
+        
+        # 记录汇总日志
+        _logger.info(
+            f"自动出账任务完成 - "
+            f"检查合同数: {len(active_contracts)}, "
+            f"成功生成: {generated_count}, "
+            f"跳过: {skipped_count}, "
+            f"失败: {error_count}"
+        )
+        
+        return True
 
     def _get_next_bill_date_after_current(self):
         """
@@ -1039,9 +1086,7 @@ class MallLeasingContract(models.Model):
             current_period_start = date(current_date.year, current_date.month, 1)
             next_period_start = current_period_start + relativedelta(months=period_months)
         
-        # 考虑提前天数
-        advance_days = self.bill_advance_days or 0
-        next_bill_date = next_period_start - relativedelta(days=advance_days)
+        next_bill_date = next_period_start
         
         # 确保不超过租赁结束日
         if self.lease_end_date and next_bill_date > self.lease_end_date:
