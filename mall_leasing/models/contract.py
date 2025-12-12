@@ -528,8 +528,10 @@ class MallLeasingContract(models.Model):
             })],
             'mall_contract_id': self.id,  # 建立与合同的关联
         }
+        # _logger.info(f"move_vals: {move_vals}")
         
         account_move = self.env['account.move'].sudo().create(move_vals)
+        # _logger.info(f"account_move: {account_move}")
         # 自动确认凭证
         account_move.action_post()
         return account_move
@@ -770,6 +772,9 @@ class MallLeasingContract(models.Model):
         # 押金只在第一次生成账单时包含（不按比例）
         if not self.deposit_generated and self.deposit:
             fee_types.append((_('押金'), self.deposit))
+        # 装修保证金只在第一次生成账单时包含（不按比例）
+        if not self.decoration_deposit_generated and self.decoration_deposit:
+            fee_types.append((_('装修保证金'), self.decoration_deposit))
         
         # 其他费用（首期按比例）
         if is_first_period and ratio < 1.0:
@@ -787,6 +792,8 @@ class MallLeasingContract(models.Model):
         if self.garbage_fee:
             fee_types.append((_('装修垃圾清理费'), self.garbage_fee))
         
+        _logger.info(f"fee_types: {fee_types}")
+        
         # 为每种费用类型生成单独的会计凭证
         created_moves = []
         deposit_move_created = False
@@ -802,6 +809,9 @@ class MallLeasingContract(models.Model):
                     deposit_move_created = True
                 if '首期' in fee_name or fee_name == _('租金'):
                     first_rent_move_created = True
+                if '装修保证金' in fee_name:
+                    self.decoration_deposit_generated = True
+
         
         # 更新押金生成状态
         if deposit_move_created:
@@ -812,6 +822,9 @@ class MallLeasingContract(models.Model):
         
         if not created_moves:
             raise UserError(_('没有需要生成凭证的费用项目'))
+        
+        # 更新下一个账单日期（按自然月周期）
+        self.next_bill_date = self._get_next_bill_date_after_current()
         
         # 如果只有一个凭证，直接返回该凭证的表单视图
         if len(created_moves) == 1:
@@ -842,7 +855,7 @@ class MallLeasingContract(models.Model):
         
         # 获取自定义视图ID
         tree_view_id = self.env.ref('mall_leasing.view_lease_invoice_tree').id
-        form_view_id = self.env.ref('mall_leasing.view_lease_invoice_form').id
+        form_view_id = self.env.ref('mall_leasing.view_move_form_inherit_mall_leasing').id
         
         action = {
             'type': 'ir.actions.act_window',
@@ -1010,7 +1023,7 @@ class MallLeasingContract(models.Model):
         current_date = self.next_bill_date or self.lease_start_date or date.today()
         
         # 如果是首期（还没生成过账单），下一个周期从自然周期开始
-        if not self.first_rent_generated:
+        if self.contract_type == 'tenant' and not self.first_rent_generated:
             next_period_start = self._get_next_natural_period_start(self.lease_start_date, self.payment_frequency)
         else:
             # 已经生成过首期，按自然周期递增
