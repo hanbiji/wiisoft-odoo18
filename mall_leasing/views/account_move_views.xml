@@ -1,38 +1,42 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- 租赁合同发票列表视图 -->
+    <!-- 继承发票列表视图，添加开票字段 -->
     <record id="view_lease_invoice_tree" model="ir.ui.view">
         <field name="name">mall.leasing.invoice.tree</field>
         <field name="model">account.move</field>
+        <field name="inherit_id" ref="account.view_invoice_tree"/>
         <field name="arch" type="xml">
-            <list string="租赁合同发票" create="false" decoration-danger="payment_state == 'not_paid' and invoice_date_due &lt; context_today().strftime('%Y-%m-%d')" decoration-success="payment_state == 'paid'">
-                <field name="name" string="发票号"/>
-                <field name="partner_id" string="客户"/>
-                <field name="ref" string="参考号"/>
-                <field name="invoice_date" string="账单日期"/>
-                <field name="invoice_date_due" string="到期日期"/>
-                <field name="amount_untaxed" sum="不含税金额"/>
-                <field name="amount_total" sum="总金额" string="总金额"/>
-                <field name="payment_state" 
-                    widget="badge" 
-                    decoration-info="payment_state == 'not_paid'" 
-                    decoration-success="payment_state == 'paid'" 
-                    decoration-warning="payment_state == 'partial'"
-                    string="支付状态"/>
-            </list>
+            <!-- 在支付状态后面添加开票字段 -->
+            <field name="status_in_payment" position="after">
+                <field name="is_invoiced" string="是否开票" widget="boolean_toggle" optional="show"/>
+                <field name="invoice_time" string="开票时间" optional="hide"/>
+            </field>
         </field>
     </record>
 
-    <!-- 租赁合同发票表单视图（继承标准视图，添加额外信息） -->
-    <record id="view_lease_invoice_form" model="ir.ui.view">
-        <field name="name">mall.leasing.invoice.form</field>
+    <!-- 继承 account.move 表单视图，添加自定义字段 (Odoo 18) -->
+    <record id="view_move_form_inherit_mall_leasing" model="ir.ui.view">
+        <field name="name">account.move.form.inherit.mall.leasing</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
-        <field name="mode">primary</field>
         <field name="arch" type="xml">
-            <xpath expr="//form" position="attributes">
-                <attribute name="string">租赁合同发票</attribute>
-            </xpath>
+            <!-- 方法1：在 ref 字段后面添加开票信息（表单顶部） -->
+            <field name="fapiao" position="after">
+                <field name="is_invoiced"/>
+                <field name="invoice_time" invisible="not is_invoiced"/>
+            </field>
+            
+            <!-- 方法2：在 notebook 中添加商场租赁页签 -->
+            <notebook position="inside">
+                <page string="租赁信息" name="mall_leasing_info">
+                    <group>
+                        <group string="租赁合同信息">
+                            <field name="mall_contract_id" readonly="1"/>
+                        </group>
+                    </group>
+                </page>
+            </notebook>
+            
         </field>
     </record>
     

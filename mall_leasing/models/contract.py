@@ -78,6 +78,13 @@ class MallLeasingContract(models.Model):
     deposit = fields.Monetary('押金', currency_field='currency_id')
     # 押金已生成
     deposit_generated = fields.Boolean('押金已生成', default=False, help='标记押金是否已经生成过账单')
+    # 合同押金支付与退款
+    deposit_payment_status = fields.Selection([
+        ('unpaid', '未支付'),
+        ('paid', '已支付'),
+        ('refunded', '已退款'),
+    ], string='押金支付与退款状态', default='unpaid')
+
     # 租赁面积
     lease_area = fields.Float('租赁面积(㎡)', digits=(10, 2), help='合同约定的租赁面积')
     # 物业费单价
@@ -92,6 +99,22 @@ class MallLeasingContract(models.Model):
     electric_fee = fields.Monetary('电费', currency_field='currency_id')
     # 装修垃圾清理费
     garbage_fee = fields.Monetary('装修垃圾清理费', currency_field='currency_id')
+    # 装修保证金
+    decoration_deposit = fields.Monetary('装修保证金', currency_field='currency_id')
+    # 装修保证金已生成
+    decoration_deposit_generated = fields.Boolean('装修保证金已生成', default=False, help='标记装修保证金是否已经生成过账单')
+    # 装修保证金支付与退款
+    decoration_deposit_payment_status = fields.Selection([
+        ('unpaid', '未支付'),
+        ('paid', '已支付'),
+        ('refunded', '已退款'),
+        ('refunded_partially', '部分退款'),
+    ], string='装修保证金支付与退款状态', default='unpaid')
+    # 装修保证金扣款金额
+    decoration_deposit_deduction_amount = fields.Monetary('装修保证金扣款金额', currency_field='currency_id')
+    # 装修保证金扣款原因
+    decoration_deposit_deduction_reason = fields.Char('装修保证金扣款原因')
+
 
     payment_frequency = fields.Selection([
         ('monthly', '月付'),
