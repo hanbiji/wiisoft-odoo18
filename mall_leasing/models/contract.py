@@ -822,9 +822,16 @@ class MallLeasingContract(models.Model):
         
         if not created_moves:
             raise UserError(_('没有需要生成凭证的费用项目'))
+
         
-        # 更新下一个账单日期（按自然月周期）
-        self.next_bill_date = self._get_next_bill_date_after_current()
+        # 跳过免租期
+        if self.free_rent_from and self.free_rent_to and self.free_rent_from <= date.today() <= self.free_rent_to:
+            # 跳过免租期，更新到下一个自然周期
+            self.next_bill_date = self._get_next_bill_date_after_current()
+        else:
+            # 不跳过免租期，更新到下一个自然周期
+            self.next_bill_date = self._get_next_bill_date_after_current()
+        
         
         # 如果只有一个凭证，直接返回该凭证的表单视图
         if len(created_moves) == 1:
@@ -1008,7 +1015,7 @@ class MallLeasingContract(models.Model):
                 continue
             
             # 更新下一个账单日期（按自然月周期）
-            c.next_bill_date = c._get_next_bill_date_after_current()
+            # c.next_bill_date = c._get_next_bill_date_after_current()
 
     def _get_next_bill_date_after_current(self):
         """
