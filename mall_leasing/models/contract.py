@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 from odoo import api, fields, models, _
 from odoo.exceptions import UserError
-from datetime import date
+from datetime import date, timedelta
 from dateutil.relativedelta import relativedelta
 import logging
 
@@ -233,67 +233,35 @@ class MallLeasingContract(models.Model):
     def _compute_first_period_ratio(self):
         """
         计算首期账单比例
-        按租赁开始日到下一个自然周期起始日的天数占整个周期天数的比例
-        优化：考虑免租期，从首期天数中扣除免租天数
+        按正常周期生成账单，如果有免租期则计算扣除免租天数后的比例
         """
         for rec in self:
             if not rec.lease_start_date or not rec.payment_frequency:
                 rec.first_period_ratio = 1.0
+                rec.first_rent_amount = rec.rent_amount
                 continue
             
-            start = rec.lease_start_date
-            # 计算下一个自然周期的起始日
-            next_period_start = self._get_next_natural_period_start(start, rec.payment_frequency)
-            _logger.info(f"合同 {rec.name}: 下一个自然周期的起始日: {next_period_start}")
+            # 计算一个完整周期的天数
+            period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(rec.payment_frequency, 1)
+            period_end = rec.lease_start_date + relativedelta(months=period_months)
+            full_period_days = (period_end - rec.lease_start_date).days
             
-            # 如果开始日正好是自然周期起始日，需要检查是否有免租期
-            if start.day == 1 and self._is_period_start_month(start, rec.payment_frequency):
-                # 计算一个完整周期的天数
-                period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(rec.payment_frequency, 1)
-                full_period_end = start + relativedelta(months=period_months)
-                full_period_days = (full_period_end - start).days
-                
-                # 检查免租期
-                free_days = rec._calculate_free_rent_days_in_period(start, full_period_end)
-                if free_days > 0:
-                    billable_days = full_period_days - free_days
-                    rec.first_period_ratio = round(billable_days / full_period_days, 2) if full_period_days > 0 else 1.0
-                    _logger.info(f"合同 {rec.name}: 完整周期有免租期 - 总天数: {full_period_days}, 免租天数: {free_days}, 应收天数: {billable_days}, 比例: {rec.first_period_ratio}")
-                else:
-                    rec.first_period_ratio = 1.0
-                    _logger.info(f"合同 {rec.name}: 完整周期无免租期，比例: 1.0")
-                rec.first_rent_amount = rec.rent_amount * rec.first_period_ratio
+            # 检查首期内是否有免租期
+            free_days = rec._calculate_free_rent_days_in_period(rec.lease_start_date, period_end)
+            
+            if free_days > 0:
+                # 有免租期，计算比例
+                billable_days = full_period_days - free_days
+                if billable_days < 0:
+                    billable_days = 0
+                rec.first_period_ratio = round(billable_days / full_period_days, 2) if full_period_days > 0 else 1.0
+                _logger.info(f"合同 {rec.name}: 首期有免租期 - 总天数: {full_period_days}, 免租天数: {free_days}, 应收天数: {billable_days}, 比例: {rec.first_period_ratio}")
             else:
-                # 计算首期天数
-                first_period_days = (next_period_start - start).days
-                _logger.info(f"合同 {rec.name}: 首期总天数: {first_period_days}")
-                
-                # 计算首期内的免租天数
-                free_days = rec._calculate_free_rent_days_in_period(start, next_period_start)
-                _logger.info(f"合同 {rec.name}: 首期免租天数: {free_days}")
-                
-                # 实际应收费天数 = 首期天数 - 免租天数
-                billable_days = first_period_days - free_days
-                _logger.info(f"合同 {rec.name}: 首期应收费天数: {billable_days}")
-                
-                # 计算一个完整周期的天数
-                period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(rec.payment_frequency, 1)
-                full_period_end = next_period_start + relativedelta(months=period_months)
-                full_period_days = (full_period_end - next_period_start).days
-                _logger.info(f"合同 {rec.name}: 完整周期天数: {full_period_days}")
-                
-                # 计算比例，保留4位小数
-                if full_period_days > 0 and billable_days >= 0:
-                    rec.first_period_ratio = round(billable_days / full_period_days, 2)
-                    _logger.info(f"合同 {rec.name}: 首期比例: {rec.first_period_ratio}")
-                elif billable_days < 0:
-                    # 免租天数超过首期天数，首期不收费
-                    rec.first_period_ratio = 0.0
-                    _logger.info(f"合同 {rec.name}: 免租期覆盖整个首期，比例: 0.0")
-                else:
-                    rec.first_period_ratio = 1.0
-                    _logger.info(f"合同 {rec.name}: 默认比例: 1.0")
-                rec.first_rent_amount = rec.rent_amount * rec.first_period_ratio
+                # 无免租期，完整周期
+                rec.first_period_ratio = 1.0
+                _logger.info(f"合同 {rec.name}: 首期无免租期，完整周期，比例: 1.0")
+            
+            rec.first_rent_amount = rec.rent_amount * rec.first_period_ratio
     
     def _calculate_free_rent_days_in_period(self, period_start, period_end):
         """
@@ -321,65 +289,6 @@ class MallLeasingContract(models.Model):
         
         return 0
 
-    def _is_period_start_month(self, check_date, frequency):
-        """判断日期是否是自然周期的起始月"""
-        month = check_date.month
-        if frequency == 'monthly':
-            return True
-        elif frequency == 'quarterly':
-            return month in [1, 4, 7, 10]
-        elif frequency == 'half_yearly':
-            return month in [1, 7]
-        elif frequency == 'yearly':
-            return month == 1
-        return True
-
-    def _get_next_natural_period_start(self, from_date, frequency):
-        """
-        获取下一个自然周期的起始日期
-        月付：下月1日
-        季付：下一个季度首月1日（1月、4月、7月、10月）
-        半年付：下一个半年首月1日（1月、7月）
-        年付：下一年1月1日
-        """
-        year = from_date.year
-        month = from_date.month
-        
-        if frequency == 'monthly':
-            # 下月1日
-            return date(year, month, 1) + relativedelta(months=1)
-        
-        elif frequency == 'quarterly':
-            # 季度起始月：1, 4, 7, 10
-            quarter_starts = [1, 4, 7, 10]
-            for q in quarter_starts:
-                if month < q:
-                    return date(year, q, 1)
-                elif month == q and from_date.day == 1:
-                    return from_date  # 正好是季度起始日
-            # 跨年到下一年1月
-            return date(year + 1, 1, 1)
-        
-        elif frequency == 'half_yearly':
-            # 半年起始月：1, 7
-            if month < 7:
-                if month == 1 and from_date.day == 1:
-                    return from_date
-                return date(year, 7, 1)
-            else:
-                if month == 7 and from_date.day == 1:
-                    return from_date
-                return date(year + 1, 1, 1)
-        
-        elif frequency == 'yearly':
-            # 年起始：1月1日
-            if month == 1 and from_date.day == 1:
-                return from_date
-            return date(year + 1, 1, 1)
-        
-        # 默认下月1日
-        return date(year, month, 1) + relativedelta(months=1)
-
     @api.depends('lease_term', 'lease_start_date')
     def _compute_lease_end_date(self):
         """
@@ -396,10 +305,8 @@ class MallLeasingContract(models.Model):
     @api.depends('lease_start_date', 'payment_frequency')
     def _compute_next_bill_date(self):
         """
-        计算合同的下次出账日（按自然月周期）
-        逻辑：
-        1. 首期账单从租赁开始日生成（按比例计算费用）
-        2. 后续账单按自然月周期生成
+        计算合同的下次出账日（按正常周期）
+        从租赁开始日开始，按照支付周期生成账单
         """
         for rec in self:
             if not rec.lease_start_date or not rec.payment_frequency:
@@ -561,9 +468,9 @@ class MallLeasingContract(models.Model):
             return None
         # 账单周期起始日期为next_bill_date
         bill_period_start_date = self.next_bill_date
-        # 账单周期结束日期为next_bill_date+付款周期
+        # 账单周期结束日期为next_bill_date+付款周期-1天（因为下一期从结束日当天开始）
         period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(self.payment_frequency, 1)
-        bill_period_end_date = self.next_bill_date + relativedelta(months=period_months)
+        bill_period_end_date = self.next_bill_date + relativedelta(months=period_months, days=-1)
         
         move_vals = {
             'move_type': 'out_invoice' if self.contract_type in ['tenant', 'property'] else 'in_invoice',
@@ -802,41 +709,41 @@ class MallLeasingContract(models.Model):
         if not self.lease_start_date:
             raise UserError(_('请先设置租赁开始日期'))
         
+        # 判断当前日期+bill_advance_days是否小于出账日
+        if self.next_bill_date > date.today() + timedelta(days=self.bill_advance_days):
+            raise UserError(_('未到出账日，不能生成账单！'))
+        
         journal, account, company = self._get_journal_and_account()
         
         # 判断是否是首期账单（首期租金未生成）
         is_first_period = not self.first_rent_generated
-        # 首期比例（用于按自然月调整费用）
+        # 首期比例（只在有免租期时才会小于1.0）
         ratio = self.first_period_ratio if is_first_period and self.first_period_ratio else 1.0
         
         # 定义费用类型和对应的金额
         fee_types = []
         
         # 租金处理
-        if is_first_period and self.first_rent_amount:
-            # 有设置首期租金，使用首期租金（不按比例）
-            fee_types.append((_('首期租金'), self.first_rent_amount))
-        elif is_first_period and ratio < 1.0:
-            # 首期按比例计算
-            adjusted_rent = round(self.rent_amount * ratio, 2) if self.rent_amount else 0
-            fee_types.append((_('首期租金（按比例）'), adjusted_rent))
+        if is_first_period and self.first_rent_amount and ratio < 1.0:
+            # 首期有免租期，使用按比例计算的租金
+            fee_types.append((_('租金（扣除免租期）'), self.first_rent_amount))
         else:
             # 正常周期租金
             fee_types.append((_('租金'), self.rent_amount))
         
-        # 押金只在第一次生成账单时包含（不按比例）
+        # 押金只在第一次生成账单时包含
         if not self.deposit_generated and self.deposit:
             fee_types.append((_('押金'), self.deposit))
-        # 装修保证金只在第一次生成账单时包含（不按比例）
+        # 装修保证金只在第一次生成账单时包含
         if not self.decoration_deposit_generated and self.decoration_deposit:
             fee_types.append((_('装修保证金'), self.decoration_deposit))
         
-        # 其他费用（首期按比例）
+        # 其他费用（首期有免租期时按比例）
         if is_first_period and ratio < 1.0:
             if self.property_fee:
-                fee_types.append((_('物业费（按比例）'), round(self.property_fee * ratio, 2)))
+                fee_types.append((_('物业费（扣除免租期）'), round(self.property_fee * ratio, 2)))
             if self.service_fee:
-                fee_types.append((_('服务费（按比例）'), round(self.service_fee * ratio, 2)))
+                fee_types.append((_('服务费（扣除免租期）'), round(self.service_fee * ratio, 2)))
         else:
             if self.property_fee:
                 fee_types.append((_('物业费'), self.property_fee))
@@ -862,7 +769,8 @@ class MallLeasingContract(models.Model):
                 # 如果生成了押金账单，标记为已生成
                 if fee_name == _('押金'):
                     deposit_move_created = True
-                if '首期' in fee_name or fee_name == _('租金'):
+                # 如果生成了租金账单（包含"租金"关键字），标记为已生成
+                if '租金' in fee_name:
                     first_rent_move_created = True
                 if '装修保证金' in fee_name:
                     self.decoration_deposit_generated = True
@@ -872,6 +780,7 @@ class MallLeasingContract(models.Model):
         if deposit_move_created:
             self.deposit_generated = True
         
+        # 首期账单生成后，标记首期租金已生成
         if first_rent_move_created and is_first_period:
             self.first_rent_generated = True
         
@@ -1045,7 +954,7 @@ class MallLeasingContract(models.Model):
     @api.model
     def cron_generate_periodic_bills(self):
         """
-        自动生成合同的周期性账单（按自然月周期）
+        自动生成合同的周期性账单（按正常周期）
         优化逻辑：
         1. 使用 next_bill_date 判断出账时间（已考虑 bill_advance_days）
         2. 跳过免租期内的账单
@@ -1070,7 +979,7 @@ class MallLeasingContract(models.Model):
                 if c.free_rent_from and c.free_rent_to:
                     if c.free_rent_from <= date.today() <= c.free_rent_to:
                         _logger.info(f"合同 {c.name}: 当前在免租期内 ({c.free_rent_from} 至 {c.free_rent_to})，跳过")
-                        # 更新到下一个自然周期
+                        # 更新到下一个周期
                         c.next_bill_date = c._get_next_bill_date_after_current()
                         skipped_count += 1
                         continue
@@ -1081,7 +990,7 @@ class MallLeasingContract(models.Model):
                     c.action_generate_move()
                     generated_count += 1
                     
-                    # 3. 更新下一个账单日期（按自然月周期）
+                    # 3. 更新下一个账单日期（按正常周期）
                     next_date = c._get_next_bill_date_after_current()
                     _logger.info(f"合同 {c.name}: 账单生成成功，下次出账日: {next_date}")
                 
@@ -1112,27 +1021,20 @@ class MallLeasingContract(models.Model):
 
     def _get_next_bill_date_after_current(self):
         """
-        获取当前账单后的下一个出账日期（按自然月周期）
+        获取当前账单后的下一个出账日期（按正常周期）
+        从当前出账日开始，按照支付周期月数递增
         """
         self.ensure_one()
         
         if not self.payment_frequency:
             return False
         
-        # 获取下一个自然周期的起始日
+        # 获取当前出账日
         current_date = self.next_bill_date or self.lease_start_date or date.today()
         
-        # 如果是首期（还没生成过账单），下一个周期从自然周期开始
-        if self.contract_type == 'tenant' and not self.first_rent_generated:
-            next_period_start = self._get_next_natural_period_start(self.lease_start_date, self.payment_frequency)
-        else:
-            # 已经生成过首期，按自然周期递增
-            period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(self.payment_frequency, 1)
-            # 当前周期起始日
-            current_period_start = date(current_date.year, current_date.month, 1)
-            next_period_start = current_period_start + relativedelta(months=period_months)
-        
-        next_bill_date = next_period_start
+        # 按照支付周期递增
+        period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(self.payment_frequency, 1)
+        next_bill_date = current_date + relativedelta(months=period_months)
         
         # 确保不超过租赁结束日
         if self.lease_end_date and next_bill_date > self.lease_end_date:
