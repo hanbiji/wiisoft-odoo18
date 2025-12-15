@@ -22,5 +22,13 @@
     <menuitem id="menu_landlord_contracts" name="房东合同" parent="menu_contract_management" sequence="30" action="mall_leasing.action_landlord_contracts"/>
 
     <!-- 沟通日志菜单 -->
-    <menuitem id="menu_communication_log" name="沟通日志" parent="menu_mall_leasing_root" sequence="40" action="mall_leasing.action_communication"/>
+    <!-- <menuitem id="menu_communication_log" name="沟通日志" parent="menu_mall_leasing_root" sequence="40" action="mall_leasing.action_communication"/> -->
+
+    <!-- 租赁发票菜单 -->
+    <menuitem id="menu_leasing_invoices" name="租赁账单" parent="menu_mall_leasing_root" sequence="50" action="mall_leasing.action_mall_leasing_invoices"/>
+
+    <!-- 租赁联系人菜单 -->
+    <menuitem id="menu_leasing_partners" name="租户管理" parent="menu_mall_leasing_root" sequence="60" action="mall_leasing.action_mall_leasing_partners"/>
+
+
 </odoo>

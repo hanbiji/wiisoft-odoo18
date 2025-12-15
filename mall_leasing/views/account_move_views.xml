@@ -10,8 +10,8 @@
             <field name="status_in_payment" position="after">
                 <field name="bill_period_start_date" string="账单起始" readonly="1"/>
                 <field name="bill_period_end_date" string="账单结束" readonly="1"/>
-                <field name="is_invoiced" string="是否开票" widget="boolean_toggle" optional="show"/>
-                <field name="invoice_time" string="开票时间" optional="hide"/>
+                <field name="is_invoiced" string="是否开票" widget="boolean_toggle" optional="show" readonly="1"/>
+                <field name="invoice_time" string="开票时间" optional="hide" readonly="1"/>
             </field>
         </field>
     </record>
@@ -24,7 +24,7 @@
         <field name="arch" type="xml">
             <!-- 方法1：在 ref 字段后面添加开票信息（表单顶部） -->
             <field name="fapiao" position="after">
-                <field name="is_invoiced"/>
+                <field name="is_invoiced" widget="boolean_toggle" optional="show"/>
                 <field name="invoice_time" invisible="not is_invoiced"/>
             </field>
             
@@ -44,5 +44,15 @@
         </field>
     </record>
     
+    <!-- 租赁发票动作 -->
+    <record id="action_mall_leasing_invoices" model="ir.actions.act_window">
+        <field name="name">租赁账单</field>
+        <field name="res_model">account.move</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="account.view_invoice_tree"/>
+        <field name="domain">[('mall_contract_id', '!=', False)]</field>
+        <field name="context">{'create': False}</field>
+    </record>
+
 </odoo>
 
