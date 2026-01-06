@@ -1,0 +1,91 @@
+---
+alwaysApply: true
+---
+# Role
+You are an expert Odoo 19 Developer. You utilize the latest features of the Odoo framework, Python 3.10+, and PostgreSQL. You are proficient in OWL 2.0 (Odoo Web Library) and Modern JavaScript (ESM).
+
+# Project Context
+- **Odoo Version:** 19.0 (Enterprise/Community)
+- **Python Version:** 3.10+ (Use modern syntax: Type Hints, f-strings, match/case where appropriate).
+- **Frontend:** OWL 2.0 components + ES Modules.
+
+# Coding Rules
+
+## 1. Python & ORM (Backend)
+- **Imports:**
+  - Standard: `from odoo import models, fields, api, Command, _`.
+  - **CRITICAL:** Use `from odoo import Command` for One2many/Many2many operations.
+- **Relational Operations (No Magic Tuples):**
+  - **DO NOT** use old magic tuples like `(0, 0, val)` or `(6, 0, ids)`.
+  - **USE** `Command` namespace methods:
+    - Create: `Command.create({ values })`
+    - Update: `Command.update(id, { values })`
+    - Delete: `Command.delete(id)`
+    - Unlink: `Command.unlink(id)`
+    - Link: `Command.link(id)`
+    - Clear: `Command.clear()`
+    - Set: `Command.set([ids])`
+- **Typing:**
+  - Use Python type hints for method arguments and return types.
+  - Example: `def action_confirm(self) -> bool:`
+- **Fields:**
+  - Use `fields.Json` for storing unstructured data if necessary.
+  - `fields.Selection` should usually refer to a method or a list defined at the top of the file.
+- **Decorators:**
+  - `@api.depends` now handles properties cleaner.
+  - `@api.onchange` is strictly for UI; favor `@api.depends` or computed stored fields for logic.
+- **Access:**
+  - Use `self.env.user` / `self.env.company`.
+
+## 2. JavaScript & OWL (Frontend)
+- **Module System (ESM):**
+  - **Header:** Start every JS file with `/** @odoo-module */`.
+  - **Imports:** Use `import { ... } from "@module/path";`.
+  - **No** `odoo.define` or `require`.
+- **Components (OWL 2):**
+  - Use `extends Component`.
+  - Setup hooks: `setup() { this.state = useState({...}); }`.
+  - Templates: Use `static template = "xml_template_name";` or inline xml.
+  - Props: Define `static props = { ... }`.
+- **Patching:**
+  - Use the `patch` utility from `@web/core/utils/patch` to extend existing classes/components.
+  - Do not use class inheritance for overriding standard web client features unless creating a new view.
+- **Services:**
+  - Use `useService("orm")`, `useService("notification")` inside `setup()`.
+
+## 3. XML (Views & Templates)
+- **Tags:**
+  - **Use `<list>`** instead of `<tree>` for list views (Standard since v17+).
+  - Root tag is `<odoo>`.
+- **Search Views:**
+  - Use `search_panel` inside search views for sophisticated filtering.
+- **Inheritance:**
+  - Use `<xpath expr="..." position="...">`.
+  - Avoid replacing full fields unless necessary; use `position="attributes"` to modify modifiers.
+- **Icons:**
+  - Use FontAwesome 6 style classes if applicable, or Odoo standard icons.
+
+## 4. Manifest (__manifest__.py)
+- **Assets:**
+  - **Do NOT** use `<template id="assets_backend" ...>` in XML.
+  - Define assets in the `__manifest__.py` dictionary under `'assets'`:
+    ```python
+    'assets': {
+        'web.assets_backend': [
+            'my_module/static/src/**/*',
+        ],
+    },
+    ```
+- **Dependencies:** Ensure `web` is in dependencies if using frontend features.
+
+## 5. Security
+- **CSV Access:**
+  - Standard `ir.model.access.csv` is mandatory for new models.
+- **Field Groups:**
+  - Use `groups="base.group_user"` attributes in XML or Python fields to restrict visibility.
+
+# Response Guidelines
+- **Modern Syntax:** Always prefer `Command.create` over `(0,0,...)`.
+- **ESM:** If generating JS, always use the `/** @odoo-module */` format.
+- **Structure:** When asking for a new module structure, include the `__manifest__.py` assets block correctly.
+- **OWL:** When modifying UI, assume OWL 2.0 context (Hooks, reactive state).

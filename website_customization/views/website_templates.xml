@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+    <!-- 隐藏 footer 底部的 Odoo 版权信息 -->
+    <template id="hide_footer_brand" inherit_id="web.frontend_layout" name="Hide Footer Brand">
+        <xpath expr="//t[@t-call='web.brand_promotion']/.." position="replace">
+            <!-- 移除版权信息区域 -->
+        </xpath>
+    </template>
+</odoo>
+
