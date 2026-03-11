@@ -2,10 +2,10 @@
 import logging
 import uuid
 
-from odoo import models, fields, api, Command, _
+from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
-from ..services.esim_api import EsimAccessAPIError, PRICE_DIVISOR
+from ..services.esim_api import EsimAccessAPIError
 
 _logger = logging.getLogger(__name__)
 
@@ -49,6 +49,10 @@ class EsimOrder(models.Model):
     profile_ids = fields.One2many('esim.profile', 'order_id', string="eSIM 档案")
     profile_count = fields.Integer(string="eSIM 数量", compute='_compute_profile_count')
     order_date = fields.Datetime(string="下单时间", readonly=True)
+    period_num = fields.Integer(
+        string="使用天数",
+        help="每日套餐的天数（1-365），仅适用于按日计费的套餐",
+    )
     note = fields.Text(string="备注")
 
     @api.depends('unit_price', 'quantity')
@@ -67,6 +71,18 @@ class EsimOrder(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('esim.order') or _('New')
         return super().create(vals_list)
 
+    def _build_package_info(self) -> dict:
+        """构建单条 packageInfoList 元素"""
+        self.ensure_one()
+        info = {
+            'packageCode': self.package_id.package_code,
+            'count': self.quantity,
+            'price': self.package_id.raw_price,
+        }
+        if self.period_num:
+            info['periodNum'] = self.period_num
+        return info
+
     def action_confirm(self) -> None:
         """确认订单并调用 API 下单"""
         for order in self:
@@ -75,15 +91,14 @@ class EsimOrder(models.Model):
 
             api_client = self.env['esim.package']._get_api_client()
             transaction_id = uuid.uuid4().hex
-            # API 需要万分之一单位的总金额
-            raw_amount = order.package_id.raw_price * order.quantity
+            package_info = order._build_package_info()
+            total_amount = package_info['price'] * package_info['count']
 
             try:
                 result = api_client.place_order(
-                    package_code=order.package_id.package_code,
-                    count=order.quantity,
                     transaction_id=transaction_id,
-                    amount=raw_amount,
+                    package_info_list=[package_info],
+                    amount=total_amount,
                 )
             except EsimAccessAPIError as e:
                 order.write({'state': 'failed'})

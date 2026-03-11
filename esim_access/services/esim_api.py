@@ -119,23 +119,25 @@ class EsimAccessAPI:
 
     def place_order(
         self,
-        package_code: str,
-        count: int,
         transaction_id: str,
-        amount: int,
+        package_info_list: list[dict],
+        amount: int = 0,
     ) -> dict:
         """
-        下单购买 eSIM。
-        - amount: 总金额（万分之一美元单位）
-        - count: 购买数量（支持批量）
+        下单购买 eSIM（支持批量多套餐）。
+        - transaction_id: 唯一交易 ID，最长 50 字符，重试需保持不变
+        - package_info_list: 套餐列表，每项包含:
+            packageCode/slug (必填), count (必填),
+            price (可选, 万分之一美元), periodNum (可选, 每日套餐天数 1-365)
+        - amount: 可选，总金额（万分之一美元），用于价格校验
         """
-        payload = {
-            'packageCode': package_code,
-            'count': count,
+        payload: dict = {
             'transactionId': transaction_id,
-            'amount': amount,
+            'packageInfoList': package_info_list,
         }
-        return self._make_request('order', payload)
+        if amount:
+            payload['amount'] = amount
+        return self._make_request('open/esim/order', payload)
 
     # ── 查询 eSIM 档案 ───────────────────────────────────────
 

@@ -61,6 +61,8 @@
                             <field name="partner_id" readonly="state != 'draft'"/>
                             <field name="package_id" readonly="state != 'draft'"/>
                             <field name="quantity" readonly="state != 'draft'"/>
+                            <field name="period_num" readonly="state != 'draft'"
+                                   invisible="not period_num and state != 'draft'"/>
                         </group>
                         <group string="金额">
                             <field name="unit_price"/>

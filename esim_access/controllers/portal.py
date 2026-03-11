@@ -86,7 +86,7 @@ class EsimPortal(CustomerPortal):
     # ── 下单 ─────────────────────────────────────────────
 
     @http.route('/my/esim/order', type='http', auth='user', website=True, methods=['POST'], csrf=True)
-    def portal_esim_order(self, package_id, quantity=1, **kw):
+    def portal_esim_order(self, package_id, quantity=1, period_num=0, **kw):
         """门户下单"""
         partner = request.env.user.partner_id
         package = request.env['esim.package'].sudo().browse(int(package_id))
@@ -94,12 +94,17 @@ class EsimPortal(CustomerPortal):
             raise MissingError(_("套餐不存在"))
 
         quantity = max(int(quantity), 1)
+        period_num = max(int(period_num), 0)
 
-        order = request.env['esim.order'].sudo().create({
+        vals = {
             'partner_id': partner.id,
             'package_id': package.id,
             'quantity': quantity,
-        })
+        }
+        if period_num:
+            vals['period_num'] = period_num
+
+        order = request.env['esim.order'].sudo().create(vals)
 
         try:
             order.action_confirm()

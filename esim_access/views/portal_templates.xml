@@ -197,6 +197,15 @@
                                         <input type="number" name="quantity" value="1" min="1"
                                                class="form-control text-center"/>
                                     </div>
+                                    <t t-if="package.data_type in ('2', '3', '4')">
+                                        <div class="input-group mb-3 w-50 mx-auto">
+                                            <span class="input-group-text">天数</span>
+                                            <input type="number" name="period_num"
+                                                   t-att-value="package.duration or 7"
+                                                   min="1" max="365"
+                                                   class="form-control text-center"/>
+                                        </div>
+                                    </t>
                                     <button type="submit" class="btn btn-primary btn-lg">
                                         <i class="fa fa-shopping-cart me-2"/>立即购买
                                     </button>
