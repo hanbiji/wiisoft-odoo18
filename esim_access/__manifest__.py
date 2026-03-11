@@ -6,7 +6,7 @@
     'description': '集成 eSIM Access 平台 API，支持后台管理和客户门户自助服务，'
                    '包括套餐浏览、下单购买、充值续费、eSIM 生命周期管理等功能。',
     'author': 'WiiSoft',
-    'website': 'https://example.com',
+    # 'website': 'https://example.com',
     'license': 'LGPL-3',
     'category': 'Services',
     'depends': ['base', 'mail', 'portal', 'contacts'],
