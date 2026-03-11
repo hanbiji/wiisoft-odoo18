@@ -12,6 +12,7 @@
                   decoration-danger="state == 'revoked'"
                   decoration-muted="state == 'expired'">
                 <field name="iccid"/>
+                <field name="esim_tran_no" optional="hide"/>
                 <field name="partner_id"/>
                 <field name="package_id"/>
                 <field name="state" widget="badge"
@@ -19,6 +20,8 @@
                        decoration-info="state == 'ready'"
                        decoration-warning="state == 'suspended'"
                        decoration-danger="state == 'revoked'"/>
+                <field name="esim_status" optional="hide"/>
+                <field name="smdp_status" optional="hide"/>
                 <field name="total_volume"/>
                 <field name="used_volume"/>
                 <field name="remaining_volume"/>
@@ -60,13 +63,19 @@
                     <group>
                         <group string="eSIM 信息">
                             <field name="iccid"/>
+                            <field name="esim_tran_no"/>
                             <field name="partner_id"/>
                             <field name="order_id"/>
                             <field name="package_id"/>
+                            <field name="imsi" groups="esim_access.group_esim_manager"/>
+                            <field name="eid" groups="esim_access.group_esim_manager"/>
+                            <field name="apn"/>
                         </group>
-                        <group string="状态">
+                        <group string="状态与激活">
+                            <field name="esim_status"/>
                             <field name="smdp_status"/>
-                            <field name="qr_code" widget="url"/>
+                            <field name="qr_code" widget="CopyClipboardChar"/>
+                            <field name="qr_code_url" widget="url"/>
                             <field name="expired_time"/>
                         </group>
                     </group>
@@ -103,6 +112,7 @@
         <field name="arch" type="xml">
             <search>
                 <field name="iccid"/>
+                <field name="esim_tran_no"/>
                 <field name="partner_id"/>
                 <field name="package_id"/>
                 <filter name="filter_active" string="使用中" domain="[('state', '=', 'active')]"/>

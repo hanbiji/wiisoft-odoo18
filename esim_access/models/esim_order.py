@@ -132,14 +132,11 @@ class EsimOrder(models.Model):
     def action_check_status(self) -> None:
         """手动检查订单状态"""
         for order in self:
-            if not order.api_order_no and not order.transaction_id:
+            if not order.api_order_no:
                 continue
             api_client = self.env['esim.package']._get_api_client()
             try:
-                result = api_client.query_order(
-                    order_no=order.api_order_no,
-                    transaction_id=order.transaction_id,
-                )
+                result = api_client.query_esim(order_no=order.api_order_no)
             except EsimAccessAPIError as e:
                 order.message_post(body=_("查询状态失败: %s") % e.error_msg)
                 continue
@@ -147,38 +144,38 @@ class EsimOrder(models.Model):
             order._process_order_result(result)
 
     def _process_order_result(self, result: dict) -> None:
-        """处理 API 返回的订单结果，创建 eSIM 档案"""
-        esim_list = result.get('esimList') or result.get('orderList') or []
+        """处理 API 返回的查询结果，创建或更新 eSIM 档案"""
+        self.ensure_one()
+        esim_list = result.get('esimList') or []
         if not esim_list:
             return
 
         profile_model = self.env['esim.profile']
+        created_count = 0
         for esim_data in esim_list:
             iccid = esim_data.get('iccid', '')
             if not iccid:
                 continue
 
+            vals = profile_model._map_esim_data(esim_data)
             existing = profile_model.search([('iccid', '=', iccid)], limit=1)
             if existing:
-                continue
+                vals.pop('iccid', None)
+                existing.write(vals)
+            else:
+                vals.update({
+                    'iccid': iccid,
+                    'order_id': self.id,
+                    'partner_id': self.partner_id.id,
+                    'package_id': self.package_id.id,
+                })
+                profile_model.create(vals)
+                created_count += 1
 
-            profile_model.create({
-                'iccid': iccid,
-                'order_id': self.id,
-                'partner_id': self.partner_id.id,
-                'package_id': self.package_id.id,
-                'state': 'ready',
-                'qr_code': esim_data.get('ac', ''),
-                'smdp_status': esim_data.get('smdpStatus', ''),
-                'expired_time': esim_data.get('expiredTime'),
-                'total_volume': round(
-                    esim_data.get('totalVolume', 0) / 1073741824, 2
-                ) if esim_data.get('totalVolume') else 0,
-            })
-
-        if esim_list:
-            self.write({'state': 'done'})
-            self.message_post(body=_("订单已完成，共创建 %d 个 eSIM 档案") % len(esim_list))
+        self.write({'state': 'done'})
+        self.message_post(
+            body=_("订单查询完成，共 %d 个 eSIM 档案（新建 %d 个）") % (len(esim_list), created_count),
+        )
 
     def action_view_profiles(self):
         """查看关联的 eSIM 档案"""

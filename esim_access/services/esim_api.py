@@ -139,27 +139,41 @@ class EsimAccessAPI:
             payload['amount'] = amount
         return self._make_request('open/esim/order', payload)
 
-    # ── 查询 eSIM 档案 ───────────────────────────────────────
+    # ── 查询 eSIM 档案（统一查询端点） ─────────────────────────
 
-    def query_profile(self, iccid: str = '', order_no: str = '') -> dict:
-        """查询 eSIM 档案详情"""
-        payload = {}
+    def query_esim(
+        self,
+        order_no: str = '',
+        iccid: str = '',
+        start_time: str = '',
+        end_time: str = '',
+        page_num: int = 1,
+        page_size: int = 50,
+    ) -> dict:
+        """
+        统一查询 eSIM 档案（新订单获取 & 已有 eSIM 状态查询）。
+        - order_no: 按订单号查询，返回该订单的全部 eSIM（批量）
+        - iccid: 按 ICCID 查询，返回单个 eSIM
+        - start_time/end_time: ISO UTC 时间范围查询
+        - page_num: 页码 [1, 10000]
+        - page_size: 每页条数 [5, 500]
+        返回 {'esimList': [...], 'pager': {'pageNum', 'pageSize', 'total'}}
+        """
+        payload: dict = {
+            'pager': {
+                'pageNum': page_num,
+                'pageSize': page_size,
+            },
+        }
+        if order_no:
+            payload['orderNo'] = order_no
         if iccid:
             payload['iccid'] = iccid
-        if order_no:
-            payload['orderNo'] = order_no
-        return self._make_request('queryProfile', payload)
-
-    # ── 查询订单 ─────────────────────────────────────────────
-
-    def query_order(self, order_no: str = '', transaction_id: str = '') -> dict:
-        """查询订单状态"""
-        payload = {}
-        if order_no:
-            payload['orderNo'] = order_no
-        if transaction_id:
-            payload['transactionId'] = transaction_id
-        return self._make_request('queryOrder', payload)
+        if start_time:
+            payload['startTime'] = start_time
+        if end_time:
+            payload['endTime'] = end_time
+        return self._make_request('open/esim/query', payload)
 
     # ── 充值 ─────────────────────────────────────────────────
 

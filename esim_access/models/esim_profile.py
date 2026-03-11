@@ -17,6 +17,22 @@ PROFILE_STATE_SELECTION = [
     ('expired', '已过期'),
 ]
 
+# esimStatus → profile state 映射
+_ESIM_STATUS_STATE_MAP = {
+    'CREATE': 'pending',
+    'PAYING': 'pending',
+    'PAID': 'pending',
+    'GETTING_RESOURCE': 'pending',
+    'GOT_RESOURCE': 'ready',
+    'IN_USE': 'active',
+    'USED_UP': 'expired',
+    'UNUSED_EXPIRED': 'expired',
+    'USED_EXPIRED': 'expired',
+    'CANCEL': 'revoked',
+    'SUSPENDED': 'suspended',
+    'REVOKE': 'revoked',
+}
+
 
 class EsimProfile(models.Model):
     _name = 'esim.profile'
@@ -26,6 +42,7 @@ class EsimProfile(models.Model):
     _rec_name = 'iccid'
 
     iccid = fields.Char(string="ICCID", required=True, index=True, tracking=True)
+    esim_tran_no = fields.Char(string="eSIM 交易号", index=True, readonly=True)
     order_id = fields.Many2one('esim.order', string="来源订单", ondelete='set null', index=True)
     partner_id = fields.Many2one('res.partner', string="客户", required=True, tracking=True, index=True)
     package_id = fields.Many2one('esim.package', string="当前套餐")
@@ -33,8 +50,13 @@ class EsimProfile(models.Model):
         PROFILE_STATE_SELECTION, string="状态", default='pending',
         tracking=True, required=True,
     )
-    qr_code = fields.Char(string="激活码 / QR 链接")
+    qr_code = fields.Char(string="激活码 (AC)")
+    qr_code_url = fields.Char(string="QR 码图片链接")
     smdp_status = fields.Char(string="SM-DP+ 状态", tracking=True)
+    esim_status = fields.Char(string="eSIM 状态", tracking=True)
+    eid = fields.Char(string="EID")
+    imsi = fields.Char(string="IMSI")
+    apn = fields.Char(string="APN")
     total_volume = fields.Float(string="总流量 (GB)", digits=(10, 2))
     used_volume = fields.Float(string="已用流量 (GB)", digits=(10, 2))
     remaining_volume = fields.Float(
@@ -63,6 +85,46 @@ class EsimProfile(models.Model):
         for rec in self:
             rec.topup_count = len(rec.topup_ids)
 
+    @staticmethod
+    def _derive_state(esim_status: str, smdp_status: str) -> str:
+        """根据 API 返回的 esimStatus 和 smdpStatus 推导 profile 内部状态"""
+        if smdp_status == 'DELETED':
+            return 'revoked'
+        state = _ESIM_STATUS_STATE_MAP.get(esim_status)
+        if state:
+            return state
+        # 兜底：仅根据 smdpStatus 推导（向后兼容未知 esimStatus）
+        if smdp_status in ('ENABLED', 'DISABLED', 'INSTALLED', 'DOWNLOAD'):
+            return 'active'
+        if smdp_status == 'RELEASED':
+            return 'ready'
+        return 'pending'
+
+    @api.model
+    def _map_esim_data(self, esim_data: dict) -> dict:
+        """将 API 返回的单条 eSIM 数据映射为 profile 字段值"""
+        esim_status = esim_data.get('esimStatus', '')
+        smdp_status = esim_data.get('smdpStatus', '')
+
+        vals = {
+            'esim_tran_no': esim_data.get('esimTranNo', ''),
+            'imsi': esim_data.get('imsi', ''),
+            'eid': esim_data.get('eid', ''),
+            'qr_code': esim_data.get('ac', ''),
+            'qr_code_url': esim_data.get('qrCodeUrl', ''),
+            'smdp_status': smdp_status,
+            'esim_status': esim_status,
+            'apn': esim_data.get('apn', ''),
+            'state': self._derive_state(esim_status, smdp_status),
+        }
+        if esim_data.get('expiredTime'):
+            vals['expired_time'] = esim_data['expiredTime']
+        if esim_data.get('totalVolume') is not None:
+            vals['total_volume'] = round(esim_data['totalVolume'] / VOLUME_DIVISOR, 2)
+        if esim_data.get('orderUsage') is not None:
+            vals['used_volume'] = round(esim_data['orderUsage'] / VOLUME_DIVISOR, 2)
+        return vals
+
     def action_refresh_status(self) -> None:
         """从 API 刷新 eSIM 状态"""
         api_client = self.env['esim.package']._get_api_client()
@@ -70,32 +132,17 @@ class EsimProfile(models.Model):
             if not profile.iccid:
                 continue
             try:
-                result = api_client.query_profile(iccid=profile.iccid)
+                result = api_client.query_esim(iccid=profile.iccid)
             except EsimAccessAPIError as e:
                 profile.message_post(body=_("状态刷新失败: %s") % e.error_msg)
                 continue
 
-            vals = {}
-            if result.get('smdpStatus'):
-                vals['smdp_status'] = result['smdpStatus']
-            if result.get('totalVolume') is not None:
-                vals['total_volume'] = round(result['totalVolume'] / VOLUME_DIVISOR, 2)
-            if result.get('orderUsage') is not None:
-                vals['used_volume'] = round(result['orderUsage'] / VOLUME_DIVISOR, 2)
-            if result.get('expiredTime'):
-                vals['expired_time'] = result['expiredTime']
+            esim_list = result.get('esimList') or []
+            if not esim_list:
+                continue
 
-            # 根据 SM-DP+ 状态推导 profile 状态
-            smdp = result.get('smdpStatus', '')
-            if smdp == 'RELEASED':
-                vals['state'] = 'ready'
-            elif smdp == 'DOWNLOADED':
-                vals['state'] = 'active'
-            elif smdp == 'INSTALLED':
-                vals['state'] = 'active'
-            elif smdp == 'ENABLED':
-                vals['state'] = 'active'
-
+            vals = self._map_esim_data(esim_list[0])
+            vals.pop('iccid', None)
             if vals:
                 profile.write(vals)
 

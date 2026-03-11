@@ -1,9 +1,8 @@
 # -*- coding: utf-8 -*-
-import json
 import logging
 
 from odoo import http
-from odoo.http import request, Response
+from odoo.http import request
 
 _logger = logging.getLogger(__name__)
 
@@ -66,13 +65,10 @@ class EsimWebhookController(http.Controller):
             _logger.warning("eSIM Webhook ORDER_STATUS: 未找到订单 %s", order_no or transaction_id)
             return
 
-        # 调用 API 查询订单详情以获取 eSIM 列表
+        # 调用统一查询端点获取 eSIM 列表
         try:
             api_client = request.env['esim.package'].sudo()._get_api_client()
-            result = api_client.query_order(
-                order_no=order.api_order_no,
-                transaction_id=order.transaction_id,
-            )
+            result = api_client.query_esim(order_no=order.api_order_no)
             order._process_order_result(result)
         except Exception as e:
             _logger.error("eSIM Webhook: 查询订单详情失败: %s", e)
