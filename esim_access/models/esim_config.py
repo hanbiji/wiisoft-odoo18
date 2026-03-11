@@ -1,5 +1,5 @@
 # -*- coding: utf-8 -*-
-from odoo import models, fields, api
+from odoo import models, fields, api, _
 
 
 class ResConfigSettings(models.TransientModel):
@@ -28,3 +28,17 @@ class ResConfigSettings(models.TransientModel):
         default=1.3,
         help="售价 = 成本价 × 加价比例，如 1.3 表示加价 30%",
     )
+
+    def action_esim_sync_all_packages(self):
+        """从设置页面触发拉取全部套餐"""
+        count = self.env['esim.package']._sync_packages_from_api()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _("套餐同步完成"),
+                'message': _("共同步 %d 个套餐") % count,
+                'type': 'success',
+                'sticky': False,
+            },
+        }

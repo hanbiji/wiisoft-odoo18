@@ -65,12 +65,23 @@ class EsimPackage(models.Model):
 
         return EsimAccessAPI(access_code, secret_key, base_url)
 
-    def action_sync_packages(self) -> None:
-        """手动触发套餐同步"""
-        self._sync_packages_from_api()
+    def action_sync_packages(self):
+        """套餐列表页面手动触发同步"""
+        count = self._sync_packages_from_api()
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _("套餐同步完成"),
+                'message': _("共同步 %d 个套餐") % count,
+                'type': 'success',
+                'sticky': False,
+            },
+        }
 
-    def _sync_packages_from_api(self, location_code: str = '') -> None:
-        """从 API 同步套餐到本地数据库"""
+    @api.model
+    def _sync_packages_from_api(self, location_code: str = '') -> int:
+        """从 API 同步套餐到本地数据库，返回同步数量"""
         api_client = self._get_api_client()
         ICP = self.env['ir.config_parameter'].sudo()
         markup = float(ICP.get_param('esim_access.default_markup', '1.3'))
@@ -81,6 +92,7 @@ class EsimPackage(models.Model):
             _logger.error("套餐同步失败: %s", e)
             raise UserError(_("套餐同步失败: %s") % e.error_msg) from e
 
+        now = fields.Datetime.now()
         synced_codes = set()
         for pkg in packages:
             code = pkg.get('packageCode', '')
@@ -109,7 +121,7 @@ class EsimPackage(models.Model):
                 'package_type': 'topup' if is_topup else 'normal',
                 'active_type': pkg.get('activeType', 0),
                 'raw_price': raw_price,
-                'last_sync_date': fields.Datetime.now(),
+                'last_sync_date': now,
             }
 
             existing = self.search([('package_code', '=', code)], limit=1)
@@ -119,6 +131,7 @@ class EsimPackage(models.Model):
                 self.create(vals)
 
         _logger.info("套餐同步完成，共处理 %d 个套餐", len(synced_codes))
+        return len(synced_codes)
 
     @api.model
     def _cron_sync_packages(self) -> None:
