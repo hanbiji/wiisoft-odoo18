@@ -47,7 +47,7 @@
     <menuitem id="menu_esim_settings"
               name="设置"
               parent="menu_esim_config"
-              action="base.action_res_company_form"
+              action="base.action_general_configuration"
               sequence="10"/>
 
 </odoo>
