@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'eSIM Access 集成',
-    'version': '19.0.1.0.0',
+    'version': '18.0.1.0.0',
     'summary': '对接 eSIM Access API，实现 eSIM 套餐查询、购买、充值和管理',
     'description': '集成 eSIM Access 平台 API，支持后台管理和客户门户自助服务，'
                    '包括套餐浏览、下单购买、充值续费、eSIM 生命周期管理等功能。',
