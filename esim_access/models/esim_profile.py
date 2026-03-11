@@ -4,7 +4,7 @@ import logging
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
-from ..services.esim_api import EsimAccessAPIError, VOLUME_DIVISOR
+from ..services.esim_api import EsimAccessAPIError, VOLUME_DIVISOR, parse_api_datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -117,8 +117,9 @@ class EsimProfile(models.Model):
             'apn': esim_data.get('apn', ''),
             'state': self._derive_state(esim_status, smdp_status),
         }
-        if esim_data.get('expiredTime'):
-            vals['expired_time'] = esim_data['expiredTime']
+        expired_time = parse_api_datetime(esim_data.get('expiredTime', ''))
+        if expired_time:
+            vals['expired_time'] = expired_time
         if esim_data.get('totalVolume') is not None:
             vals['total_volume'] = round(esim_data['totalVolume'] / VOLUME_DIVISOR, 2)
         if esim_data.get('orderUsage') is not None:

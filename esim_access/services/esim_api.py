@@ -15,6 +15,29 @@ PRICE_DIVISOR = 10000
 # 流量单位为字节，需除以此值转换为 GB
 VOLUME_DIVISOR = 1073741824
 
+# Odoo fields.Datetime 要求的格式
+_ODOO_DT_FORMAT = '%Y-%m-%d %H:%M:%S'
+
+
+def parse_api_datetime(value: str) -> str | None:
+    """将 API 返回的 ISO 8601 时间（如 2026-09-07T13:09:52+0000）转为 Odoo datetime 字符串"""
+    if not value:
+        return None
+    try:
+        dt = datetime.fromisoformat(value)
+        return dt.strftime(_ODOO_DT_FORMAT)
+    except (ValueError, TypeError):
+        pass
+    # 兜底：手动处理 +0000 格式（Python < 3.11 的 fromisoformat 不支持）
+    for fmt in ('%Y-%m-%dT%H:%M:%S%z', '%Y-%m-%dT%H:%M:%S.%f%z', '%Y-%m-%dT%H:%M:%S'):
+        try:
+            dt = datetime.strptime(value, fmt)
+            return dt.strftime(_ODOO_DT_FORMAT)
+        except ValueError:
+            continue
+    _logger.warning("无法解析 API 时间格式: %s", value)
+    return None
+
 
 class EsimAccessAPIError(Exception):
     """eSIM Access API 调用异常"""

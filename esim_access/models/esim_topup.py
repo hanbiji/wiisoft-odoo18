@@ -5,7 +5,7 @@ import uuid
 from odoo import models, fields, api, _
 from odoo.exceptions import UserError
 
-from ..services.esim_api import EsimAccessAPIError, VOLUME_DIVISOR
+from ..services.esim_api import EsimAccessAPIError, VOLUME_DIVISOR, parse_api_datetime
 
 _logger = logging.getLogger(__name__)
 
@@ -95,8 +95,9 @@ class EsimTopup(models.Model):
             profile_vals = {}
             if result.get('totalVolume') is not None:
                 profile_vals['total_volume'] = round(result['totalVolume'] / VOLUME_DIVISOR, 2)
-            if result.get('expiredTime'):
-                profile_vals['expired_time'] = result['expiredTime']
+            expired_time = parse_api_datetime(result.get('expiredTime', ''))
+            if expired_time:
+                profile_vals['expired_time'] = expired_time
             if result.get('orderUsage') is not None:
                 profile_vals['used_volume'] = round(result['orderUsage'] / VOLUME_DIVISOR, 2)
             if profile_vals:
