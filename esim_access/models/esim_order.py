@@ -35,7 +35,7 @@ class EsimOrder(models.Model):
     )
     package_id = fields.Many2one(
         'esim.package', string="套餐", required=True,
-        domain=[('package_type', '=', 'normal')],
+        domain=[('package_type', '=', 'BASE')],
     )
     quantity = fields.Integer(string="数量", default=1, required=True)
     unit_price = fields.Float(string="单价", digits=(12, 2), related='package_id.sale_price', store=True)

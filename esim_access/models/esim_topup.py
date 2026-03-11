@@ -36,7 +36,7 @@ class EsimTopup(models.Model):
     )
     package_id = fields.Many2one(
         'esim.package', string="充值套餐", required=True,
-        domain=[('package_type', '=', 'topup')],
+        domain=[('package_type', '=', 'TOPUP')],
     )
     amount = fields.Float(string="金额", digits=(12, 2), related='package_id.sale_price', store=True)
     transaction_id = fields.Char(string="交易 ID", readonly=True, copy=False)

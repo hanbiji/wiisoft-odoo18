@@ -14,16 +14,21 @@
                             groups="esim_access.group_esim_manager"/>
                 </header>
                 <field name="package_code"/>
+                <field name="slug" optional="hide"/>
                 <field name="name"/>
                 <field name="location"/>
                 <field name="volume"/>
                 <field name="duration"/>
                 <field name="duration_unit"/>
+                <field name="data_type" optional="show"/>
+                <field name="speed" optional="hide"/>
                 <field name="cost_price"/>
                 <field name="sale_price"/>
+                <field name="retail_price" optional="hide"/>
                 <field name="package_type"/>
+                <field name="support_topup" optional="hide"/>
                 <field name="is_published"/>
-                <field name="last_sync_date"/>
+                <field name="last_sync_date" optional="hide"/>
             </list>
         </field>
     </record>
@@ -39,13 +44,15 @@
                         <field name="active" widget="boolean_favorite" nolabel="1"/>
                     </div>
                     <widget name="web_ribbon" title="充值套餐"
-                            invisible="package_type != 'topup'"
+                            invisible="package_type != 'TOPUP'"
                             bg_color="text-bg-info"/>
                     <group>
                         <group string="基本信息">
                             <field name="package_code" readonly="1"/>
+                            <field name="slug" readonly="1"/>
                             <field name="name"/>
                             <field name="package_type"/>
+                            <field name="data_type"/>
                             <field name="location"/>
                             <field name="description"/>
                         </group>
@@ -55,6 +62,8 @@
                             <field name="duration_unit"/>
                             <field name="unused_valid_time"/>
                             <field name="active_type"/>
+                            <field name="speed"/>
+                            <field name="sms_status"/>
                         </group>
                     </group>
                     <group>
@@ -62,9 +71,13 @@
                             <field name="currency_code"/>
                             <field name="cost_price"/>
                             <field name="sale_price"/>
+                            <field name="retail_price"/>
                             <field name="raw_price" groups="base.group_no_one"/>
                         </group>
                         <group string="其他">
+                            <field name="ip_export"/>
+                            <field name="support_topup"/>
+                            <field name="fup_policy"/>
                             <field name="is_published"/>
                             <field name="last_sync_date"/>
                         </group>
@@ -83,8 +96,8 @@
                 <field name="name"/>
                 <field name="package_code"/>
                 <field name="location"/>
-                <filter name="filter_normal" string="普通套餐" domain="[('package_type', '=', 'normal')]"/>
-                <filter name="filter_topup" string="充值套餐" domain="[('package_type', '=', 'topup')]"/>
+                <filter name="filter_normal" string="普通套餐" domain="[('package_type', '=', 'BASE')]"/>
+                <filter name="filter_topup" string="充值套餐" domain="[('package_type', '=', 'TOPUP')]"/>
                 <separator/>
                 <filter name="filter_published" string="已发布" domain="[('is_published', '=', True)]"/>
                 <group expand="0" string="分组">

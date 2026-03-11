@@ -14,8 +14,21 @@ DURATION_UNIT_SELECTION = [
 ]
 
 PACKAGE_TYPE_SELECTION = [
-    ('normal', '普通套餐'),
-    ('topup', '充值套餐'),
+    ('BASE', '普通套餐'),
+    ('TOPUP', '充值套餐'),
+]
+
+DATA_TYPE_SELECTION = [
+    ('1', '固定流量'),
+    ('2', '每日限额(降速)'),
+    ('3', '每日限额(断网)'),
+    ('4', '每日不限量'),
+]
+
+SMS_STATUS_SELECTION = [
+    ('0', '不支持 SMS'),
+    ('1', 'API 和手机 SMS'),
+    ('2', '仅 API SMS'),
 ]
 
 
@@ -25,18 +38,26 @@ class EsimPackage(models.Model):
     _order = 'location, volume, duration'
 
     package_code = fields.Char(string="套餐编码", required=True, index=True)
+    slug = fields.Char(string="别名 (Slug)", index=True)
     name = fields.Char(string="套餐名称", required=True)
     cost_price = fields.Float(string="成本价", digits=(12, 2), help="API 原始价格（标准货币单位）")
     sale_price = fields.Float(string="售价", digits=(12, 2), help="加价后的零售价格")
+    retail_price = fields.Float(string="建议零售价", digits=(12, 2), help="平台建议零售价")
     currency_code = fields.Char(string="货币", default='USD')
     volume = fields.Float(string="流量 (GB)", digits=(10, 2))
     duration = fields.Integer(string="有效期")
     duration_unit = fields.Selection(DURATION_UNIT_SELECTION, string="有效期单位", default='DAY')
     unused_valid_time = fields.Integer(string="未激活有效天数")
-    location = fields.Char(string="覆盖地区", help="国家/地区代码，逗号分隔")
+    location = fields.Char(string="覆盖地区", help="Alpha-2 ISO 国家代码，逗号分隔")
     description = fields.Text(string="描述")
-    package_type = fields.Selection(PACKAGE_TYPE_SELECTION, string="类型", default='normal')
-    active_type = fields.Integer(string="激活方式")
+    package_type = fields.Selection(PACKAGE_TYPE_SELECTION, string="类型", default='BASE')
+    data_type = fields.Selection(DATA_TYPE_SELECTION, string="流量类型")
+    sms_status = fields.Selection(SMS_STATUS_SELECTION, string="SMS 支持")
+    active_type = fields.Integer(string="激活方式", help="1=首次安装激活, 2=首次联网激活")
+    speed = fields.Char(string="网络速度")
+    ip_export = fields.Char(string="流量出口国")
+    support_topup = fields.Boolean(string="支持充值", help="该套餐是否支持充值续费")
+    fup_policy = fields.Char(string="公平使用政策", help="高速流量耗尽后的限速策略")
     is_published = fields.Boolean(string="门户展示", default=False)
     active = fields.Boolean(string="启用", default=True)
     last_sync_date = fields.Datetime(string="最后同步时间", readonly=True)
@@ -105,12 +126,16 @@ class EsimPackage(models.Model):
             cost_price = raw_price / PRICE_DIVISOR
             volume_bytes = pkg.get('volume', 0)
             volume_gb = round(volume_bytes / VOLUME_DIVISOR, 2)
+            raw_retail = pkg.get('retailPrice', 0)
+            support_topup_val = pkg.get('supportTopUpType')
 
             vals = {
                 'package_code': code,
+                'slug': pkg.get('slug', ''),
                 'name': pkg.get('name', ''),
                 'cost_price': cost_price,
                 'sale_price': round(cost_price * markup, 2),
+                'retail_price': raw_retail / PRICE_DIVISOR if raw_retail else 0,
                 'currency_code': pkg.get('currencyCode', 'USD'),
                 'volume': volume_gb,
                 'duration': pkg.get('duration', 0),
@@ -118,8 +143,14 @@ class EsimPackage(models.Model):
                 'unused_valid_time': pkg.get('unusedValidTime', 0),
                 'location': pkg.get('location', ''),
                 'description': pkg.get('description', ''),
-                'package_type': 'topup' if is_topup else 'normal',
+                'package_type': 'TOPUP' if is_topup else 'BASE',
+                'data_type': str(pkg['dataType']) if pkg.get('dataType') else False,
+                'sms_status': str(pkg['smsStatus']) if pkg.get('smsStatus') is not None else False,
                 'active_type': pkg.get('activeType', 0),
+                'speed': pkg.get('speed', ''),
+                'ip_export': pkg.get('ipExport', ''),
+                'support_topup': support_topup_val == 2 if support_topup_val else False,
+                'fup_policy': pkg.get('fupPolicy', ''),
                 'raw_price': raw_price,
                 'last_sync_date': now,
             }

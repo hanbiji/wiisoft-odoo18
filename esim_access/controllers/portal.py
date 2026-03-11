@@ -34,7 +34,7 @@ class EsimPortal(CustomerPortal):
     @http.route('/my/esim/packages', type='http', auth='user', website=True)
     def portal_esim_packages(self, page=1, location='', **kw):
         """浏览可购买的 eSIM 套餐"""
-        domain = [('is_published', '=', True), ('package_type', '=', 'normal'), ('active', '=', True)]
+        domain = [('is_published', '=', True), ('package_type', '=', 'BASE'), ('active', '=', True)]
         if location:
             domain.append(('location', 'ilike', location))
 
@@ -54,7 +54,7 @@ class EsimPortal(CustomerPortal):
 
         # 收集所有可用地区供筛选
         all_locations = set()
-        all_packages = Package.search([('is_published', '=', True), ('package_type', '=', 'normal')])
+        all_packages = Package.search([('is_published', '=', True), ('package_type', '=', 'BASE')])
         for pkg in all_packages:
             if pkg.location:
                 for loc in pkg.location.split(','):
@@ -217,7 +217,7 @@ class EsimPortal(CustomerPortal):
             raise AccessError(_("无权操作此 eSIM"))
 
         package = request.env['esim.package'].sudo().browse(int(package_id))
-        if not package.exists() or package.package_type != 'topup':
+        if not package.exists() or package.package_type != 'TOPUP':
             raise MissingError(_("充值套餐不存在"))
 
         topup = request.env['esim.topup'].sudo().create({
@@ -230,7 +230,7 @@ class EsimPortal(CustomerPortal):
             topup.action_topup()
         except UserError as e:
             topup_packages = request.env['esim.package'].sudo().search([
-                ('package_type', '=', 'topup'),
+                ('package_type', '=', 'TOPUP'),
                 ('is_published', '=', True),
                 ('active', '=', True),
             ])

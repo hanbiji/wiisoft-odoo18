@@ -77,7 +77,7 @@ class EsimAccessAPI:
 
         if not result.get('success'):
             error_code = result.get('errorCode', 'UNKNOWN')
-            error_msg = result.get('errorMsg', 'Unknown error')
+            error_msg = result.get('errorMessage') or result.get('errorMsg') or 'Unknown error'
             _logger.warning("eSIM API error on %s: [%s] %s", endpoint, error_code, error_msg)
             raise EsimAccessAPIError(error_code, error_msg)
 
@@ -88,23 +88,31 @@ class EsimAccessAPI:
     def get_package_list(
         self,
         location_code: str = '',
-        package_type: str = '',
+        package_type: str = 'BASE',
         package_code: str = '',
+        slug: str = '',
         iccid: str = '',
+        data_type: str = '',
     ) -> list[dict]:
         """
         查询可用套餐列表。
-        - location_code: 国家/地区代码（如 US, CN）
-        - package_type: 空=普通套餐, TOPUP=充值套餐
-        - iccid: 查询充值套餐时需提供目标 eSIM 的 ICCID
+        - location_code: Alpha-2 ISO 国家代码，!RG=区域, !GL=全球
+        - package_type: BASE=普通套餐(默认), TOPUP=充值套餐
+        - package_code: 与 TOPUP 搭配查看指定套餐的充值包
+        - slug: packageCode 的别名
+        - iccid: 与 TOPUP 搭配查看指定 eSIM 的可用充值包
+        - data_type: 1=固定流量, 2=日通
         """
         payload = {
             'locationCode': location_code,
             'type': package_type,
             'packageCode': package_code,
+            'slug': slug,
             'iccid': iccid,
         }
-        result = self._make_request('packageList', payload)
+        if data_type:
+            payload['dataType'] = data_type
+        result = self._make_request('open/package/list', payload)
         return result.get('packageList', [])
 
     # ── 下单 ─────────────────────────────────────────────────
