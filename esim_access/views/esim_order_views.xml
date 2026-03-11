@@ -1,0 +1,136 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ── 列表视图 ──────────────────────────────────────── -->
+    <record id="view_esim_order_list" model="ir.ui.view">
+        <field name="name">esim.order.list</field>
+        <field name="model">esim.order</field>
+        <field name="arch" type="xml">
+            <list decoration-info="state == 'draft'"
+                  decoration-warning="state == 'processing'"
+                  decoration-success="state == 'done'"
+                  decoration-muted="state in ('cancelled', 'failed')">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="package_id"/>
+                <field name="quantity"/>
+                <field name="total_amount"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-warning="state == 'processing'"
+                       decoration-success="state == 'done'"
+                       decoration-danger="state in ('cancelled', 'failed')"/>
+                <field name="order_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── 表单视图 ──────────────────────────────────────── -->
+    <record id="view_esim_order_form" model="ir.ui.view">
+        <field name="name">esim.order.form</field>
+        <field name="model">esim.order</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_confirm" type="object"
+                            string="确认下单" class="btn-primary"
+                            invisible="state != 'draft'"/>
+                    <button name="action_check_status" type="object"
+                            string="查询状态"
+                            invisible="state not in ('processing', 'confirmed')"/>
+                    <button name="action_cancel" type="object"
+                            string="取消订单" class="btn-danger"
+                            invisible="state not in ('draft', 'confirmed', 'processing')"
+                            confirm="确定要取消此订单吗？"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,confirmed,processing,done"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_profiles" type="object"
+                                class="oe_stat_button" icon="fa-sim-card"
+                                invisible="profile_count == 0">
+                            <field name="profile_count" widget="statinfo" string="eSIM"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="订单信息">
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="package_id" readonly="state != 'draft'"/>
+                            <field name="quantity" readonly="state != 'draft'"/>
+                        </group>
+                        <group string="金额">
+                            <field name="unit_price"/>
+                            <field name="total_amount"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="API 信息" groups="esim_access.group_esim_manager">
+                            <field name="transaction_id"/>
+                            <field name="api_order_no"/>
+                            <field name="order_date"/>
+                        </group>
+                        <group string="备注">
+                            <field name="note" nolabel="1" placeholder="订单备注..."/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="eSIM 档案" name="profiles">
+                            <field name="profile_ids" readonly="1">
+                                <list>
+                                    <field name="iccid"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="total_volume"/>
+                                    <field name="remaining_volume"/>
+                                    <field name="expired_time"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── 搜索视图 ──────────────────────────────────────── -->
+    <record id="view_esim_order_search" model="ir.ui.view">
+        <field name="name">esim.order.search</field>
+        <field name="model">esim.order</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="package_id"/>
+                <field name="transaction_id"/>
+                <field name="api_order_no"/>
+                <filter name="filter_draft" string="草稿" domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_processing" string="处理中" domain="[('state', '=', 'processing')]"/>
+                <filter name="filter_done" string="已完成" domain="[('state', '=', 'done')]"/>
+                <separator/>
+                <group expand="0" string="分组">
+                    <filter name="group_partner" string="客户" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_state" string="状态" context="{'group_by': 'state'}"/>
+                    <filter name="group_package" string="套餐" context="{'group_by': 'package_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Action ────────────────────────────────────────── -->
+    <record id="action_esim_order" model="ir.actions.act_window">
+        <field name="name">eSIM 订单</field>
+        <field name="res_model">esim.order</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_esim_order_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                创建第一个 eSIM 订单
+            </p>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ── 列表视图 ──────────────────────────────────────── -->
+    <record id="view_esim_package_list" model="ir.ui.view">
+        <field name="name">esim.package.list</field>
+        <field name="model">esim.package</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="package_code"/>
+                <field name="name"/>
+                <field name="location"/>
+                <field name="volume"/>
+                <field name="duration"/>
+                <field name="duration_unit"/>
+                <field name="cost_price"/>
+                <field name="sale_price"/>
+                <field name="package_type"/>
+                <field name="is_published"/>
+                <field name="last_sync_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── 表单视图 ──────────────────────────────────────── -->
+    <record id="view_esim_package_form" model="ir.ui.view">
+        <field name="name">esim.package.form</field>
+        <field name="model">esim.package</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_sync_packages" type="object"
+                            string="同步套餐" class="btn-primary"
+                            groups="esim_access.group_esim_manager"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <field name="active" widget="boolean_favorite" nolabel="1"/>
+                    </div>
+                    <widget name="web_ribbon" title="充值套餐"
+                            invisible="package_type != 'topup'"
+                            bg_color="text-bg-info"/>
+                    <group>
+                        <group string="基本信息">
+                            <field name="package_code" readonly="1"/>
+                            <field name="name"/>
+                            <field name="package_type"/>
+                            <field name="location"/>
+                            <field name="description"/>
+                        </group>
+                        <group string="套餐规格">
+                            <field name="volume"/>
+                            <field name="duration"/>
+                            <field name="duration_unit"/>
+                            <field name="unused_valid_time"/>
+                            <field name="active_type"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="价格">
+                            <field name="currency_code"/>
+                            <field name="cost_price"/>
+                            <field name="sale_price"/>
+                            <field name="raw_price" groups="base.group_no_one"/>
+                        </group>
+                        <group string="其他">
+                            <field name="is_published"/>
+                            <field name="last_sync_date"/>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── 搜索视图 ──────────────────────────────────────── -->
+    <record id="view_esim_package_search" model="ir.ui.view">
+        <field name="name">esim.package.search</field>
+        <field name="model">esim.package</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="package_code"/>
+                <field name="location"/>
+                <filter name="filter_normal" string="普通套餐" domain="[('package_type', '=', 'normal')]"/>
+                <filter name="filter_topup" string="充值套餐" domain="[('package_type', '=', 'topup')]"/>
+                <separator/>
+                <filter name="filter_published" string="已发布" domain="[('is_published', '=', True)]"/>
+                <group expand="0" string="分组">
+                    <filter name="group_location" string="地区" context="{'group_by': 'location'}"/>
+                    <filter name="group_type" string="类型" context="{'group_by': 'package_type'}"/>
+                    <filter name="group_duration" string="有效期" context="{'group_by': 'duration'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Action ────────────────────────────────────────── -->
+    <record id="action_esim_package" model="ir.actions.act_window">
+        <field name="name">eSIM 套餐</field>
+        <field name="res_model">esim.package</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_esim_package_search"/>
+        <field name="context">{'search_default_filter_normal': 1}</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                暂无套餐数据
+            </p>
+            <p>请点击"同步套餐"从 eSIM Access 获取最新套餐列表。</p>
+        </field>
+    </record>
+
+</odoo>

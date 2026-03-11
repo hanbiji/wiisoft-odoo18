@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- 订单编号序列 -->
+    <record id="seq_esim_order" model="ir.sequence">
+        <field name="name">eSIM 订单</field>
+        <field name="code">esim.order</field>
+        <field name="prefix">ESIM-</field>
+        <field name="padding">6</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+    <!-- 充值编号序列 -->
+    <record id="seq_esim_topup" model="ir.sequence">
+        <field name="name">eSIM 充值</field>
+        <field name="code">esim.topup</field>
+        <field name="prefix">TOP-</field>
+        <field name="padding">6</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+</odoo>

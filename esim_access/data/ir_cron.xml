@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- 定时任务：每天同步套餐列表 -->
+    <record id="cron_sync_esim_packages" model="ir.cron">
+        <field name="name">eSIM：同步套餐列表</field>
+        <field name="model_id" ref="model_esim_package"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_sync_packages()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+    </record>
+
+    <!-- 定时任务：每 4 小时刷新活跃 eSIM 状态 -->
+    <record id="cron_refresh_esim_profiles" model="ir.cron">
+        <field name="name">eSIM：刷新活跃 eSIM 状态</field>
+        <field name="model_id" ref="model_esim_profile"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_refresh_profiles()</field>
+        <field name="interval_number">4</field>
+        <field name="interval_type">hours</field>
+        <field name="numbercall">-1</field>
+        <field name="active">True</field>
+    </record>
+
+</odoo>

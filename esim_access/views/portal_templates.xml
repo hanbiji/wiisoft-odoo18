@@ -1,0 +1,638 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════
+         门户首页：添加 eSIM 入口
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_my_home_esim" name="Portal My Home - eSIM"
+              inherit_id="portal.portal_my_home" priority="40">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/esim_access/static/description/icon.png'"/>
+                <t t-set="title">我的 eSIM</t>
+                <t t-set="url" t-value="'/my/esim/profiles'"/>
+                <t t-set="text">查看和管理您的 eSIM</t>
+                <t t-set="placeholder_count" t-value="'esim_profile_count'"/>
+            </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/esim_access/static/description/icon.png'"/>
+                <t t-set="title">eSIM 订单</t>
+                <t t-set="url" t-value="'/my/esim/orders'"/>
+                <t t-set="text">查看您的 eSIM 购买记录</t>
+                <t t-set="placeholder_count" t-value="'esim_order_count'"/>
+            </t>
+        </xpath>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         面包屑导航
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_breadcrumbs_esim" name="Portal Breadcrumbs - eSIM"
+              inherit_id="portal.portal_breadcrumbs" priority="40">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'esim_packages'" class="breadcrumb-item">
+                <t t-if="packages">eSIM 套餐</t>
+            </li>
+            <li t-if="page_name == 'esim_package_detail'" class="breadcrumb-item">
+                <a href="/my/esim/packages">eSIM 套餐</a>
+            </li>
+            <li t-if="page_name == 'esim_package_detail'" class="breadcrumb-item active">
+                <t t-out="package.name"/>
+            </li>
+            <li t-if="page_name == 'esim_orders'" class="breadcrumb-item">
+                eSIM 订单
+            </li>
+            <li t-if="page_name == 'esim_order_detail'" class="breadcrumb-item">
+                <a href="/my/esim/orders">eSIM 订单</a>
+            </li>
+            <li t-if="page_name == 'esim_order_detail'" class="breadcrumb-item active">
+                <t t-out="order.name"/>
+            </li>
+            <li t-if="page_name == 'esim_profiles'" class="breadcrumb-item">
+                我的 eSIM
+            </li>
+            <li t-if="page_name == 'esim_profile_detail'" class="breadcrumb-item">
+                <a href="/my/esim/profiles">我的 eSIM</a>
+            </li>
+            <li t-if="page_name == 'esim_profile_detail'" class="breadcrumb-item active">
+                <t t-out="profile.iccid"/>
+            </li>
+        </xpath>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         套餐列表页
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_esim_packages" name="Portal eSIM Packages">
+        <t t-call="portal.portal_layout">
+            <t t-set="breadcrumbs_searchbar" t-value="True"/>
+
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">eSIM 套餐</t>
+            </t>
+
+            <!-- 地区筛选 -->
+            <div class="row mb-3">
+                <div class="col-12">
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <span class="fw-bold me-2">地区筛选：</span>
+                        <a t-attf-href="/my/esim/packages"
+                           t-attf-class="btn btn-sm #{'btn-primary' if not current_location else 'btn-outline-secondary'}">
+                            全部
+                        </a>
+                        <t t-foreach="available_locations" t-as="loc">
+                            <a t-attf-href="/my/esim/packages?location=#{loc}"
+                               t-attf-class="btn btn-sm #{'btn-primary' if current_location == loc else 'btn-outline-secondary'}">
+                                <t t-out="loc"/>
+                            </a>
+                        </t>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 套餐卡片网格 -->
+            <div class="row">
+                <t t-foreach="packages" t-as="pkg">
+                    <div class="col-lg-4 col-md-6 mb-4">
+                        <div class="card h-100 shadow-sm">
+                            <div class="card-body d-flex flex-column">
+                                <h5 class="card-title"><t t-out="pkg.name"/></h5>
+                                <div class="mb-2">
+                                    <span class="badge bg-info me-1"><t t-out="pkg.location"/></span>
+                                </div>
+                                <ul class="list-unstyled flex-grow-1">
+                                    <li>
+                                        <i class="fa fa-database me-1"/>
+                                        <strong><t t-out="pkg.volume"/> GB</strong>
+                                    </li>
+                                    <li>
+                                        <i class="fa fa-calendar me-1"/>
+                                        <t t-out="pkg.duration"/>
+                                        <t t-if="pkg.duration_unit == 'DAY'"> 天</t>
+                                        <t t-if="pkg.duration_unit == 'MONTH'"> 月</t>
+                                    </li>
+                                </ul>
+                                <div class="d-flex justify-content-between align-items-center mt-3">
+                                    <span class="h4 mb-0 text-primary">
+                                        $<t t-out="'%.2f' % pkg.sale_price"/>
+                                    </span>
+                                    <a t-attf-href="/my/esim/packages/#{pkg.id}" class="btn btn-primary">
+                                        查看详情
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </t>
+            </div>
+
+            <t t-if="not packages">
+                <div class="text-center py-5 text-muted">
+                    <i class="fa fa-sim-card fa-3x mb-3 d-block"/>
+                    <p>暂无可用套餐</p>
+                </div>
+            </t>
+
+            <div class="d-flex justify-content-center">
+                <t t-call="portal.pager"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         套餐详情页
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_esim_package_detail" name="Portal eSIM Package Detail">
+        <t t-call="portal.portal_layout">
+
+            <t t-if="error_message">
+                <div class="alert alert-danger" role="alert">
+                    <t t-out="error_message"/>
+                </div>
+            </t>
+
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h4 class="mb-0"><t t-out="package.name"/></h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table">
+                                <tr>
+                                    <th>覆盖地区</th>
+                                    <td><t t-out="package.location"/></td>
+                                </tr>
+                                <tr>
+                                    <th>流量</th>
+                                    <td><t t-out="package.volume"/> GB</td>
+                                </tr>
+                                <tr>
+                                    <th>有效期</th>
+                                    <td>
+                                        <t t-out="package.duration"/>
+                                        <t t-if="package.duration_unit == 'DAY'"> 天</t>
+                                        <t t-if="package.duration_unit == 'MONTH'"> 月</t>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>未激活有效天数</th>
+                                    <td><t t-out="package.unused_valid_time"/> 天</td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="text-center py-4">
+                                <div class="display-4 text-primary fw-bold mb-3">
+                                    $<t t-out="'%.2f' % package.sale_price"/>
+                                </div>
+                                <p class="text-muted" t-if="package.description">
+                                    <t t-out="package.description"/>
+                                </p>
+                                <form method="POST" action="/my/esim/order">
+                                    <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                                    <input type="hidden" name="package_id" t-att-value="package.id"/>
+                                    <div class="input-group mb-3 w-50 mx-auto">
+                                        <span class="input-group-text">数量</span>
+                                        <input type="number" name="quantity" value="1" min="1"
+                                               class="form-control text-center"/>
+                                    </div>
+                                    <button type="submit" class="btn btn-primary btn-lg">
+                                        <i class="fa fa-shopping-cart me-2"/>立即购买
+                                    </button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="/my/esim/packages" class="btn btn-outline-secondary">
+                    <i class="fa fa-arrow-left me-1"/> 返回套餐列表
+                </a>
+            </div>
+        </t>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         订单列表页
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_esim_orders" name="Portal eSIM Orders">
+        <t t-call="portal.portal_layout">
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">eSIM 订单</t>
+            </t>
+
+            <t t-if="orders">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>订单号</th>
+                                <th>套餐</th>
+                                <th>数量</th>
+                                <th>金额</th>
+                                <th>状态</th>
+                                <th>下单时间</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="orders" t-as="order">
+                                <tr>
+                                    <td>
+                                        <a t-attf-href="/my/esim/orders/#{order.id}">
+                                            <t t-out="order.name"/>
+                                        </a>
+                                    </td>
+                                    <td><t t-out="order.package_id.name"/></td>
+                                    <td><t t-out="order.quantity"/></td>
+                                    <td>$<t t-out="'%.2f' % order.total_amount"/></td>
+                                    <td>
+                                        <span t-attf-class="badge #{
+                                            'bg-secondary' if order.state == 'draft' else
+                                            'bg-info' if order.state == 'confirmed' else
+                                            'bg-warning' if order.state == 'processing' else
+                                            'bg-success' if order.state == 'done' else
+                                            'bg-danger'}">
+                                            <t t-out="dict(order._fields['state'].selection).get(order.state)"/>
+                                        </span>
+                                    </td>
+                                    <td><t t-out="order.order_date" t-options="{'widget': 'datetime'}"/></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+            <t t-if="not orders">
+                <div class="text-center py-5 text-muted">
+                    <i class="fa fa-list fa-3x mb-3 d-block"/>
+                    <p>暂无订单记录</p>
+                    <a href="/my/esim/packages" class="btn btn-primary">浏览套餐</a>
+                </div>
+            </t>
+
+            <div class="d-flex justify-content-center">
+                <t t-call="portal.pager"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         订单详情页
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_esim_order_detail" name="Portal eSIM Order Detail">
+        <t t-call="portal.portal_layout">
+            <div class="card shadow-sm">
+                <div class="card-header">
+                    <h4 class="mb-0">
+                        订单 <t t-out="order.name"/>
+                        <span t-attf-class="badge ms-2 #{
+                            'bg-secondary' if order.state == 'draft' else
+                            'bg-info' if order.state == 'confirmed' else
+                            'bg-warning' if order.state == 'processing' else
+                            'bg-success' if order.state == 'done' else
+                            'bg-danger'}">
+                            <t t-out="dict(order._fields['state'].selection).get(order.state)"/>
+                        </span>
+                    </h4>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <table class="table">
+                                <tr>
+                                    <th>套餐</th>
+                                    <td><t t-out="order.package_id.name"/></td>
+                                </tr>
+                                <tr>
+                                    <th>数量</th>
+                                    <td><t t-out="order.quantity"/></td>
+                                </tr>
+                                <tr>
+                                    <th>单价</th>
+                                    <td>$<t t-out="'%.2f' % order.unit_price"/></td>
+                                </tr>
+                                <tr>
+                                    <th>总金额</th>
+                                    <td class="fw-bold">$<t t-out="'%.2f' % order.total_amount"/></td>
+                                </tr>
+                                <tr>
+                                    <th>下单时间</th>
+                                    <td><t t-out="order.order_date" t-options="{'widget': 'datetime'}"/></td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 关联的 eSIM 档案 -->
+                    <t t-if="order.profile_ids">
+                        <h5 class="mt-4">eSIM 档案</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>ICCID</th>
+                                        <th>状态</th>
+                                        <th>总流量</th>
+                                        <th>剩余流量</th>
+                                        <th>过期时间</th>
+                                        <th/>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="order.profile_ids" t-as="profile">
+                                        <tr>
+                                            <td><t t-out="profile.iccid"/></td>
+                                            <td>
+                                                <span t-attf-class="badge #{
+                                                    'bg-info' if profile.state == 'ready' else
+                                                    'bg-success' if profile.state == 'active' else
+                                                    'bg-warning' if profile.state == 'suspended' else
+                                                    'bg-danger'}">
+                                                    <t t-out="dict(profile._fields['state'].selection).get(profile.state)"/>
+                                                </span>
+                                            </td>
+                                            <td><t t-out="profile.total_volume"/> GB</td>
+                                            <td><t t-out="profile.remaining_volume"/> GB</td>
+                                            <td><t t-out="profile.expired_time" t-options="{'widget': 'datetime'}"/></td>
+                                            <td>
+                                                <a t-attf-href="/my/esim/profiles/#{profile.id}"
+                                                   class="btn btn-sm btn-outline-primary">
+                                                    管理
+                                                </a>
+                                            </td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="/my/esim/orders" class="btn btn-outline-secondary">
+                    <i class="fa fa-arrow-left me-1"/> 返回订单列表
+                </a>
+            </div>
+        </t>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         我的 eSIM 列表页
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_esim_profiles" name="Portal eSIM Profiles">
+        <t t-call="portal.portal_layout">
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">我的 eSIM</t>
+            </t>
+
+            <div class="d-flex justify-content-end mb-3">
+                <a href="/my/esim/packages" class="btn btn-primary">
+                    <i class="fa fa-plus me-1"/> 购买新 eSIM
+                </a>
+            </div>
+
+            <t t-if="profiles">
+                <div class="row">
+                    <t t-foreach="profiles" t-as="profile">
+                        <div class="col-lg-6 mb-4">
+                            <div class="card h-100 shadow-sm">
+                                <div class="card-body">
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h6 class="card-title mb-0">
+                                            <i class="fa fa-sim-card me-1"/>
+                                            <t t-out="profile.iccid"/>
+                                        </h6>
+                                        <span t-attf-class="badge #{
+                                            'bg-secondary' if profile.state == 'pending' else
+                                            'bg-info' if profile.state == 'ready' else
+                                            'bg-success' if profile.state == 'active' else
+                                            'bg-warning' if profile.state == 'suspended' else
+                                            'bg-danger' if profile.state == 'revoked' else
+                                            'bg-dark'}">
+                                            <t t-out="dict(profile._fields['state'].selection).get(profile.state)"/>
+                                        </span>
+                                    </div>
+                                    <p class="text-muted small mb-2">
+                                        <t t-out="profile.package_id.name" />
+                                    </p>
+
+                                    <!-- 流量进度条 -->
+                                    <t t-if="profile.total_volume > 0">
+                                        <div class="mb-2">
+                                            <div class="d-flex justify-content-between small">
+                                                <span>已用 <t t-out="profile.used_volume"/> GB</span>
+                                                <span>共 <t t-out="profile.total_volume"/> GB</span>
+                                            </div>
+                                            <div class="progress" style="height: 8px;">
+                                                <div class="progress-bar"
+                                                     role="progressbar"
+                                                     t-attf-style="width: #{min(profile.used_volume / profile.total_volume * 100, 100) if profile.total_volume else 0}%"
+                                                     t-attf-class="progress-bar #{
+                                                        'bg-success' if profile.remaining_volume / profile.total_volume > 0.5 else
+                                                        'bg-warning' if profile.remaining_volume / profile.total_volume > 0.2 else
+                                                        'bg-danger'}"/>
+                                            </div>
+                                        </div>
+                                    </t>
+
+                                    <div class="small text-muted" t-if="profile.expired_time">
+                                        <i class="fa fa-clock-o me-1"/>
+                                        过期时间：<t t-out="profile.expired_time" t-options="{'widget': 'datetime'}"/>
+                                    </div>
+                                </div>
+                                <div class="card-footer bg-transparent">
+                                    <a t-attf-href="/my/esim/profiles/#{profile.id}"
+                                       class="btn btn-sm btn-outline-primary">
+                                        查看详情
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </t>
+
+            <t t-if="not profiles">
+                <div class="text-center py-5 text-muted">
+                    <i class="fa fa-sim-card fa-3x mb-3 d-block"/>
+                    <p>您还没有 eSIM</p>
+                    <a href="/my/esim/packages" class="btn btn-primary">浏览套餐</a>
+                </div>
+            </t>
+
+            <div class="d-flex justify-content-center">
+                <t t-call="portal.pager"/>
+            </div>
+        </t>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         eSIM 详情页（含充值功能）
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_esim_profile_detail" name="Portal eSIM Profile Detail">
+        <t t-call="portal.portal_layout">
+
+            <t t-if="error_message">
+                <div class="alert alert-danger" role="alert">
+                    <t t-out="error_message"/>
+                </div>
+            </t>
+
+            <div class="card shadow-sm">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fa fa-sim-card me-2"/>
+                        <t t-out="profile.iccid"/>
+                    </h4>
+                    <span t-attf-class="badge fs-6 #{
+                        'bg-secondary' if profile.state == 'pending' else
+                        'bg-info' if profile.state == 'ready' else
+                        'bg-success' if profile.state == 'active' else
+                        'bg-warning' if profile.state == 'suspended' else
+                        'bg-danger' if profile.state == 'revoked' else
+                        'bg-dark'}">
+                        <t t-out="dict(profile._fields['state'].selection).get(profile.state)"/>
+                    </span>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <h5>基本信息</h5>
+                            <table class="table">
+                                <tr>
+                                    <th>当前套餐</th>
+                                    <td><t t-out="profile.package_id.name"/></td>
+                                </tr>
+                                <tr>
+                                    <th>ICCID</th>
+                                    <td><code><t t-out="profile.iccid"/></code></td>
+                                </tr>
+                                <tr t-if="profile.qr_code">
+                                    <th>激活码</th>
+                                    <td>
+                                        <a t-att-href="profile.qr_code" target="_blank">
+                                            <t t-out="profile.qr_code"/>
+                                        </a>
+                                    </td>
+                                </tr>
+                                <tr>
+                                    <th>过期时间</th>
+                                    <td><t t-out="profile.expired_time" t-options="{'widget': 'datetime'}"/></td>
+                                </tr>
+                            </table>
+                        </div>
+                        <div class="col-md-6">
+                            <h5>流量使用</h5>
+                            <t t-if="profile.total_volume > 0">
+                                <div class="text-center py-3">
+                                    <div class="display-6 fw-bold">
+                                        <t t-out="'%.2f' % profile.remaining_volume"/> GB
+                                    </div>
+                                    <p class="text-muted">剩余流量</p>
+                                    <div class="progress mx-auto" style="height: 12px; max-width: 300px;">
+                                        <div class="progress-bar"
+                                             role="progressbar"
+                                             t-attf-style="width: #{min(profile.used_volume / profile.total_volume * 100, 100) if profile.total_volume else 0}%"
+                                             t-attf-class="progress-bar #{
+                                                'bg-success' if profile.remaining_volume / profile.total_volume > 0.5 else
+                                                'bg-warning' if profile.remaining_volume / profile.total_volume > 0.2 else
+                                                'bg-danger'}"/>
+                                    </div>
+                                    <p class="small text-muted mt-2">
+                                        已用 <t t-out="'%.2f' % profile.used_volume"/> GB /
+                                        共 <t t-out="'%.2f' % profile.total_volume"/> GB
+                                    </p>
+                                </div>
+                            </t>
+                        </div>
+                    </div>
+
+                    <!-- 充值区域 -->
+                    <t t-if="topup_packages and profile.state in ('ready', 'active')">
+                        <hr/>
+                        <h5><i class="fa fa-bolt me-1"/> 充值续费</h5>
+                        <div class="row">
+                            <t t-foreach="topup_packages" t-as="tp">
+                                <div class="col-lg-4 col-md-6 mb-3">
+                                    <div class="card border">
+                                        <div class="card-body text-center">
+                                            <h6><t t-out="tp.name"/></h6>
+                                            <p class="small text-muted">
+                                                <t t-out="tp.volume"/> GB /
+                                                <t t-out="tp.duration"/>
+                                                <t t-if="tp.duration_unit == 'DAY'"> 天</t>
+                                                <t t-if="tp.duration_unit == 'MONTH'"> 月</t>
+                                            </p>
+                                            <p class="h5 text-primary">
+                                                $<t t-out="'%.2f' % tp.sale_price"/>
+                                            </p>
+                                            <form method="POST"
+                                                  t-attf-action="/my/esim/topup/#{profile.id}">
+                                                <input type="hidden" name="csrf_token"
+                                                       t-att-value="request.csrf_token()"/>
+                                                <input type="hidden" name="package_id"
+                                                       t-att-value="tp.id"/>
+                                                <button type="submit" class="btn btn-sm btn-primary">
+                                                    充值
+                                                </button>
+                                            </form>
+                                        </div>
+                                    </div>
+                                </div>
+                            </t>
+                        </div>
+                    </t>
+
+                    <!-- 充值历史 -->
+                    <t t-if="profile.topup_ids">
+                        <hr/>
+                        <h5><i class="fa fa-history me-1"/> 充值记录</h5>
+                        <div class="table-responsive">
+                            <table class="table table-sm">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th>编号</th>
+                                        <th>套餐</th>
+                                        <th>金额</th>
+                                        <th>状态</th>
+                                        <th>时间</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    <t t-foreach="profile.topup_ids" t-as="topup">
+                                        <tr>
+                                            <td><t t-out="topup.name"/></td>
+                                            <td><t t-out="topup.package_id.name"/></td>
+                                            <td>$<t t-out="'%.2f' % topup.amount"/></td>
+                                            <td>
+                                                <span t-attf-class="badge #{
+                                                    'bg-info' if topup.state == 'draft' else
+                                                    'bg-success' if topup.state == 'done' else
+                                                    'bg-danger'}">
+                                                    <t t-out="dict(topup._fields['state'].selection).get(topup.state)"/>
+                                                </span>
+                                            </td>
+                                            <td><t t-out="topup.topup_date" t-options="{'widget': 'datetime'}"/></td>
+                                        </tr>
+                                    </t>
+                                </tbody>
+                            </table>
+                        </div>
+                    </t>
+                </div>
+            </div>
+
+            <div class="mt-3">
+                <a href="/my/esim/profiles" class="btn btn-outline-secondary">
+                    <i class="fa fa-arrow-left me-1"/> 返回我的 eSIM
+                </a>
+            </div>
+        </t>
+    </template>
+
+</odoo>

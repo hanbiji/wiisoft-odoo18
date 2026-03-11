@@ -1,0 +1,60 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_esim" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.esim</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app data-string="eSIM Access" string="eSIM Access" data-key="esim_access">
+                    <block title="API 凭证" name="esim_credentials">
+                        <setting string="Access Code" help="eSIM Access 平台的 API 访问码">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="esim_access_code" class="col-lg-3 o_light_label"/>
+                                    <field name="esim_access_code" class="col-lg-6"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Secret Key" help="eSIM Access 平台的 API 密钥">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="esim_secret_key" class="col-lg-3 o_light_label"/>
+                                    <field name="esim_secret_key" class="col-lg-6" password="True"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="API 基础 URL" help="eSIM Access API 地址">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="esim_api_base_url" class="col-lg-3 o_light_label"/>
+                                    <field name="esim_api_base_url" class="col-lg-6"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="业务设置" name="esim_business">
+                        <setting string="默认加价比例" help="售价 = 成本价 × 加价比例">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="esim_default_markup" class="col-lg-3 o_light_label"/>
+                                    <field name="esim_default_markup" class="col-lg-3"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Webhook 验证密钥" help="用于验证来自 eSIM Access 的回调请求">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="esim_webhook_secret" class="col-lg-3 o_light_label"/>
+                                    <field name="esim_webhook_secret" class="col-lg-6"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

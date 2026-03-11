@@ -1,0 +1,100 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- 模块分类 -->
+    <record id="module_category_esim" model="ir.module.category">
+        <field name="name">eSIM 管理</field>
+        <field name="sequence">100</field>
+    </record>
+
+    <!-- 权限组：普通用户 -->
+    <record id="group_esim_user" model="res.groups">
+        <field name="name">eSIM 用户</field>
+        <field name="category_id" ref="module_category_esim"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <!-- 权限组：管理员（继承普通用户） -->
+    <record id="group_esim_manager" model="res.groups">
+        <field name="name">eSIM 管理员</field>
+        <field name="category_id" ref="module_category_esim"/>
+        <field name="implied_ids" eval="[(4, ref('group_esim_user'))]"/>
+    </record>
+
+    <!-- 记录规则：普通用户只能查看自己关联的订单 -->
+    <record id="rule_esim_order_user" model="ir.rule">
+        <field name="name">eSIM 订单：用户仅查看自己的</field>
+        <field name="model_id" ref="model_esim_order"/>
+        <field name="domain_force">[('partner_id.user_ids', 'in', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_esim_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- 记录规则：管理员可管理所有订单 -->
+    <record id="rule_esim_order_manager" model="ir.rule">
+        <field name="name">eSIM 订单：管理员全部访问</field>
+        <field name="model_id" ref="model_esim_order"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_esim_manager'))]"/>
+    </record>
+
+    <!-- 记录规则：普通用户只能查看自己关联的 eSIM 档案 -->
+    <record id="rule_esim_profile_user" model="ir.rule">
+        <field name="name">eSIM 档案：用户仅查看自己的</field>
+        <field name="model_id" ref="model_esim_profile"/>
+        <field name="domain_force">[('partner_id.user_ids', 'in', user.id)]</field>
+        <field name="groups" eval="[(4, ref('group_esim_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- 记录规则：管理员可管理所有 eSIM 档案 -->
+    <record id="rule_esim_profile_manager" model="ir.rule">
+        <field name="name">eSIM 档案：管理员全部访问</field>
+        <field name="model_id" ref="model_esim_profile"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_esim_manager'))]"/>
+    </record>
+
+    <!-- 记录规则：门户用户只能查看自己的订单 -->
+    <record id="rule_esim_order_portal" model="ir.rule">
+        <field name="name">eSIM 订单：门户用户</field>
+        <field name="model_id" ref="model_esim_order"/>
+        <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- 记录规则：门户用户只能查看自己的 eSIM 档案 -->
+    <record id="rule_esim_profile_portal" model="ir.rule">
+        <field name="name">eSIM 档案：门户用户</field>
+        <field name="model_id" ref="model_esim_profile"/>
+        <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- 记录规则：门户用户只能查看自己的充值记录 -->
+    <record id="rule_esim_topup_portal" model="ir.rule">
+        <field name="name">eSIM 充值：门户用户</field>
+        <field name="model_id" ref="model_esim_topup"/>
+        <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+</odoo>

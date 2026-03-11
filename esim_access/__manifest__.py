@@ -1,0 +1,29 @@
+# -*- coding: utf-8 -*-
+{
+    'name': 'eSIM Access 集成',
+    'version': '19.0.1.0.0',
+    'summary': '对接 eSIM Access API，实现 eSIM 套餐查询、购买、充值和管理',
+    'description': '集成 eSIM Access 平台 API，支持后台管理和客户门户自助服务，'
+                   '包括套餐浏览、下单购买、充值续费、eSIM 生命周期管理等功能。',
+    'author': 'WiiSoft',
+    'website': 'https://example.com',
+    'license': 'LGPL-3',
+    'category': 'Services',
+    'depends': ['base', 'mail', 'portal', 'contacts'],
+    'data': [
+        'security/esim_security.xml',
+        'security/ir.model.access.csv',
+        'data/ir_sequence.xml',
+        'data/ir_cron.xml',
+        'views/esim_config_views.xml',
+        'views/esim_package_views.xml',
+        'views/esim_order_views.xml',
+        'views/esim_profile_views.xml',
+        'views/esim_topup_views.xml',
+        'views/portal_templates.xml',
+        'views/menu.xml',
+    ],
+    'installable': True,
+    'application': True,
+    'auto_install': False,
+}

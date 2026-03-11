@@ -1,0 +1,93 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ── 列表视图 ──────────────────────────────────────── -->
+    <record id="view_esim_topup_list" model="ir.ui.view">
+        <field name="name">esim.topup.list</field>
+        <field name="model">esim.topup</field>
+        <field name="arch" type="xml">
+            <list decoration-success="state == 'done'"
+                  decoration-danger="state == 'failed'">
+                <field name="name"/>
+                <field name="profile_id"/>
+                <field name="partner_id"/>
+                <field name="package_id"/>
+                <field name="amount"/>
+                <field name="state" widget="badge"
+                       decoration-info="state == 'draft'"
+                       decoration-success="state == 'done'"
+                       decoration-danger="state == 'failed'"/>
+                <field name="topup_date"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- ── 表单视图 ──────────────────────────────────────── -->
+    <record id="view_esim_topup_form" model="ir.ui.view">
+        <field name="name">esim.topup.form</field>
+        <field name="model">esim.topup</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_topup" type="object"
+                            string="执行充值" class="btn-primary"
+                            invisible="state != 'draft'"
+                            confirm="确定要执行充值吗？"/>
+                    <field name="state" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="充值信息">
+                            <field name="profile_id" readonly="state != 'draft'"/>
+                            <field name="partner_id" readonly="state != 'draft'"/>
+                            <field name="package_id" readonly="state != 'draft'"/>
+                        </group>
+                        <group string="金额与状态">
+                            <field name="amount"/>
+                            <field name="transaction_id"/>
+                            <field name="topup_date"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <!-- ── 搜索视图 ──────────────────────────────────────── -->
+    <record id="view_esim_topup_search" model="ir.ui.view">
+        <field name="name">esim.topup.search</field>
+        <field name="model">esim.topup</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="profile_id"/>
+                <field name="partner_id"/>
+                <filter name="filter_draft" string="待充值" domain="[('state', '=', 'draft')]"/>
+                <filter name="filter_done" string="已完成" domain="[('state', '=', 'done')]"/>
+                <group expand="0" string="分组">
+                    <filter name="group_partner" string="客户" context="{'group_by': 'partner_id'}"/>
+                    <filter name="group_profile" string="eSIM" context="{'group_by': 'profile_id'}"/>
+                    <filter name="group_state" string="状态" context="{'group_by': 'state'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- ── Action ────────────────────────────────────────── -->
+    <record id="action_esim_topup" model="ir.actions.act_window">
+        <field name="name">充值记录</field>
+        <field name="res_model">esim.topup</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_esim_topup_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                创建充值记录
+            </p>
+        </field>
+    </record>
+
+</odoo>
