@@ -40,7 +40,6 @@
         <field name="binding_view_types">list</field>
         <field name="state">code</field>
         <field name="code">action = records.action_publish_to_portal()</field>
-        <field name="groups_id" eval="[(6, 0, [ref('esim_access.group_esim_manager')])]"/>
     </record>
 
     <record id="action_esim_package_unpublish_from_portal" model="ir.actions.server">
@@ -50,7 +49,6 @@
         <field name="binding_view_types">list</field>
         <field name="state">code</field>
         <field name="code">action = records.action_unpublish_from_portal()</field>
-        <field name="groups_id" eval="[(6, 0, [ref('esim_access.group_esim_manager')])]"/>
     </record>
 
     <!-- ── 表单视图 ──────────────────────────────────────── -->
@@ -118,9 +116,9 @@
                 <field name="location"/>
                 <filter name="filter_normal" string="普通套餐" domain="[('package_type', '=', 'BASE')]"/>
                 <filter name="filter_topup" string="充值套餐" domain="[('package_type', '=', 'TOPUP')]"/>
-                <separator/>
+                <separator string="分组"/>
                 <filter name="filter_published" string="已发布" domain="[('is_published', '=', True)]"/>
-                <group expand="0" string="分组">
+                <group>
                     <filter name="group_location" string="地区" context="{'group_by': 'location'}"/>
                     <filter name="group_type" string="类型" context="{'group_by': 'package_type'}"/>
                     <filter name="group_duration" string="有效期" context="{'group_by': 'duration'}"/>

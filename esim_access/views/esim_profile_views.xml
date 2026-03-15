@@ -125,8 +125,8 @@
                 <filter name="filter_active" string="使用中" domain="[('state', '=', 'active')]"/>
                 <filter name="filter_ready" string="待激活" domain="[('state', '=', 'ready')]"/>
                 <filter name="filter_suspended" string="已挂起" domain="[('state', '=', 'suspended')]"/>
-                <separator/>
-                <group expand="0" string="分组">
+                <separator string="分组"/>
+                <group>
                     <filter name="group_partner" string="客户" context="{'group_by': 'partner_id'}"/>
                     <filter name="group_state" string="状态" context="{'group_by': 'state'}"/>
                     <filter name="group_package" string="套餐" context="{'group_by': 'package_id'}"/>

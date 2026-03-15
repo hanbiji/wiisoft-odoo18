@@ -76,6 +76,7 @@ class EsimProfile(models.Model):
         ('iccid_uniq', 'UNIQUE(iccid)', 'ICCID 不能重复'),
     ]
 
+    @api.depends('partner_id.name', 'iccid')
     def _compute_display_name(self):
         for rec in self:
             partner_name = rec.partner_id.name or ''

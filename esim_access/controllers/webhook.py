@@ -1,4 +1,5 @@
 # -*- coding: utf-8 -*-
+import json
 import logging
 
 from odoo import http
@@ -10,13 +11,21 @@ _logger = logging.getLogger(__name__)
 class EsimWebhookController(http.Controller):
     """接收 eSIM Access 平台的 Webhook 回调通知"""
 
-    @http.route('/esim/webhook', type='json', auth='none', csrf=False, methods=['POST'])
+    @http.route(
+        '/esim/webhook',
+        type='http',
+        auth='public',
+        csrf=False,
+        save_session=False,
+        methods=['POST'],
+    )
     def handle_webhook(self):
         try:
-            data = request.get_json_data()
-        except Exception:
+            payload = request.httprequest.get_data(as_text=True) or '{}'
+            data = json.loads(payload)
+        except (TypeError, ValueError, json.JSONDecodeError):
             _logger.warning("eSIM Webhook: 无法解析请求体")
-            return {'status': 'error', 'message': 'Invalid JSON'}
+            return request.make_json_response({'status': 'error', 'message': 'Invalid JSON'}, status=400)
 
         notify_type = data.get('notifyType', '')
         iccid = data.get('iccid', '')
@@ -37,15 +46,18 @@ class EsimWebhookController(http.Controller):
 
         if not handler:
             _logger.warning("eSIM Webhook: 未知通知类型 %s", notify_type)
-            return {'status': 'error', 'message': f'Unknown notifyType: {notify_type}'}
+            return request.make_json_response(
+                {'status': 'error', 'message': f'Unknown notifyType: {notify_type}'},
+                status=400,
+            )
 
         try:
             handler(data)
         except Exception as e:
             _logger.exception("eSIM Webhook 处理异常: %s", e)
-            return {'status': 'error', 'message': str(e)}
+            return request.make_json_response({'status': 'error', 'message': str(e)}, status=500)
 
-        return {'status': 'ok'}
+        return request.make_json_response({'status': 'ok'})
 
     def _handle_order_status(self, data: dict) -> None:
         """处理订单状态通知：eSIM 已准备就绪"""

@@ -25,7 +25,7 @@
                 <t t-set="icon" t-value="'/esim_access/static/description/icon.png'"/>
                 <t t-set="title">我的余额</t>
                 <t t-set="url" t-value="'/my/esim/balance'"/>
-                <t t-set="text" t-valuef="">余额: $#{esim_balance and '%.2f' % esim_balance or '0.00'}</t>
+                <t t-set="text" t-valuef="余额: $#{esim_balance and '%.2f' % esim_balance or '0.00'}"/>
                 <t t-set="placeholder_count" t-value="'esim_balance'"/>
             </t>
         </xpath>

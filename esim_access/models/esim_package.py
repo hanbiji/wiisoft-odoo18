@@ -69,10 +69,16 @@ class EsimPackage(models.Model):
         ('package_code_uniq', 'UNIQUE(package_code)', '套餐编码不能重复'),
     ]
 
+    @api.depends('name', 'volume', 'duration', 'duration_unit')
     def _compute_display_name(self):
         for rec in self:
             unit = dict(DURATION_UNIT_SELECTION).get(rec.duration_unit, '')
             rec.display_name = f"{rec.name} ({rec.volume}GB/{rec.duration}{unit})"
+
+    def _check_manager_permission(self) -> None:
+        """批量管理动作仅允许 eSIM 管理员执行。"""
+        if not self.env.user.has_group('esim_access.group_esim_manager'):
+            raise UserError(_("只有 eSIM 管理员可以执行此操作。"))
 
     def _get_api_client(self) -> EsimAccessAPI:
         """从系统参数构建 API 客户端"""
@@ -88,6 +94,7 @@ class EsimPackage(models.Model):
 
     def action_sync_packages(self):
         """套餐列表页面手动触发同步"""
+        self._check_manager_permission()
         count = self._sync_packages_from_api()
         return {
             'type': 'ir.actions.client',
@@ -102,6 +109,7 @@ class EsimPackage(models.Model):
 
     def _set_portal_publish_state(self, is_published: bool) -> dict:
         """批量更新门户展示状态，并在列表页刷新结果。"""
+        self._check_manager_permission()
         if not self:
             raise UserError(_("请先选择要修改的套餐。"))
 

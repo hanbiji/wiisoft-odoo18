@@ -113,8 +113,8 @@
                 <filter name="filter_draft" string="草稿" domain="[('state', '=', 'draft')]"/>
                 <filter name="filter_processing" string="处理中" domain="[('state', '=', 'processing')]"/>
                 <filter name="filter_done" string="已完成" domain="[('state', '=', 'done')]"/>
-                <separator/>
-                <group expand="0" string="分组">
+                <separator string="分组"/>
+                <group>
                     <filter name="group_partner" string="客户" context="{'group_by': 'partner_id'}"/>
                     <filter name="group_state" string="状态" context="{'group_by': 'state'}"/>
                     <filter name="group_package" string="套餐" context="{'group_by': 'package_id'}"/>

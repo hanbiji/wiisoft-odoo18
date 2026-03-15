@@ -74,8 +74,8 @@
                 <filter name="filter_topup" string="充值" domain="[('type', '=', 'topup')]"/>
                 <filter name="filter_consume" string="消费" domain="[('type', '=', 'consume')]"/>
                 <filter name="filter_refund" string="退款" domain="[('type', '=', 'refund')]"/>
-                <separator/>
-                <group expand="0" string="分组">
+                <separator string="分组"/>
+                <group>
                     <filter name="group_partner" string="客户" context="{'group_by': 'partner_id'}"/>
                     <filter name="group_type" string="类型" context="{'group_by': 'type'}"/>
                 </group>

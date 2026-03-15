@@ -125,6 +125,7 @@ class EsimBalanceLog(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('esim.balance.log') or _('New')
         return super().create(vals_list)
 
+    @api.depends('name', 'type', 'amount')
     def _compute_display_name(self):
         type_map = dict(BALANCE_LOG_TYPE_SELECTION)
         for rec in self:
