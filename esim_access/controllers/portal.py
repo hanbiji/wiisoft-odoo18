@@ -46,6 +46,9 @@ class EsimPortal(CustomerPortal):
         values = super()._prepare_home_portal_values(counters)
         partner = request.env.user.partner_id
 
+        # 余额卡片展示的是实际金额，不属于 portal counter 机制，首页首屏始终提供。
+        values['esim_balance'] = partner.sudo().esim_balance
+
         if 'esim_profile_count' in counters:
             values['esim_profile_count'] = request.env['esim.profile'].sudo().search_count(
                 [('partner_id', '=', partner.id)]
@@ -54,8 +57,6 @@ class EsimPortal(CustomerPortal):
             values['esim_order_count'] = request.env['esim.order'].sudo().search_count(
                 [('partner_id', '=', partner.id)]
             )
-        if 'esim_balance' in counters:
-            values['esim_balance'] = partner.sudo().esim_balance
         return values
 
     # ── 套餐浏览 ─────────────────────────────────────────

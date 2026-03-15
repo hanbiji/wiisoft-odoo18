@@ -6,12 +6,17 @@
          ══════════════════════════════════════════════════════ -->
     <template id="portal_my_home_esim" name="Portal My Home - eSIM"
               inherit_id="portal.portal_my_home" priority="40">
-        <xpath expr="//div[hasclass('o_portal_docs')]" position="inside">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="before">
+            <t t-set="portal_client_category_enable" t-value="True"/>
+        </xpath>
+        <div id="portal_client_category" position="inside">
             <t t-call="portal.portal_docs_entry">
                 <t t-set="icon" t-value="'/esim_access/static/description/icon.png'"/>
                 <t t-set="title">我的 eSIM</t>
                 <t t-set="url" t-value="'/my/esim/profiles'"/>
                 <t t-set="text">查看和管理您的 eSIM</t>
+                <t t-set="config_card" t-value="True"/>
+                <t t-set="show_count" t-value="True"/>
                 <t t-set="placeholder_count" t-value="'esim_profile_count'"/>
             </t>
             <t t-call="portal.portal_docs_entry">
@@ -19,6 +24,8 @@
                 <t t-set="title">eSIM 订单</t>
                 <t t-set="url" t-value="'/my/esim/orders'"/>
                 <t t-set="text">查看您的 eSIM 购买记录</t>
+                <t t-set="config_card" t-value="True"/>
+                <t t-set="show_count" t-value="True"/>
                 <t t-set="placeholder_count" t-value="'esim_order_count'"/>
             </t>
             <t t-call="portal.portal_docs_entry">
@@ -26,9 +33,9 @@
                 <t t-set="title">我的余额</t>
                 <t t-set="url" t-value="'/my/esim/balance'"/>
                 <t t-set="text" t-valuef="余额: $#{esim_balance and '%.2f' % esim_balance or '0.00'}"/>
-                <t t-set="placeholder_count" t-value="'esim_balance'"/>
+                <t t-set="config_card" t-value="True"/>
             </t>
-        </xpath>
+        </div>
     </template>
 
     <!-- ══════════════════════════════════════════════════════
