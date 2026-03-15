@@ -9,7 +9,7 @@
     # 'website': 'https://example.com',
     'license': 'LGPL-3',
     'category': 'Services',
-    'depends': ['base', 'base_setup', 'mail', 'portal', 'contacts'],
+    'depends': ['base', 'contacts', 'base_setup', 'mail', 'portal',],
     'data': [
         'security/esim_security.xml',
         'security/ir.model.access.csv',
