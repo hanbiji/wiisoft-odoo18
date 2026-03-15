@@ -120,7 +120,8 @@
             <xpath expr="//div[hasclass('oe_button_box')]" position="inside">
                 <button name="%(action_esim_balance_topup_wizard)d" type="action"
                         class="oe_stat_button" icon="fa-plus-circle"
-                        context="{'default_partner_id': active_id}"
+                        context="{'default_partner_id': id}"
+                        invisible="not id"
                         groups="esim_access.group_esim_manager">
                     <span class="o_stat_text">充值</span>
                 </button>
