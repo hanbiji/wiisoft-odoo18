@@ -219,11 +219,23 @@ class EsimAccessAPI:
         }
         return self._make_request('topUp', payload)
 
-    # ── 取消订单 ─────────────────────────────────────────────
+    # ── 取消 eSIM ────────────────────────────────────────────
 
-    def cancel_order(self, order_no: str) -> dict:
-        """取消未安装的 eSIM 订单，余额退回账户"""
-        return self._make_request('cancel', {'orderNo': order_no})
+    def cancel_profile(self, esim_tran_no: str = '', iccid: str = '') -> dict:
+        """
+        取消未激活、未使用的 eSIM 档案。
+        - 推荐优先传 esim_tran_no
+        - esim_tran_no 与 iccid 不能同时为空
+        """
+        if not esim_tran_no and not iccid:
+            raise EsimAccessAPIError('INVALID_ARGUMENT', 'esimTranNo 和 iccid 不能同时为空')
+
+        payload: dict = {}
+        if esim_tran_no:
+            payload['esimTranNo'] = esim_tran_no
+        if iccid:
+            payload['iccid'] = iccid
+        return self._make_request('open/esim/cancel', payload)
 
     # ── 吊销 eSIM ────────────────────────────────────────────
 

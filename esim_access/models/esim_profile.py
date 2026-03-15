@@ -13,6 +13,7 @@ PROFILE_STATE_SELECTION = [
     ('ready', '待激活'),
     ('active', '使用中'),
     ('suspended', '已挂起'),
+    ('cancelled', '已取消'),
     ('revoked', '已吊销'),
     ('expired', '已过期'),
 ]
@@ -24,11 +25,11 @@ _ESIM_STATUS_STATE_MAP = {
     'PAID': 'pending',
     'GETTING_RESOURCE': 'pending',
     'GOT_RESOURCE': 'ready',
+    'CANCEL': 'cancelled',
     'IN_USE': 'active',
     'USED_UP': 'expired',
     'UNUSED_EXPIRED': 'expired',
     'USED_EXPIRED': 'expired',
-    'CANCEL': 'revoked',
     'SUSPENDED': 'suspended',
     'REVOKE': 'revoked',
 }
@@ -63,6 +64,10 @@ class EsimProfile(models.Model):
         string="剩余流量 (GB)", digits=(10, 2),
         compute='_compute_remaining_volume', store=True,
     )
+    can_cancel = fields.Boolean(
+        string="可取消",
+        compute='_compute_can_cancel',
+    )
     expired_time = fields.Datetime(string="过期时间")
     topup_ids = fields.One2many('esim.topup', 'profile_id', string="充值记录")
     topup_count = fields.Integer(compute='_compute_topup_count')
@@ -85,6 +90,11 @@ class EsimProfile(models.Model):
         for rec in self:
             rec.topup_count = len(rec.topup_ids)
 
+    @api.depends('state', 'esim_status', 'smdp_status')
+    def _compute_can_cancel(self):
+        for rec in self:
+            rec.can_cancel = rec._is_cancelable()
+
     @staticmethod
     def _derive_state(esim_status: str, smdp_status: str) -> str:
         """根据 API 返回的 esimStatus 和 smdpStatus 推导 profile 内部状态"""
@@ -99,6 +109,17 @@ class EsimProfile(models.Model):
         if smdp_status == 'RELEASED':
             return 'ready'
         return 'pending'
+
+    def _is_cancelable(self) -> bool:
+        """仅允许取消已分配资源但尚未安装/使用的 eSIM。"""
+        self.ensure_one()
+        if self.state == 'cancelled':
+            return False
+        return (
+            self.state == 'ready'
+            and self.esim_status == 'GOT_RESOURCE'
+            and self.smdp_status == 'RELEASED'
+        )
 
     @api.model
     def _map_esim_data(self, esim_data: dict) -> dict:
@@ -146,6 +167,32 @@ class EsimProfile(models.Model):
             vals.pop('iccid', None)
             if vals:
                 profile.write(vals)
+
+    def action_cancel_profile(self) -> None:
+        """取消未安装、未使用的 eSIM，并将状态标记为已取消。"""
+        api_client = self.env['esim.package']._get_api_client()
+        for profile in self:
+            if profile.state == 'cancelled':
+                raise UserError(_("该 eSIM 已取消"))
+            if not profile._is_cancelable():
+                raise UserError(
+                    _("eSIM %s 当前不满足取消条件，要求 esimStatus=GOT_RESOURCE 且 smdpStatus=RELEASED。")
+                    % (profile.iccid or profile.display_name)
+                )
+
+            try:
+                api_client.cancel_profile(
+                    esim_tran_no=profile.esim_tran_no or '',
+                    iccid='' if profile.esim_tran_no else (profile.iccid or ''),
+                )
+            except EsimAccessAPIError as e:
+                raise UserError(_("取消 eSIM 失败: %s") % e.error_msg) from e
+
+            profile.write({
+                'state': 'cancelled',
+                'esim_status': 'CANCEL',
+            })
+            profile.message_post(body=_("eSIM 已取消，供应商余额已退回。"))
 
     def action_suspend(self) -> None:
         """挂起 eSIM"""

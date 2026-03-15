@@ -161,8 +161,33 @@ class EsimPortal(CustomerPortal):
         values = {
             'order': order,
             'page_name': 'esim_order_detail',
+            'success_message': _("订单取消成功，相关 eSIM 已取消并完成退款。")
+                               if kw.get('cancelled') else '',
+            'error_message': '',
         }
         return request.render('esim_access.portal_esim_order_detail', values)
+
+    @http.route('/my/esim/orders/<int:order_id>/cancel', type='http', auth='user',
+                website=True, methods=['POST'], csrf=True)
+    def portal_esim_order_cancel(self, order_id, **kw):
+        """门户取消订单"""
+        partner = request.env.user.partner_id
+        order = request.env['esim.order'].sudo().browse(order_id)
+        if not order.exists() or order.partner_id != partner:
+            raise AccessError(_("无权操作此订单"))
+
+        try:
+            order.action_cancel()
+        except UserError as e:
+            values = {
+                'order': order,
+                'page_name': 'esim_order_detail',
+                'success_message': '',
+                'error_message': str(e),
+            }
+            return request.render('esim_access.portal_esim_order_detail', values)
+
+        return request.redirect(f'/my/esim/orders/{order.id}?cancelled=1')
 
     # ── 我的 eSIM ────────────────────────────────────────
 

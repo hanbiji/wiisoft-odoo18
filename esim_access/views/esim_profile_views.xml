@@ -10,7 +10,7 @@
                   decoration-info="state == 'ready'"
                   decoration-warning="state == 'suspended'"
                   decoration-danger="state == 'revoked'"
-                  decoration-muted="state == 'expired'">
+                  decoration-muted="state in ('cancelled', 'expired')">
                 <field name="iccid"/>
                 <field name="esim_tran_no" optional="hide"/>
                 <field name="partner_id"/>
@@ -19,7 +19,8 @@
                        decoration-success="state == 'active'"
                        decoration-info="state == 'ready'"
                        decoration-warning="state == 'suspended'"
-                       decoration-danger="state == 'revoked'"/>
+                       decoration-danger="state == 'revoked'"
+                       decoration-muted="state == 'cancelled'"/>
                 <field name="esim_status" optional="hide"/>
                 <field name="smdp_status" optional="hide"/>
                 <field name="total_volume"/>
@@ -37,9 +38,15 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <field name="can_cancel" invisible="1"/>
                     <button name="action_refresh_status" type="object"
                             string="刷新状态" class="btn-primary"
-                            invisible="state in ('revoked', 'expired')"/>
+                            invisible="state in ('cancelled', 'revoked', 'expired')"/>
+                    <button name="action_cancel_profile" type="object"
+                            string="取消 eSIM" class="btn-danger"
+                            invisible="not can_cancel"
+                            confirm="确定要取消此 eSIM 吗？取消后会退回订单金额。"
+                            groups="esim_access.group_esim_manager"/>
                     <button name="action_suspend" type="object"
                             string="挂起" class="btn-warning"
                             invisible="state not in ('ready', 'active')"
@@ -50,7 +57,7 @@
                             confirm="吊销操作不可逆，确定要吊销此 eSIM 吗？"
                             groups="esim_access.group_esim_manager"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="pending,ready,active"/>
+                           statusbar_visible="pending,ready,active,cancelled"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">

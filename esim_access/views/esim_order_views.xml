@@ -32,6 +32,7 @@
         <field name="arch" type="xml">
             <form>
                 <header>
+                    <field name="can_cancel" invisible="1"/>
                     <button name="action_confirm" type="object"
                             string="确认下单" class="btn-primary"
                             invisible="state != 'draft'"/>
@@ -40,10 +41,10 @@
                             invisible="state not in ('processing', 'confirmed')"/>
                     <button name="action_cancel" type="object"
                             string="取消订单" class="btn-danger"
-                            invisible="state not in ('draft', 'confirmed', 'processing')"
+                            invisible="not can_cancel"
                             confirm="确定要取消此订单吗？"/>
                     <field name="state" widget="statusbar"
-                           statusbar_visible="draft,confirmed,processing,done"/>
+                           statusbar_visible="draft,confirmed,processing,done,cancelled"/>
                 </header>
                 <sheet>
                     <div class="oe_button_box" name="button_box">

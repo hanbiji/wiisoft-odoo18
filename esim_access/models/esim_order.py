@@ -46,6 +46,10 @@ class EsimOrder(models.Model):
         ORDER_STATE_SELECTION, string="状态", default='draft',
         tracking=True, required=True,
     )
+    can_cancel = fields.Boolean(
+        string="可取消",
+        compute='_compute_can_cancel',
+    )
     profile_ids = fields.One2many('esim.profile', 'order_id', string="eSIM 档案")
     profile_count = fields.Integer(string="eSIM 数量", compute='_compute_profile_count')
     order_date = fields.Datetime(string="下单时间", readonly=True)
@@ -63,6 +67,32 @@ class EsimOrder(models.Model):
     def _compute_profile_count(self):
         for order in self:
             order.profile_count = len(order.profile_ids)
+
+    @api.depends(
+        'state',
+        'api_order_no',
+        'profile_ids.state',
+        'profile_ids.esim_status',
+        'profile_ids.smdp_status',
+    )
+    def _compute_can_cancel(self):
+        for order in self:
+            if order.state == 'draft':
+                order.can_cancel = True
+                continue
+
+            if order.state in ('cancelled', 'failed'):
+                order.can_cancel = False
+                continue
+
+            if not order.profile_ids:
+                order.can_cancel = bool(order.api_order_no)
+                continue
+
+            pending_profiles = order.profile_ids.filtered(lambda profile: profile.state != 'cancelled')
+            order.can_cancel = bool(pending_profiles) and all(
+                profile.can_cancel for profile in pending_profiles
+            )
 
     @api.model_create_multi
     def create(self, vals_list: list[dict]) -> 'EsimOrder':
@@ -145,18 +175,55 @@ class EsimOrder(models.Model):
             ('type', '=', 'refund'),
         ]))
 
+    def _sync_profiles_for_cancel(self):
+        """取消前补齐订单对应的 eSIM 档案，避免只拿到 orderNo 却没有本地 profile。"""
+        self.ensure_one()
+        if self.profile_ids or not self.api_order_no:
+            return self.profile_ids
+
+        api_client = self.env['esim.package']._get_api_client()
+        try:
+            result = api_client.query_esim(order_no=self.api_order_no)
+        except EsimAccessAPIError as e:
+            raise UserError(_("查询订单 eSIM 失败: %s") % e.error_msg) from e
+
+        self._process_order_result(result, mark_done=False)
+        return self.profile_ids
+
+    def _get_uncancelable_profiles(self):
+        """返回当前订单中不满足取消条件的 eSIM。"""
+        self.ensure_one()
+        profiles = self._sync_profiles_for_cancel()
+        return profiles.filtered(lambda profile: profile.state != 'cancelled' and not profile.can_cancel)
+
     def action_cancel(self) -> None:
-        """取消订单，退还已扣余额"""
+        """按 eSIM 档案逐个取消订单，并在全部成功后退款。"""
         for order in self:
-            if order.state not in ('draft', 'confirmed', 'processing'):
+            if order.state not in ('draft', 'confirmed', 'processing', 'done'):
                 raise UserError(_("当前状态不允许取消"))
 
-            if order.api_order_no:
-                api_client = self.env['esim.package']._get_api_client()
-                try:
-                    api_client.cancel_order(order.api_order_no)
-                except EsimAccessAPIError as e:
-                    raise UserError(_("取消失败: %s") % e.error_msg) from e
+            if order.state != 'draft':
+                profiles = order._sync_profiles_for_cancel()
+                if not profiles:
+                    raise UserError(_("当前订单尚未生成可取消的 eSIM，请稍后刷新状态后再试。"))
+
+                uncancelable_profiles = order._get_uncancelable_profiles()
+                if uncancelable_profiles:
+                    profile_lines = [
+                        _("%s (状态: %s, esimStatus: %s, smdpStatus: %s)") % (
+                            profile.iccid,
+                            dict(profile._fields['state'].selection).get(profile.state, profile.state),
+                            profile.esim_status or '-',
+                            profile.smdp_status or '-',
+                        )
+                        for profile in uncancelable_profiles
+                    ]
+                    raise UserError(
+                        _("以下 eSIM 当前不满足取消条件，请确认尚未安装且未使用：\n%s")
+                        % '\n'.join(profile_lines)
+                    )
+
+                profiles.filtered(lambda profile: profile.state != 'cancelled').action_cancel_profile()
 
             # 退还已扣余额（仅当已扣款且未退款时）
             if order._has_balance_consumed() and not order._has_balance_refunded():
@@ -168,7 +235,7 @@ class EsimOrder(models.Model):
                 )
 
             order.write({'state': 'cancelled'})
-            order.message_post(body=_("订单已取消"))
+            order.message_post(body=_("订单已取消，关联 eSIM 已取消并完成退款。"))
 
     def action_check_status(self) -> None:
         """手动检查订单状态"""
@@ -184,8 +251,8 @@ class EsimOrder(models.Model):
 
             order._process_order_result(result)
 
-    def _process_order_result(self, result: dict) -> None:
-        """处理 API 返回的查询结果，创建或更新 eSIM 档案"""
+    def _process_order_result(self, result: dict, mark_done: bool = True) -> None:
+        """处理 API 返回的查询结果，创建或更新 eSIM 档案。"""
         self.ensure_one()
         esim_list = result.get('esimList') or []
         if not esim_list:
@@ -213,10 +280,11 @@ class EsimOrder(models.Model):
                 profile_model.create(vals)
                 created_count += 1
 
-        self.write({'state': 'done'})
-        self.message_post(
-            body=_("订单查询完成，共 %d 个 eSIM 档案（新建 %d 个）") % (len(esim_list), created_count),
-        )
+        if mark_done:
+            self.write({'state': 'done'})
+            self.message_post(
+                body=_("订单查询完成，共 %d 个 eSIM 档案（新建 %d 个）") % (len(esim_list), created_count),
+            )
 
     def action_view_profiles(self):
         """查看关联的 eSIM 档案"""
