@@ -101,7 +101,7 @@
     <!-- ══════════════════════════════════════════════════════
          合作伙伴表单扩展：添加 eSIM 余额信息
          ══════════════════════════════════════════════════════ -->
-    <!-- <record id="view_partner_form_esim_balance" model="ir.ui.view">
+    <record id="view_partner_form_esim_balance" model="ir.ui.view">
         <field name="name">res.partner.form.esim.balance</field>
         <field name="model">res.partner</field>
         <field name="inherit_id" ref="base.view_partner_form"/>
@@ -126,6 +126,6 @@
                 </button>
             </xpath>
         </field>
-    </record> -->
+    </record>
 
 </odoo>
