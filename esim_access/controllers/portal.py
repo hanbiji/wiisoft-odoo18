@@ -17,6 +17,11 @@ TRANSACTIONS_PER_PAGE = 20
 class EsimPortal(CustomerPortal):
 
     @staticmethod
+    def _get_portal_partner():
+        """门户统一使用商业伙伴作为客户主档，避免联系人与公司余额分裂。"""
+        return request.env.user.partner_id.commercial_partner_id
+
+    @staticmethod
     def _normalize_filter_value(value) -> str:
         """统一处理筛选参数，避免 None 和空白字符串干扰 domain。"""
         return (value or '').strip()
@@ -44,7 +49,7 @@ class EsimPortal(CustomerPortal):
 
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
 
         # 余额卡片展示的是实际金额，不属于 portal counter 机制，首页首屏始终提供。
         values['esim_balance'] = partner.sudo().esim_balance
@@ -166,7 +171,7 @@ class EsimPortal(CustomerPortal):
         if not package.exists() or not package.is_published:
             raise MissingError(_("套餐不存在"))
 
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         values = {
             'package': package,
             'esim_balance': partner.sudo().esim_balance,
@@ -179,7 +184,7 @@ class EsimPortal(CustomerPortal):
     @http.route('/my/esim/order', type='http', auth='user', website=True, methods=['POST'], csrf=True)
     def portal_esim_order(self, package_id, quantity=1, period_num=0, **kw):
         """门户下单"""
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         package = request.env['esim.package'].sudo().browse(int(package_id))
         if not package.exists() or not package.is_published:
             raise MissingError(_("套餐不存在"))
@@ -214,7 +219,7 @@ class EsimPortal(CustomerPortal):
     @http.route('/my/esim/orders', type='http', auth='user', website=True)
     def portal_esim_orders(self, page=1, **kw):
         """我的 eSIM 订单列表"""
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         Order = request.env['esim.order'].sudo()
         domain = [('partner_id', '=', partner.id)]
 
@@ -239,9 +244,9 @@ class EsimPortal(CustomerPortal):
     @http.route('/my/esim/orders/<int:order_id>', type='http', auth='user', website=True)
     def portal_esim_order_detail(self, order_id, **kw):
         """订单详情"""
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         order = request.env['esim.order'].sudo().browse(order_id)
-        if not order.exists() or order.partner_id != partner:
+        if not order.exists() or order.partner_id.commercial_partner_id != partner:
             raise AccessError(_("无权访问此订单"))
 
         values = {
@@ -257,9 +262,9 @@ class EsimPortal(CustomerPortal):
                 website=True, methods=['POST'], csrf=True)
     def portal_esim_order_cancel(self, order_id, **kw):
         """门户取消订单"""
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         order = request.env['esim.order'].sudo().browse(order_id)
-        if not order.exists() or order.partner_id != partner:
+        if not order.exists() or order.partner_id.commercial_partner_id != partner:
             raise AccessError(_("无权操作此订单"))
 
         try:
@@ -280,7 +285,7 @@ class EsimPortal(CustomerPortal):
     @http.route('/my/esim/profiles', type='http', auth='user', website=True)
     def portal_esim_profiles(self, page=1, **kw):
         """我的 eSIM 列表"""
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         Profile = request.env['esim.profile'].sudo()
         domain = [('partner_id', '=', partner.id)]
 
@@ -305,9 +310,9 @@ class EsimPortal(CustomerPortal):
     @http.route('/my/esim/profiles/<int:profile_id>', type='http', auth='user', website=True)
     def portal_esim_profile_detail(self, profile_id, **kw):
         """eSIM 详情页"""
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         profile = request.env['esim.profile'].sudo().browse(profile_id)
-        if not profile.exists() or profile.partner_id != partner:
+        if not profile.exists() or profile.partner_id.commercial_partner_id != partner:
             raise AccessError(_("无权访问此 eSIM"))
 
         # 获取可用的充值套餐
@@ -332,9 +337,9 @@ class EsimPortal(CustomerPortal):
                 website=True, methods=['POST'], csrf=True)
     def portal_esim_topup(self, profile_id, package_id, **kw):
         """门户充值"""
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         profile = request.env['esim.profile'].sudo().browse(profile_id)
-        if not profile.exists() or profile.partner_id != partner:
+        if not profile.exists() or profile.partner_id.commercial_partner_id != partner:
             raise AccessError(_("无权操作此 eSIM"))
 
         package = request.env['esim.package'].sudo().browse(int(package_id))
@@ -370,7 +375,7 @@ class EsimPortal(CustomerPortal):
     @http.route('/my/esim/balance', type='http', auth='user', website=True)
     def portal_esim_balance(self, page=1, **kw):
         """余额与交易记录页"""
-        partner = request.env.user.partner_id
+        partner = self._get_portal_partner()
         BalanceLog = request.env['esim.balance.log'].sudo()
         domain = [('partner_id', '=', partner.id)]
 
