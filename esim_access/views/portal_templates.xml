@@ -81,22 +81,73 @@
                 <t t-set="title">eSIM 套餐</t>
             </t>
 
-            <!-- 地区筛选 -->
-            <div class="row mb-3">
-                <div class="col-12">
-                    <div class="d-flex flex-wrap gap-2 align-items-center">
-                        <span class="fw-bold me-2">地区筛选：</span>
-                        <a t-attf-href="/my/esim/packages"
-                           t-attf-class="btn btn-sm #{'btn-primary' if not current_location else 'btn-outline-secondary'}">
-                            全部
-                        </a>
-                        <t t-foreach="available_locations" t-as="loc">
-                            <a t-attf-href="/my/esim/packages?location=#{loc}"
-                               t-attf-class="btn btn-sm #{'btn-primary' if current_location == loc else 'btn-outline-secondary'}">
-                                <t t-out="loc"/>
+            <!-- 组合筛选 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body">
+                    <form method="GET" action="/my/esim/packages" class="row g-3">
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label">地区</label>
+                            <select name="location" class="form-select">
+                                <option value="">全部地区</option>
+                                <t t-foreach="available_locations" t-as="loc">
+                                    <option t-att-value="loc"
+                                            t-att-selected="current_filters.get('location') == loc and 'selected' or None">
+                                        <t t-out="loc"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="col-lg-3 col-md-6">
+                            <label class="form-label">名称</label>
+                            <input type="text" name="name" class="form-control"
+                                   placeholder="输入套餐名称"
+                                   t-att-value="current_filters.get('name')"/>
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label">有效期</label>
+                            <select name="duration" class="form-select">
+                                <option value="">全部有效期</option>
+                                <t t-foreach="available_durations" t-as="duration_option">
+                                    <option t-att-value="duration_option['value']"
+                                            t-att-selected="current_filters.get('duration') == duration_option['value'] and 'selected' or None">
+                                        <t t-out="duration_option['label']"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label">流量</label>
+                            <select name="volume" class="form-select">
+                                <option value="">全部流量</option>
+                                <t t-foreach="available_volumes" t-as="volume_option">
+                                    <option t-att-value="volume_option['value']"
+                                            t-att-selected="current_filters.get('volume') == volume_option['value'] and 'selected' or None">
+                                        <t t-out="volume_option['label']"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="col-lg-2 col-md-6">
+                            <label class="form-label">流量类型</label>
+                            <select name="data_type" class="form-select">
+                                <option value="">全部类型</option>
+                                <t t-foreach="available_data_types" t-as="type_option">
+                                    <option t-att-value="type_option['value']"
+                                            t-att-selected="current_filters.get('data_type') == type_option['value'] and 'selected' or None">
+                                        <t t-out="type_option['label']"/>
+                                    </option>
+                                </t>
+                            </select>
+                        </div>
+                        <div class="col-12 d-flex flex-wrap gap-2">
+                            <button type="submit" class="btn btn-primary">
+                                <i class="fa fa-filter me-1"/>筛选
+                            </button>
+                            <a href="/my/esim/packages" class="btn btn-outline-secondary">
+                                清空条件
                             </a>
-                        </t>
-                    </div>
+                        </div>
+                    </form>
                 </div>
             </div>
 

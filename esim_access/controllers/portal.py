@@ -16,6 +16,32 @@ TRANSACTIONS_PER_PAGE = 20
 
 class EsimPortal(CustomerPortal):
 
+    @staticmethod
+    def _normalize_filter_value(value) -> str:
+        """统一处理筛选参数，避免 None 和空白字符串干扰 domain。"""
+        return (value or '').strip()
+
+    @staticmethod
+    def _get_package_duration_option(package) -> dict | None:
+        """构建有效期筛选项。"""
+        if not package.duration or not package.duration_unit:
+            return None
+        label_unit = '天' if package.duration_unit == 'DAY' else '月'
+        return {
+            'value': f"{package.duration}|{package.duration_unit}",
+            'label': f"{package.duration} {label_unit}",
+        }
+
+    @staticmethod
+    def _get_package_volume_option(package) -> dict | None:
+        """构建流量筛选项。"""
+        if package.volume in (None, False):
+            return None
+        return {
+            'value': str(package.volume),
+            'label': f"{package.volume:g} GB",
+        }
+
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         partner = request.env.user.partner_id
@@ -35,18 +61,62 @@ class EsimPortal(CustomerPortal):
     # ── 套餐浏览 ─────────────────────────────────────────
 
     @http.route('/my/esim/packages', type='http', auth='user', website=True)
-    def portal_esim_packages(self, page=1, location='', **kw):
+    def portal_esim_packages(
+        self,
+        page=1,
+        location='',
+        name='',
+        duration='',
+        volume='',
+        data_type='',
+        **kw,
+    ):
         """浏览可购买的 eSIM 套餐"""
+        location = self._normalize_filter_value(location)
+        name = self._normalize_filter_value(name)
+        duration = self._normalize_filter_value(duration)
+        volume = self._normalize_filter_value(volume)
+        data_type = self._normalize_filter_value(data_type)
+
         domain = [('is_published', '=', True), ('package_type', '=', 'BASE'), ('active', '=', True)]
         if location:
             domain.append(('location', 'ilike', location))
+        if name:
+            domain.append(('name', 'ilike', name))
+        if duration:
+            duration_value, _, duration_unit = duration.partition('|')
+            if duration_value.isdigit() and duration_unit:
+                domain.extend([
+                    ('duration', '=', int(duration_value)),
+                    ('duration_unit', '=', duration_unit),
+                ])
+        if volume:
+            try:
+                domain.append(('volume', '=', float(volume)))
+            except ValueError:
+                volume = ''
+        if data_type:
+            domain.append(('data_type', '=', data_type))
 
         Package = request.env['esim.package'].sudo()
+        all_packages = Package.search([
+            ('is_published', '=', True),
+            ('package_type', '=', 'BASE'),
+            ('active', '=', True),
+        ], order='location, volume, duration')
         package_count = Package.search_count(domain)
+
+        filter_args = {
+            'location': location,
+            'name': name,
+            'duration': duration,
+            'volume': volume,
+            'data_type': data_type,
+        }
 
         pager = portal_pager(
             url='/my/esim/packages',
-            url_args={'location': location},
+            url_args=filter_args,
             total=package_count,
             page=page,
             step=PACKAGES_PER_PAGE,
@@ -55,21 +125,36 @@ class EsimPortal(CustomerPortal):
         packages = Package.search(domain, limit=PACKAGES_PER_PAGE, offset=pager['offset'],
                                   order='location, volume, duration')
 
-        # 收集所有可用地区供筛选
         all_locations = set()
-        all_packages = Package.search([('is_published', '=', True), ('package_type', '=', 'BASE')])
+        all_durations = {}
+        all_volumes = {}
         for pkg in all_packages:
             if pkg.location:
                 for loc in pkg.location.split(','):
                     all_locations.add(loc.strip())
+            duration_option = self._get_package_duration_option(pkg)
+            if duration_option:
+                all_durations[duration_option['value']] = duration_option
+            volume_option = self._get_package_volume_option(pkg)
+            if volume_option:
+                all_volumes[volume_option['value']] = volume_option
+
+        data_type_map = dict(request.env['esim.package']._fields['data_type'].selection)
+        available_data_types = [
+            {'value': key, 'label': label}
+            for key, label in data_type_map.items()
+        ]
 
         values = {
             'packages': packages,
             'pager': pager,
             'page_name': 'esim_packages',
             'default_url': '/my/esim/packages',
-            'current_location': location,
+            'current_filters': filter_args,
             'available_locations': sorted(all_locations),
+            'available_durations': sorted(all_durations.values(), key=lambda item: item['label']),
+            'available_volumes': sorted(all_volumes.values(), key=lambda item: float(item['value'])),
+            'available_data_types': available_data_types,
         }
         return request.render('esim_access.portal_esim_packages', values)
 
