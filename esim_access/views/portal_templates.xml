@@ -154,6 +154,9 @@
          ══════════════════════════════════════════════════════ -->
     <template id="portal_esim_package_detail" name="Portal eSIM Package Detail">
         <t t-call="portal.portal_layout">
+            <!-- 统一归一化模板比较用的核心金额，避免空值参与大小比较 -->
+            <t t-set="current_balance" t-value="esim_balance or 0.0"/>
+            <t t-set="package_price" t-value="package.sale_price or 0.0"/>
 
             <t t-if="error_message">
                 <div class="alert alert-danger" role="alert">
@@ -194,15 +197,15 @@
                         <div class="col-md-6">
                             <div class="text-center py-4">
                                 <div class="display-4 text-primary fw-bold mb-3">
-                                    $<t t-out="'%.2f' % package.sale_price"/>
+                                    $<t t-out="'%.2f' % package_price"/>
                                 </div>
                                 <p class="text-muted" t-if="package.description">
                                     <t t-out="package.description"/>
                                 </p>
                                 <div class="mb-3 p-2 rounded bg-light text-center">
                                     <small class="text-muted">我的余额：</small>
-                                    <strong t-attf-class="#{esim_balance &lt; package.sale_price and 'text-danger' or 'text-success'}">
-                                        $<t t-out="'%.2f' % (esim_balance or 0)"/>
+                                    <strong t-attf-class="#{current_balance &lt; package_price and 'text-danger' or 'text-success'}">
+                                        $<t t-out="'%.2f' % current_balance"/>
                                     </strong>
                                 </div>
                                 <form method="POST" action="/my/esim/order">
@@ -222,7 +225,7 @@
                                                    class="form-control text-center"/>
                                         </div>
                                     </t>
-                                    <t t-if="esim_balance &lt; package.sale_price">
+                                    <t t-if="current_balance &lt; package_price">
                                         <div class="alert alert-warning small mb-3">
                                             余额不足，请先
                                             <a href="/my/esim/balance">充值</a>
