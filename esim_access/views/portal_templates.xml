@@ -158,8 +158,20 @@
                         <div class="card h-100 shadow-sm">
                             <div class="card-body d-flex flex-column">
                                 <h5 class="card-title"><t t-out="pkg.name"/></h5>
+                                <t t-set="location_list"
+                                   t-value="[item.strip() for item in (pkg.location or '').split(',') if item.strip()]"/>
                                 <div class="mb-2">
-                                    <span class="badge bg-info me-1"><t t-out="pkg.location"/></span>
+                                    <div class="d-flex flex-wrap gap-1">
+                                        <t t-foreach="location_list[:4]" t-as="loc">
+                                            <span class="badge bg-info"><t t-out="loc"/></span>
+                                        </t>
+                                        <span t-if="len(location_list) > 4" class="badge bg-secondary">
+                                            +<t t-out="len(location_list) - 4"/>
+                                        </span>
+                                        <span t-if="not location_list" class="badge bg-light text-muted border">
+                                            暂无地区信息
+                                        </span>
+                                    </div>
                                 </div>
                                 <ul class="list-unstyled flex-grow-1">
                                     <li>
@@ -223,9 +235,25 @@
                     <div class="row">
                         <div class="col-md-6">
                             <table class="table">
+                                <t t-set="location_list"
+                                   t-value="[item.strip() for item in (package.location or '').split(',') if item.strip()]"/>
                                 <tr>
                                     <th>覆盖地区</th>
-                                    <td><t t-out="package.location"/></td>
+                                    <td class="align-top">
+                                        <div class="d-flex flex-wrap gap-1">
+                                            <t t-foreach="location_list" t-as="loc">
+                                                <span class="badge bg-info-subtle text-dark border">
+                                                    <t t-out="loc"/>
+                                                </span>
+                                            </t>
+                                            <span t-if="not location_list" class="text-muted">
+                                                暂无地区信息
+                                            </span>
+                                        </div>
+                                        <div t-if="len(location_list) > 8" class="small text-muted mt-2">
+                                            共 <t t-out="len(location_list)"/> 个覆盖地区
+                                        </div>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th>流量</th>
