@@ -10,14 +10,14 @@
     <!-- 权限组：普通用户 -->
     <record id="group_esim_user" model="res.groups">
         <field name="name">eSIM 用户</field>
-        <field name="category_id" ref="module_category_esim"/>
+        <field name="category" ref="module_category_esim"/>
         <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
     </record>
 
     <!-- 权限组：管理员（继承普通用户） -->
     <record id="group_esim_manager" model="res.groups">
         <field name="name">eSIM 管理员</field>
-        <field name="category_id" ref="module_category_esim"/>
+        <field name="category" ref="module_category_esim"/>
         <field name="implied_ids" eval="[(4, ref('group_esim_user'))]"/>
     </record>
 
