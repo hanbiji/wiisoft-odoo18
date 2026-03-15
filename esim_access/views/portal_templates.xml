@@ -21,6 +21,13 @@
                 <t t-set="text">查看您的 eSIM 购买记录</t>
                 <t t-set="placeholder_count" t-value="'esim_order_count'"/>
             </t>
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/esim_access/static/description/icon.png'"/>
+                <t t-set="title">我的余额</t>
+                <t t-set="url" t-value="'/my/esim/balance'"/>
+                <t t-set="text" t-valuef="">余额: $#{esim_balance and '%.2f' % esim_balance or '0.00'}</t>
+                <t t-set="placeholder_count" t-value="'esim_balance'"/>
+            </t>
         </xpath>
     </template>
 
@@ -56,6 +63,9 @@
             </li>
             <li t-if="page_name == 'esim_profile_detail'" class="breadcrumb-item active">
                 <t t-out="profile.iccid"/>
+            </li>
+            <li t-if="page_name == 'esim_balance'" class="breadcrumb-item">
+                我的余额
             </li>
         </xpath>
     </template>
@@ -189,6 +199,12 @@
                                 <p class="text-muted" t-if="package.description">
                                     <t t-out="package.description"/>
                                 </p>
+                                <div class="mb-3 p-2 rounded bg-light text-center">
+                                    <small class="text-muted">我的余额：</small>
+                                    <strong t-attf-class="#{esim_balance &lt; package.sale_price and 'text-danger' or 'text-success'}">
+                                        $<t t-out="'%.2f' % (esim_balance or 0)"/>
+                                    </strong>
+                                </div>
                                 <form method="POST" action="/my/esim/order">
                                     <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
                                     <input type="hidden" name="package_id" t-att-value="package.id"/>
@@ -204,6 +220,12 @@
                                                    t-att-value="package.duration or 7"
                                                    min="1" max="365"
                                                    class="form-control text-center"/>
+                                        </div>
+                                    </t>
+                                    <t t-if="esim_balance &lt; package.sale_price">
+                                        <div class="alert alert-warning small mb-3">
+                                            余额不足，请先
+                                            <a href="/my/esim/balance">充值</a>
                                         </div>
                                     </t>
                                     <button type="submit" class="btn btn-primary btn-lg">
@@ -640,6 +662,87 @@
                 <a href="/my/esim/profiles" class="btn btn-outline-secondary">
                     <i class="fa fa-arrow-left me-1"/> 返回我的 eSIM
                 </a>
+            </div>
+        </t>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         余额与交易记录页
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_esim_balance" name="Portal eSIM Balance">
+        <t t-call="portal.portal_layout">
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">我的余额</t>
+            </t>
+
+            <!-- 余额卡片 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center py-4">
+                    <p class="text-muted mb-1">当前余额</p>
+                    <div class="display-4 fw-bold text-primary">
+                        $<t t-out="'%.2f' % (esim_balance or 0)"/>
+                    </div>
+                    <a href="/my/esim/packages" class="btn btn-outline-primary mt-3">
+                        <i class="fa fa-shopping-cart me-1"/> 购买套餐
+                    </a>
+                </div>
+            </div>
+
+            <!-- 交易记录 -->
+            <h5 class="mb-3">交易记录</h5>
+            <t t-if="logs">
+                <div class="table-responsive">
+                    <table class="table table-hover">
+                        <thead class="table-light">
+                            <tr>
+                                <th>编号</th>
+                                <th>时间</th>
+                                <th>类型</th>
+                                <th>金额</th>
+                                <th>变动后余额</th>
+                                <th>说明</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            <t t-foreach="logs" t-as="log">
+                                <tr>
+                                    <td><t t-out="log.name"/></td>
+                                    <td><t t-out="log.create_date" t-options="{'widget': 'datetime'}"/></td>
+                                    <td>
+                                        <span t-attf-class="badge #{
+                                            'bg-success' if log.type == 'topup' else
+                                            'bg-danger' if log.type == 'consume' else
+                                            'bg-info'}">
+                                            <t t-if="log.type == 'topup'">充值</t>
+                                            <t t-if="log.type == 'consume'">消费</t>
+                                            <t t-if="log.type == 'refund'">退款</t>
+                                        </span>
+                                    </td>
+                                    <td>
+                                        <span t-attf-class="#{log.type == 'consume' and 'text-danger' or 'text-success'}">
+                                            <t t-if="log.type == 'consume'">-</t>
+                                            <t t-else="">+</t>
+                                            $<t t-out="'%.2f' % log.amount"/>
+                                        </span>
+                                    </td>
+                                    <td>$<t t-out="'%.2f' % log.balance_after"/></td>
+                                    <td class="text-muted"><t t-out="log.description"/></td>
+                                </tr>
+                            </t>
+                        </tbody>
+                    </table>
+                </div>
+            </t>
+
+            <t t-if="not logs">
+                <div class="text-center py-5 text-muted">
+                    <i class="fa fa-list fa-3x mb-3 d-block"/>
+                    <p>暂无交易记录</p>
+                </div>
+            </t>
+
+            <div class="d-flex justify-content-center">
+                <t t-call="portal.pager"/>
             </div>
         </t>
     </template>

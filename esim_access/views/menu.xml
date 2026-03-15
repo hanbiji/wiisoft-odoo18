@@ -37,6 +37,25 @@
               action="action_esim_topup"
               sequence="40"/>
 
+    <!-- 一级子菜单：财务 -->
+    <menuitem id="menu_esim_finance"
+              name="财务"
+              parent="menu_esim_root"
+              groups="esim_access.group_esim_manager"
+              sequence="20"/>
+
+    <menuitem id="menu_esim_balance_log"
+              name="余额变动记录"
+              parent="menu_esim_finance"
+              action="action_esim_balance_log"
+              sequence="10"/>
+
+    <menuitem id="menu_esim_balance_topup"
+              name="客户充值"
+              parent="menu_esim_finance"
+              action="action_esim_balance_topup_wizard"
+              sequence="20"/>
+
     <!-- 一级子菜单：配置 -->
     <menuitem id="menu_esim_config"
               name="配置"

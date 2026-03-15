@@ -84,10 +84,19 @@ class EsimOrder(models.Model):
         return info
 
     def action_confirm(self) -> None:
-        """确认订单并调用 API 下单"""
+        """确认订单：余额校验 → 扣款 → 调用 API 下单"""
         for order in self:
             if order.state != 'draft':
                 raise UserError(_("只能确认草稿状态的订单"))
+
+            # 余额校验与扣款
+            partner = order.partner_id
+            partner._esim_change_balance(
+                log_type='consume',
+                amount=order.total_amount,
+                description=_("购买套餐: %s × %d") % (order.package_id.name, order.quantity),
+                order_id=order.id,
+            )
 
             api_client = self.env['esim.package']._get_api_client()
             transaction_id = uuid.uuid4().hex
@@ -101,6 +110,13 @@ class EsimOrder(models.Model):
                     amount=total_amount,
                 )
             except EsimAccessAPIError as e:
+                # API 下单失败，退回余额
+                partner._esim_change_balance(
+                    log_type='refund',
+                    amount=order.total_amount,
+                    description=_("下单失败自动退款: %s") % e.error_msg,
+                    order_id=order.id,
+                )
                 order.write({'state': 'failed'})
                 order.message_post(body=_("下单失败: [%s] %s") % (e.error_code, e.error_msg))
                 raise UserError(_("下单失败: %s") % e.error_msg) from e
@@ -111,10 +127,26 @@ class EsimOrder(models.Model):
                 'api_order_no': result.get('orderNo', ''),
                 'order_date': fields.Datetime.now(),
             })
-            order.message_post(body=_("订单已提交至 eSIM Access，等待处理"))
+            order.message_post(body=_("订单已提交至 eSIM Access，已扣款 $%.2f") % order.total_amount)
+
+    def _has_balance_consumed(self) -> bool:
+        """检查该订单是否已扣过余额"""
+        self.ensure_one()
+        return bool(self.env['esim.balance.log'].search_count([
+            ('order_id', '=', self.id),
+            ('type', '=', 'consume'),
+        ]))
+
+    def _has_balance_refunded(self) -> bool:
+        """检查该订单是否已退过款"""
+        self.ensure_one()
+        return bool(self.env['esim.balance.log'].search_count([
+            ('order_id', '=', self.id),
+            ('type', '=', 'refund'),
+        ]))
 
     def action_cancel(self) -> None:
-        """取消订单"""
+        """取消订单，退还已扣余额"""
         for order in self:
             if order.state not in ('draft', 'confirmed', 'processing'):
                 raise UserError(_("当前状态不允许取消"))
@@ -125,6 +157,15 @@ class EsimOrder(models.Model):
                     api_client.cancel_order(order.api_order_no)
                 except EsimAccessAPIError as e:
                     raise UserError(_("取消失败: %s") % e.error_msg) from e
+
+            # 退还已扣余额（仅当已扣款且未退款时）
+            if order._has_balance_consumed() and not order._has_balance_refunded():
+                order.partner_id._esim_change_balance(
+                    log_type='refund',
+                    amount=order.total_amount,
+                    description=_("取消订单退款: %s") % order.name,
+                    order_id=order.id,
+                )
 
             order.write({'state': 'cancelled'})
             order.message_post(body=_("订单已取消"))

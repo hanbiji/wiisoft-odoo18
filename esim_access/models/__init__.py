@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 from . import esim_config
+from . import esim_balance
 from . import esim_package
 from . import esim_order
 from . import esim_profile

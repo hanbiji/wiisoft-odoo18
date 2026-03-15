@@ -97,4 +97,24 @@
         <field name="perm_unlink" eval="False"/>
     </record>
 
+    <!-- 记录规则：管理员可查看所有余额变动记录 -->
+    <record id="rule_esim_balance_log_manager" model="ir.rule">
+        <field name="name">余额日志：管理员全部访问</field>
+        <field name="model_id" ref="model_esim_balance_log"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_esim_manager'))]"/>
+    </record>
+
+    <!-- 记录规则：门户用户只能查看自己的余额变动记录 -->
+    <record id="rule_esim_balance_log_portal" model="ir.rule">
+        <field name="name">余额日志：门户用户</field>
+        <field name="model_id" ref="model_esim_balance_log"/>
+        <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
 </odoo>

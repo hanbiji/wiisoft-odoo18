@@ -7,7 +7,11 @@ access_esim_profile_user,esim.profile.user,model_esim_profile,group_esim_user,1,
 access_esim_profile_manager,esim.profile.manager,model_esim_profile,group_esim_manager,1,1,1,1
 access_esim_topup_user,esim.topup.user,model_esim_topup,group_esim_user,1,1,1,0
 access_esim_topup_manager,esim.topup.manager,model_esim_topup,group_esim_manager,1,1,1,1
+access_esim_balance_log_user,esim.balance.log.user,model_esim_balance_log,group_esim_user,1,0,0,0
+access_esim_balance_log_manager,esim.balance.log.manager,model_esim_balance_log,group_esim_manager,1,1,1,0
+access_esim_balance_topup_wizard_manager,esim.balance.topup.wizard.manager,model_esim_balance_topup_wizard,group_esim_manager,1,1,1,0
 access_esim_package_portal,esim.package.portal,model_esim_package,base.group_portal,1,0,0,0
 access_esim_order_portal,esim.order.portal,model_esim_order,base.group_portal,1,0,0,0
 access_esim_profile_portal,esim.profile.portal,model_esim_profile,base.group_portal,1,0,0,0
 access_esim_topup_portal,esim.topup.portal,model_esim_topup,base.group_portal,1,0,0,0
+access_esim_balance_log_portal,esim.balance.log.portal,model_esim_balance_log,base.group_portal,1,0,0,0

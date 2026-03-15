@@ -11,6 +11,7 @@ _logger = logging.getLogger(__name__)
 
 PACKAGES_PER_PAGE = 12
 PROFILES_PER_PAGE = 10
+TRANSACTIONS_PER_PAGE = 20
 
 
 class EsimPortal(CustomerPortal):
@@ -27,6 +28,8 @@ class EsimPortal(CustomerPortal):
             values['esim_order_count'] = request.env['esim.order'].sudo().search_count(
                 [('partner_id', '=', partner.id)]
             )
+        if 'esim_balance' in counters:
+            values['esim_balance'] = partner.sudo().esim_balance
         return values
 
     # ── 套餐浏览 ─────────────────────────────────────────
@@ -77,8 +80,10 @@ class EsimPortal(CustomerPortal):
         if not package.exists() or not package.is_published:
             raise MissingError(_("套餐不存在"))
 
+        partner = request.env.user.partner_id
         values = {
             'package': package,
+            'esim_balance': partner.sudo().esim_balance,
             'page_name': 'esim_package_detail',
         }
         return request.render('esim_access.portal_esim_package_detail', values)
@@ -248,3 +253,33 @@ class EsimPortal(CustomerPortal):
             return request.render('esim_access.portal_esim_profile_detail', values)
 
         return request.redirect(f'/my/esim/profiles/{profile.id}')
+
+    # ── 余额与交易记录 ─────────────────────────────────────
+
+    @http.route('/my/esim/balance', type='http', auth='user', website=True)
+    def portal_esim_balance(self, page=1, **kw):
+        """余额与交易记录页"""
+        partner = request.env.user.partner_id
+        BalanceLog = request.env['esim.balance.log'].sudo()
+        domain = [('partner_id', '=', partner.id)]
+
+        log_count = BalanceLog.search_count(domain)
+        pager = portal_pager(
+            url='/my/esim/balance',
+            total=log_count,
+            page=page,
+            step=TRANSACTIONS_PER_PAGE,
+        )
+        logs = BalanceLog.search(
+            domain, limit=TRANSACTIONS_PER_PAGE, offset=pager['offset'],
+            order='create_date desc',
+        )
+
+        values = {
+            'logs': logs,
+            'esim_balance': partner.sudo().esim_balance,
+            'pager': pager,
+            'page_name': 'esim_balance',
+            'default_url': '/my/esim/balance',
+        }
+        return request.render('esim_access.portal_esim_balance', values)

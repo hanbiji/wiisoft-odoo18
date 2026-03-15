@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_esim_balance_topup_wizard_form" model="ir.ui.view">
+        <field name="name">esim.balance.topup.wizard.form</field>
+        <field name="model">esim.balance.topup.wizard</field>
+        <field name="arch" type="xml">
+            <form string="客户余额充值">
+                <group>
+                    <field name="partner_id" readonly="context.get('default_partner_id')"/>
+                    <field name="current_balance"/>
+                    <field name="amount"/>
+                    <field name="note" placeholder="可选备注..."/>
+                </group>
+                <footer>
+                    <button name="action_topup" type="object"
+                            string="确认充值" class="btn-primary"
+                            confirm="确定要为该客户充值吗？"/>
+                    <button string="取消" class="btn-secondary" special="cancel"/>
+                </footer>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_esim_balance_topup_wizard" model="ir.actions.act_window">
+        <field name="name">客户充值</field>
+        <field name="res_model">esim.balance.topup.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+    </record>
+
+</odoo>
