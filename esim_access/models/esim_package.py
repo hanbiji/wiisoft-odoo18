@@ -100,6 +100,33 @@ class EsimPackage(models.Model):
             },
         }
 
+    def _set_portal_publish_state(self, is_published: bool) -> dict:
+        """批量更新门户展示状态，并在列表页刷新结果。"""
+        if not self:
+            raise UserError(_("请先选择要修改的套餐。"))
+
+        self.write({'is_published': is_published})
+        target_status = _("展示") if is_published else _("隐藏")
+        return {
+            'type': 'ir.actions.client',
+            'tag': 'display_notification',
+            'params': {
+                'title': _("批量更新成功"),
+                'message': _("已将 %d 个套餐设置为门户%s。") % (len(self), target_status),
+                'type': 'success',
+                'sticky': False,
+                'next': {'type': 'ir.actions.client', 'tag': 'reload'},
+            },
+        }
+
+    def action_publish_to_portal(self) -> dict:
+        """批量设为门户展示。"""
+        return self._set_portal_publish_state(True)
+
+    def action_unpublish_from_portal(self) -> dict:
+        """批量取消门户展示。"""
+        return self._set_portal_publish_state(False)
+
     @api.model
     def _sync_packages_from_api(self, location_code: str = '') -> int:
         """从 API 同步套餐到本地数据库，返回同步数量"""

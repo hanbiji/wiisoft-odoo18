@@ -33,6 +33,26 @@
         </field>
     </record>
 
+    <record id="action_esim_package_publish_to_portal" model="ir.actions.server">
+        <field name="name">批量设为门户展示</field>
+        <field name="model_id" ref="model_esim_package"/>
+        <field name="binding_model_id" ref="model_esim_package"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_publish_to_portal()</field>
+        <field name="groups_id" eval="[(6, 0, [ref('esim_access.group_esim_manager')])]"/>
+    </record>
+
+    <record id="action_esim_package_unpublish_from_portal" model="ir.actions.server">
+        <field name="name">批量取消门户展示</field>
+        <field name="model_id" ref="model_esim_package"/>
+        <field name="binding_model_id" ref="model_esim_package"/>
+        <field name="binding_view_types">list</field>
+        <field name="state">code</field>
+        <field name="code">action = records.action_unpublish_from_portal()</field>
+        <field name="groups_id" eval="[(6, 0, [ref('esim_access.group_esim_manager')])]"/>
+    </record>
+
     <!-- ── 表单视图 ──────────────────────────────────────── -->
     <record id="view_esim_package_form" model="ir.ui.view">
         <field name="name">esim.package.form</field>
