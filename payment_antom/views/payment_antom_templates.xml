@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8" ?>
+<odoo>
+
+    <!-- Antom 重定向表单模板：通过 GET 方式将买家重定向至 Antom 收银台页面 -->
+    <template id="redirect_form">
+        <form t-att-action="api_url" method="get">
+        </form>
+    </template>
+
+</odoo>
