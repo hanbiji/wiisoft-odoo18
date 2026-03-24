@@ -3,6 +3,7 @@
 import json
 import logging
 import pprint
+from typing import Any
 
 from werkzeug.exceptions import Forbidden
 
@@ -21,7 +22,7 @@ class AntomController(http.Controller):
     _notify_url = '/payment/antom/notify'
 
     @http.route(_return_url, type='http', auth='public', methods=['GET'])
-    def antom_return(self, **data):
+    def antom_return(self, **data: Any):
         """处理买家支付后的同步重定向。
 
         买家完成支付后 Antom 将其重定向回此 URL。
@@ -83,7 +84,7 @@ class AntomController(http.Controller):
         return request.make_json_response(response_body)
 
     @staticmethod
-    def _verify_notification_signature(raw_body: str):
+    def _verify_notification_signature(raw_body: str) -> None:
         """验证 Antom 异步通知的 RSA 签名。
 
         从请求头中获取 client-id、request-time、signature，
@@ -136,7 +137,7 @@ class AntomController(http.Controller):
             raise Forbidden()
 
     @staticmethod
-    def _inquiry_payment_status(tx_sudo):
+    def _inquiry_payment_status(tx_sudo) -> None:
         """通过 inquiryPayment API 查询支付最终状态。
 
         用于同步返回时交易尚未收到异步通知的兜底场景。

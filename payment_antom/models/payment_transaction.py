@@ -2,6 +2,7 @@
 
 import logging
 import pprint
+from typing import Any
 
 from werkzeug import urls
 
@@ -22,7 +23,9 @@ class PaymentTransaction(models.Model):
         help="Antom 平台分配的唯一支付标识",
     )
 
-    def _get_specific_rendering_values(self, processing_values):
+    def _get_specific_rendering_values(
+        self, processing_values: dict[str, Any]
+    ) -> dict[str, Any]:
         """Override of `payment` to return Antom-specific rendering values.
 
         调用 Antom pay API 创建支付订单，获取重定向 URL。
@@ -102,7 +105,9 @@ class PaymentTransaction(models.Model):
             'api_url': redirect_url,
         }
 
-    def _get_tx_from_notification_data(self, provider_code, notification_data):
+    def _get_tx_from_notification_data(
+        self, provider_code: str, notification_data: dict[str, Any]
+    ):
         """Override of `payment` to find the transaction based on Antom data.
 
         Antom 通知使用 paymentRequestId 标识交易，即 Odoo 的 reference。
@@ -129,7 +134,7 @@ class PaymentTransaction(models.Model):
             )
         return tx
 
-    def _process_notification_data(self, notification_data):
+    def _process_notification_data(self, notification_data: dict[str, Any]) -> None:
         """Override of `payment` to process the transaction based on Antom data.
 
         Note: self.ensure_one()

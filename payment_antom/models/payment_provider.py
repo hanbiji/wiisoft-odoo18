@@ -4,6 +4,7 @@ import json
 import logging
 import pprint
 import time
+from typing import Any
 
 import requests
 
@@ -68,7 +69,9 @@ class PaymentProvider(models.Model):
             return '/ams/api'
         return '/ams/sandbox/api'
 
-    def _antom_make_request(self, api_path: str, payload: dict) -> dict:
+    def _antom_make_request(
+        self, api_path: str, payload: dict[str, Any]
+    ) -> dict[str, Any]:
         """向 Antom API 发送签名请求并验证响应签名。
 
         :param api_path: API 路径，如 /v1/payments/pay
@@ -112,8 +115,9 @@ class PaymentProvider(models.Model):
             error_msg = ''
             try:
                 error_msg = response.json().get('result', {}).get('resultMessage', '')
-            except Exception:
-                pass
+            except ValueError as exc:
+                # HTTP 错误响应可能不是 JSON，记录后回落到通用提示。
+                _logger.debug("Failed to parse Antom error response as JSON: %s", exc)
             raise ValidationError(
                 "Antom: " + _("API request failed. Details: %s", error_msg)
             )
@@ -163,7 +167,7 @@ class PaymentProvider(models.Model):
             )
         return supported_currencies
 
-    def _get_default_payment_method_codes(self):
+    def _get_default_payment_method_codes(self) -> set[str]:
         """Override of `payment` to return the default payment method codes."""
         default_codes = super()._get_default_payment_method_codes()
         if self.code != 'antom':
