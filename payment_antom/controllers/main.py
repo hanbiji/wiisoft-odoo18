@@ -105,9 +105,8 @@ class AntomController(http.Controller):
             )
             raise Forbidden()
 
-        sig_parts = antom_utils.parse_signature_header(signature_header)
-        sig_value = sig_parts.get('signature', '')
-        if not sig_value:
+        rsp_signature = antom_utils.parse_signature_header(signature_header)
+        if not rsp_signature:
             _logger.warning("Antom notification signature header has no signature value.")
             raise Forbidden()
 
@@ -123,15 +122,16 @@ class AntomController(http.Controller):
 
         if not provider_sudo or not provider_sudo.antom_public_key:
             _logger.warning(
-                "No active Antom provider found for client_id: %s", client_id
+                "No active Antom provider found for client_id: %s", client_id,
             )
             raise Forbidden()
 
-        public_key_pem = antom_utils.build_antom_public_key_pem(
-            provider_sudo.antom_public_key
+        public_key_pem = antom_utils.build_public_key_pem(
+            provider_sudo.antom_public_key,
         )
         if not antom_utils.verify_signature(
-            request_uri, client_id, request_time, raw_body, sig_value, public_key_pem
+            request_uri, client_id, request_time, raw_body,
+            rsp_signature, public_key_pem,
         ):
             _logger.warning("Antom notification signature verification failed.")
             raise Forbidden()

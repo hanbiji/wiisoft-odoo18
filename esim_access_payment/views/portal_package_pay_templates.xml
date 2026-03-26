@@ -1,0 +1,103 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════
+         面包屑导航
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_breadcrumbs_package_pay" name="Portal Breadcrumbs - Package Pay"
+              inherit_id="portal.portal_breadcrumbs" priority="46">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'esim_package_pay'" class="breadcrumb-item">
+                <a href="/my/esim/packages">套餐列表</a>
+            </li>
+            <li t-if="page_name == 'esim_package_pay'" class="breadcrumb-item active">
+                在线支付
+            </li>
+        </xpath>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         套餐在线支付页（嵌入 payment.form）
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_package_pay" name="Portal eSIM Package Pay">
+        <t t-call="portal.portal_layout">
+
+            <div class="row justify-content-center my-3">
+                <div class="col-lg-7">
+
+                    <!-- 订单摘要 -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-header bg-primary text-white">
+                            <h5 class="mb-0">订单确认</h5>
+                        </div>
+                        <div class="card-body">
+                            <table class="table table-borderless mb-0">
+                                <tr>
+                                    <th class="text-muted">套餐</th>
+                                    <td><t t-out="package.name"/></td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">单价</th>
+                                    <td>$<t t-out="'%.2f' % package.sale_price"/></td>
+                                </tr>
+                                <tr>
+                                    <th class="text-muted">数量</th>
+                                    <td><t t-out="quantity"/></td>
+                                </tr>
+                                <tr t-if="period_num">
+                                    <th class="text-muted">使用天数</th>
+                                    <td><t t-out="period_num"/> 天</td>
+                                </tr>
+                                <tr class="border-top">
+                                    <th>合计</th>
+                                    <td>
+                                        <span class="h4 text-primary fw-bold mb-0">
+                                            $<t t-out="'%.2f' % total_amount"/>
+                                        </span>
+                                    </td>
+                                </tr>
+                            </table>
+                        </div>
+                    </div>
+
+                    <!-- 支付表单 -->
+                    <div t-if="not amount" class="alert alert-info">
+                        无需支付。
+                    </div>
+                    <div t-elif="not payment_methods_sudo and not tokens_sudo"
+                         class="alert alert-warning">
+                        <strong>提示</strong> 当前没有可用的支付方式，请联系管理员。
+                    </div>
+                    <t t-else="">
+                        <t t-call="payment.form"/>
+                    </t>
+
+                    <div class="mt-3">
+                        <a t-attf-href="/my/esim/packages/#{package.id}"
+                           class="btn btn-outline-secondary">
+                            <i class="fa fa-arrow-left me-1"/> 返回套餐详情
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         继承套餐详情页：添加"在线支付"按钮
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_package_detail_pay_button"
+              name="Portal Package Detail - Online Pay Button"
+              inherit_id="esim_access.portal_esim_package_detail" priority="20">
+        <!-- 在"立即购买"按钮后面添加在线支付按钮 -->
+        <xpath expr="//button[@type='submit'][hasclass('btn-primary')]" position="after">
+            <button type="submit"
+                    t-attf-formaction="/my/esim/package/pay/#{package.id}"
+                    formmethod="GET"
+                    class="btn btn-success btn-lg ms-2">
+                <i class="fa fa-credit-card me-2"/>在线支付
+            </button>
+        </xpath>
+    </template>
+
+</odoo>

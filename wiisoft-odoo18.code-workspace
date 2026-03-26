@@ -4,7 +4,7 @@
 			"path": "."
 		},
 		{
-			"path": "../../odoo-18.0/odoo-18.0"
+			"path": "../../odoo-19.0"
 		}
 	],
 	"settings": {}

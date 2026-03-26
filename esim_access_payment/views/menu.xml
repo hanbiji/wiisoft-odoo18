@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- 在"财务"菜单下添加在线充值记录 -->
+    <menuitem id="menu_esim_balance_recharge"
+              name="在线充值记录"
+              parent="esim_access.menu_esim_finance"
+              action="action_esim_balance_recharge"
+              sequence="15"/>
+
+    <!-- 在"配置"菜单下添加充值档位管理 -->
+    <menuitem id="menu_esim_recharge_option"
+              name="充值档位"
+              parent="esim_access.menu_esim_config"
+              action="action_esim_recharge_option"
+              sequence="20"/>
+
+</odoo>

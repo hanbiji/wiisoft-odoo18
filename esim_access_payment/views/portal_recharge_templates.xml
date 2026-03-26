@@ -1,0 +1,128 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════
+         面包屑导航
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_breadcrumbs_recharge" name="Portal Breadcrumbs - Recharge"
+              inherit_id="portal.portal_breadcrumbs" priority="45">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'esim_recharge'" class="breadcrumb-item">
+                在线充值
+            </li>
+            <li t-if="page_name == 'esim_recharge_pay'" class="breadcrumb-item">
+                <a href="/my/esim/recharge">在线充值</a>
+            </li>
+            <li t-if="page_name == 'esim_recharge_pay'" class="breadcrumb-item active">
+                确认支付
+            </li>
+        </xpath>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         充值档位选择页
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_recharge_options" name="Portal eSIM Recharge Options">
+        <t t-call="portal.portal_layout">
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">在线充值</t>
+            </t>
+
+            <!-- 当前余额 -->
+            <div class="card shadow-sm mb-4">
+                <div class="card-body text-center py-3">
+                    <span class="text-muted">当前余额：</span>
+                    <strong class="h5 text-primary ms-2">
+                        $<t t-out="'%.2f' % (esim_balance or 0)"/>
+                    </strong>
+                </div>
+            </div>
+
+            <t t-if="options">
+                <div class="row">
+                    <t t-foreach="options" t-as="opt">
+                        <div class="col-lg-3 col-md-4 col-6 mb-4">
+                            <div class="card h-100 shadow-sm text-center">
+                                <div class="card-body d-flex flex-column justify-content-center py-4">
+                                    <div class="display-6 fw-bold text-primary mb-2">
+                                        <t t-out="opt.currency_id.symbol"/><t t-out="'%.2f' % opt.amount"/>
+                                    </div>
+                                    <p class="text-muted mb-3">
+                                        <t t-out="opt.name"/>
+                                    </p>
+                                    <a t-attf-href="/my/esim/recharge/#{opt.id}"
+                                       class="btn btn-primary">
+                                        选择
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </div>
+            </t>
+
+            <t t-if="not options">
+                <div class="text-center py-5 text-muted">
+                    <i class="fa fa-credit-card fa-3x mb-3 d-block"/>
+                    <p>暂无可用充值档位</p>
+                </div>
+            </t>
+
+            <div class="mt-3">
+                <a href="/my/esim/balance" class="btn btn-outline-secondary">
+                    <i class="fa fa-arrow-left me-1"/> 返回余额
+                </a>
+            </div>
+        </t>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
+         支付页（嵌入 payment.form）
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_recharge_pay" name="Portal eSIM Recharge Pay">
+        <t t-call="portal.portal_layout">
+
+            <div class="row justify-content-center my-3">
+                <div class="col-lg-7">
+
+                    <!-- 充值摘要 -->
+                    <div class="card shadow-sm mb-4">
+                        <div class="card-body text-center py-4">
+                            <h5 class="mb-3">充值金额</h5>
+                            <div class="display-4 fw-bold text-primary mb-2">
+                                <t t-out="option.currency_id.symbol"/><t t-out="'%.2f' % option.amount"/>
+                            </div>
+                            <p class="text-muted mb-0">
+                                <t t-out="option.name"/>
+                            </p>
+                            <div class="mt-2 small text-muted">
+                                当前余额：$<t t-out="'%.2f' % (esim_balance or 0)"/>
+                                <i class="fa fa-arrow-right mx-1"/>
+                                充值后：$<t t-out="'%.2f' % ((esim_balance or 0) + option.amount)"/>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- 支付表单 -->
+                    <div t-if="not amount" class="alert alert-info">
+                        无需支付。
+                    </div>
+                    <div t-elif="not payment_methods_sudo and not tokens_sudo"
+                         class="alert alert-warning">
+                        <strong>提示</strong> 当前没有可用的支付方式，请联系管理员。
+                    </div>
+                    <t t-else="">
+                        <t t-call="payment.form"/>
+                    </t>
+
+                    <div class="mt-3">
+                        <a href="/my/esim/recharge" class="btn btn-outline-secondary">
+                            <i class="fa fa-arrow-left me-1"/> 重新选择
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </t>
+    </template>
+
+</odoo>

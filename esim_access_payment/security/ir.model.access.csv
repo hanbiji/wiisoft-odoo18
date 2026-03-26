@@ -1,0 +1,7 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_esim_recharge_option_user,esim.recharge.option.user,model_esim_recharge_option,esim_access.group_esim_user,1,0,0,0
+access_esim_recharge_option_manager,esim.recharge.option.manager,model_esim_recharge_option,esim_access.group_esim_manager,1,1,1,1
+access_esim_recharge_option_portal,esim.recharge.option.portal,model_esim_recharge_option,base.group_portal,1,0,0,0
+access_esim_balance_recharge_user,esim.balance.recharge.user,model_esim_balance_recharge,esim_access.group_esim_user,1,1,1,0
+access_esim_balance_recharge_manager,esim.balance.recharge.manager,model_esim_balance_recharge,esim_access.group_esim_manager,1,1,1,1
+access_esim_balance_recharge_portal,esim.balance.recharge.portal,model_esim_balance_recharge,base.group_portal,1,0,0,0

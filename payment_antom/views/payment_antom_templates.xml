@@ -1,9 +1,12 @@
 <?xml version="1.0" encoding="utf-8" ?>
 <odoo>
 
-    <!-- Antom 重定向表单模板：通过 GET 方式将买家重定向至 Antom 收银台页面 -->
+    <!-- Antom 重定向表单：将查询参数作为 hidden input 以避免 GET form 丢参数 -->
     <template id="redirect_form">
         <form t-att-action="api_url" method="get">
+            <t t-foreach="url_params" t-as="param">
+                <input type="hidden" t-att-name="param[0]" t-att-value="param[1]"/>
+            </t>
         </form>
     </template>
 

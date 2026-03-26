@@ -114,50 +114,65 @@ class EsimOrder(models.Model):
         return info
 
     def action_confirm(self) -> None:
-        """确认订单：余额校验 → 扣款 → 调用 API 下单"""
+        """确认订单：扣款 → 调用 API 下单。子模块可覆盖钩子方法以改变扣款行为。"""
         for order in self:
             if order.state != 'draft':
                 raise UserError(_("只能确认草稿状态的订单"))
 
-            # 余额校验与扣款
-            partner = order.partner_id
-            partner._esim_change_balance(
-                log_type='consume',
-                amount=order.total_amount,
-                description=_("购买套餐: %s × %d") % (order.package_id.name, order.quantity),
-                order_id=order.id,
-            )
-
-            api_client = self.env['esim.package']._get_api_client()
-            transaction_id = uuid.uuid4().hex
-            package_info = order._build_package_info()
-            total_amount = package_info['price'] * package_info['count']
-
+            order._confirm_deduct_balance()
             try:
-                result = api_client.place_order(
-                    transaction_id=transaction_id,
-                    package_info_list=[package_info],
-                    amount=total_amount,
-                )
-            except EsimAccessAPIError as e:
-                # API 下单失败，退回余额
-                partner._esim_change_balance(
-                    log_type='refund',
-                    amount=order.total_amount,
-                    description=_("下单失败自动退款: %s") % e.error_msg,
-                    order_id=order.id,
-                )
-                order.write({'state': 'failed'})
-                order.message_post(body=_("下单失败: [%s] %s") % (e.error_code, e.error_msg))
-                raise UserError(_("下单失败: %s") % e.error_msg) from e
+                order._confirm_place_order()
+            except UserError:
+                order._confirm_refund_on_failure()
+                raise
 
-            order.write({
-                'state': 'processing',
-                'transaction_id': transaction_id,
-                'api_order_no': result.get('orderNo', ''),
-                'order_date': fields.Datetime.now(),
-            })
-            order.message_post(body=_("订单已提交至 eSIM Access，已扣款 $%.2f") % order.total_amount)
+    def _confirm_deduct_balance(self) -> None:
+        """确认订单时从客户余额扣款。桥接模块可覆盖此方法跳过余额扣款。"""
+        self.ensure_one()
+        self.partner_id._esim_change_balance(
+            log_type='consume',
+            amount=self.total_amount,
+            description=_("购买套餐: %s × %d") % (self.package_id.name, self.quantity),
+            order_id=self.id,
+        )
+
+    def _confirm_place_order(self) -> None:
+        """调用 eSIM Access API 下单并更新订单状态。"""
+        self.ensure_one()
+        api_client = self.env['esim.package']._get_api_client()
+        transaction_id = uuid.uuid4().hex
+        package_info = self._build_package_info()
+        total_amount = package_info['price'] * package_info['count']
+
+        try:
+            result = api_client.place_order(
+                transaction_id=transaction_id,
+                package_info_list=[package_info],
+                amount=total_amount,
+            )
+        except EsimAccessAPIError as e:
+            self.write({'state': 'failed'})
+            self.message_post(body=_("下单失败: [%s] %s") % (e.error_code, e.error_msg))
+            raise UserError(_("下单失败: %s") % e.error_msg) from e
+
+        self.write({
+            'state': 'processing',
+            'transaction_id': transaction_id,
+            'api_order_no': result.get('orderNo', ''),
+            'order_date': fields.Datetime.now(),
+        })
+        self.message_post(body=_("订单已提交至 eSIM Access"))
+
+    def _confirm_refund_on_failure(self) -> None:
+        """API 下单失败时退还已扣余额。桥接模块可覆盖此方法改变退款行为。"""
+        self.ensure_one()
+        if self._has_balance_consumed() and not self._has_balance_refunded():
+            self.partner_id._esim_change_balance(
+                log_type='refund',
+                amount=self.total_amount,
+                description=_("下单失败自动退款: %s") % self.name,
+                order_id=self.id,
+            )
 
     def _has_balance_consumed(self) -> bool:
         """检查该订单是否已扣过余额"""

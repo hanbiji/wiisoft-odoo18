@@ -3,6 +3,7 @@
 import logging
 import pprint
 from typing import Any
+from urllib.parse import urlparse, parse_qsl, urlunparse
 
 from werkzeug import urls
 
@@ -101,8 +102,15 @@ class PaymentTransaction(models.Model):
                 "Antom: " + _("No redirect URL received from Antom.")
             )
 
+        # GET form 提交时浏览器会丢弃 action URL 上的查询参数，
+        # 需要拆分为 base URL + hidden input 字段。
+        parsed = urlparse(redirect_url)
+        base_url = urlunparse(parsed._replace(query=''))
+        url_params = parse_qsl(parsed.query, keep_blank_values=True)
+
         return {
-            'api_url': redirect_url,
+            'api_url': base_url,
+            'url_params': url_params,
         }
 
     def _get_tx_from_notification_data(

@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+
+    <record id="recharge_option_10" model="esim.recharge.option">
+        <field name="name">充值 $10</field>
+        <field name="amount">10.00</field>
+        <field name="currency_id" ref="base.USD"/>
+        <field name="sequence">10</field>
+    </record>
+
+    <record id="recharge_option_20" model="esim.recharge.option">
+        <field name="name">充值 $20</field>
+        <field name="amount">20.00</field>
+        <field name="currency_id" ref="base.USD"/>
+        <field name="sequence">20</field>
+    </record>
+
+    <record id="recharge_option_50" model="esim.recharge.option">
+        <field name="name">充值 $50</field>
+        <field name="amount">50.00</field>
+        <field name="currency_id" ref="base.USD"/>
+        <field name="sequence">30</field>
+    </record>
+
+    <record id="recharge_option_100" model="esim.recharge.option">
+        <field name="name">充值 $100</field>
+        <field name="amount">100.00</field>
+        <field name="currency_id" ref="base.USD"/>
+        <field name="sequence">40</field>
+    </record>
+
+</odoo>

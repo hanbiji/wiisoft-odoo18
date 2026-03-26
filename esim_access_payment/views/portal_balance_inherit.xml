@@ -1,0 +1,15 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- 在余额页的余额卡片中添加"在线充值"按钮 -->
+    <template id="portal_esim_balance_recharge_button"
+              name="Portal eSIM Balance - Recharge Button"
+              inherit_id="esim_access.portal_esim_balance" priority="20">
+        <xpath expr="//a[@href='/my/esim/packages']" position="before">
+            <a href="/my/esim/recharge" class="btn btn-primary mt-3 me-2">
+                <i class="fa fa-credit-card me-1"/> 在线充值
+            </a>
+        </xpath>
+    </template>
+
+</odoo>

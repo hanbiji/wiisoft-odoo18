@@ -3,7 +3,6 @@
 import json
 import logging
 import pprint
-import time
 from typing import Any
 
 import requests
@@ -86,29 +85,38 @@ class PaymentProvider(models.Model):
         full_uri = prefix + api_path
         url = base_url + full_uri
 
-        body_str = json.dumps(payload, separators=(',', ':'))
-        request_time = str(round(time.time() * 1000))
+        body_str = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
+        body_bytes = body_str.encode('utf-8')
+        request_time = antom_utils.get_iso8601_time()
 
-        private_key_pem = antom_utils.build_antom_private_key_pem(
+        private_key_pem = antom_utils.build_private_key_pem(
             self.antom_merchant_private_key
         )
-        signature = antom_utils.sign_request(
-            full_uri, self.antom_client_id, request_time, body_str, private_key_pem
+        sign_value = antom_utils.sign_request(
+            full_uri, self.antom_client_id, request_time, body_str, private_key_pem,
         )
 
+        # Header 格式与 SDK DefaultAlipayClient 完全一致
+        signature_header = (
+            f"algorithm=RSA256,keyVersion=1,signature={sign_value}"
+        )
         headers = {
-            'Content-Type': 'application/json; charset=UTF-8',
-            'Client-Id': self.antom_client_id,
+            'Content-type': 'application/json; charset=UTF-8',
+            'client-id': self.antom_client_id,
             'Request-Time': request_time,
-            'Signature': f'algorithm=RSA256, keyVersion=1, signature={signature}',
+            'Signature': signature_header,
         }
 
         _logger.info(
-            "Antom API request to %s:\n%s", url, pprint.pformat(payload)
+            "Antom API request to %s:\n%s", url, pprint.pformat(payload),
+        )
+        _logger.debug(
+            "Antom signing content:\nPOST %s\\n%s.%s.%s",
+            full_uri, self.antom_client_id, request_time, body_str[:200],
         )
 
         try:
-            response = requests.post(url, headers=headers, data=body_str, timeout=30)
+            response = requests.post(url, headers=headers, data=body_bytes, timeout=30)
             response.raise_for_status()
         except requests.exceptions.HTTPError:
             _logger.exception("Antom API HTTP error at %s", url)
@@ -134,20 +142,19 @@ class PaymentProvider(models.Model):
             "Antom API response from %s:\n%s", url, pprint.pformat(response_data)
         )
 
-        # 验证响应签名
+        # 验证响应签名（与 SDK __verify_sign 逻辑一致）
         if self.antom_public_key:
-            resp_client_id = response.headers.get('Client-Id', '')
-            resp_time = response.headers.get('Response-Time', '')
-            resp_sig_header = response.headers.get('Signature', '')
+            resp_client_id = response.headers.get('client-id', '')
+            resp_time = response.headers.get('response-time', '')
+            resp_sig_header = response.headers.get('signature', '')
             if resp_sig_header:
-                sig_parts = antom_utils.parse_signature_header(resp_sig_header)
-                sig_value = sig_parts.get('signature', '')
-                public_key_pem = antom_utils.build_antom_public_key_pem(
-                    self.antom_public_key
+                rsp_signature = antom_utils.parse_signature_header(resp_sig_header)
+                public_key_pem = antom_utils.build_public_key_pem(
+                    self.antom_public_key,
                 )
-                if not antom_utils.verify_signature(
+                if rsp_signature and not antom_utils.verify_signature(
                     full_uri, resp_client_id, resp_time, response_body,
-                    sig_value, public_key_pem
+                    rsp_signature, public_key_pem,
                 ):
                     _logger.warning("Antom response signature verification failed.")
                     raise ValidationError(

@@ -1,0 +1,76 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- ══════════════════════════════════════════════════════
+         esim.recharge.option 记录规则
+         ══════════════════════════════════════════════════════ -->
+
+    <!-- 内部用户可读所有档位 -->
+    <record id="rule_recharge_option_user" model="ir.rule">
+        <field name="name">充值档位：内部用户可读</field>
+        <field name="model_id" ref="model_esim_recharge_option"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- 管理员完整权限 -->
+    <record id="rule_recharge_option_manager" model="ir.rule">
+        <field name="name">充值档位：管理员全部访问</field>
+        <field name="model_id" ref="model_esim_recharge_option"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('esim_access.group_esim_manager'))]"/>
+    </record>
+
+    <!-- 门户用户可读活跃档位 -->
+    <record id="rule_recharge_option_portal" model="ir.rule">
+        <field name="name">充值档位：门户用户可读</field>
+        <field name="model_id" ref="model_esim_recharge_option"/>
+        <field name="domain_force">[('active', '=', True)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- ══════════════════════════════════════════════════════
+         esim.balance.recharge 记录规则
+         ══════════════════════════════════════════════════════ -->
+
+    <!-- 内部用户按 partner 查看自己的 -->
+    <record id="rule_recharge_user" model="ir.rule">
+        <field name="name">在线充值：用户仅查看自己的</field>
+        <field name="model_id" ref="model_esim_balance_recharge"/>
+        <field name="domain_force">[('partner_id.user_ids', 'in', user.id)]</field>
+        <field name="groups" eval="[(4, ref('esim_access.group_esim_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <!-- 管理员完整权限 -->
+    <record id="rule_recharge_manager" model="ir.rule">
+        <field name="name">在线充值：管理员全部访问</field>
+        <field name="model_id" ref="model_esim_balance_recharge"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('esim_access.group_esim_manager'))]"/>
+    </record>
+
+    <!-- 门户用户只能查看自己的充值记录 -->
+    <record id="rule_recharge_portal" model="ir.rule">
+        <field name="name">在线充值：门户用户</field>
+        <field name="model_id" ref="model_esim_balance_recharge"/>
+        <field name="domain_force">[('partner_id', '=', user.partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+</odoo>
