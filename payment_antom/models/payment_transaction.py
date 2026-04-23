@@ -29,7 +29,10 @@ class PaymentTransaction(models.Model):
     ) -> dict[str, Any]:
         """Override of `payment` to return Antom-specific rendering values.
 
-        调用 Antom pay API 创建支付订单，获取重定向 URL。
+        通过 Antom createPaymentSession 创建 Hosted Checkout 会话，
+        获取托管收银台 URL。Antom 会在托管页面上动态展示商户开通的
+        全部支付方式供买家选择，因此请求中不携带 paymentMethod——
+        这是让收银台保持"通用入口"的官方推荐做法。
 
         Note: self.ensure_one() from `_get_processing_values`.
         """
@@ -46,6 +49,7 @@ class PaymentTransaction(models.Model):
 
         payload = {
             'productCode': 'CASHIER_PAYMENT',
+            'productScene': 'CHECKOUT_PAYMENT',
             'paymentRequestId': self.reference,
             'order': {
                 'referenceOrderId': self.reference,
@@ -59,9 +63,6 @@ class PaymentTransaction(models.Model):
                 'currency': self.currency_id.name,
                 'value': amount_in_minor,
             },
-            'paymentMethod': {
-                'paymentMethodType': self._antom_get_payment_method_type(),
-            },
             'paymentRedirectUrl': f'{return_url}?reference={self.reference}',
             'paymentNotifyUrl': notify_url,
             'env': {
@@ -70,12 +71,12 @@ class PaymentTransaction(models.Model):
         }
 
         _logger.info(
-            "Sending Antom pay request for transaction %s:\n%s",
+            "Sending Antom createPaymentSession request for transaction %s:\n%s",
             self.reference, pprint.pformat(payload),
         )
 
         response_data = self.provider_id._antom_make_request(
-            const.API_PATH_PAY, payload
+            const.API_PATH_CREATE_SESSION, payload
         )
 
         result = response_data.get('result', {})
@@ -226,30 +227,20 @@ class PaymentTransaction(models.Model):
         factor = 10 ** currency.decimal_places
         return int(amount_str) / factor
 
-    def _antom_get_payment_method_type(self) -> str:
-        """返回当前交易的 Antom paymentMethodType。
-
-        Cashier Payment 模式下使用 CONNECT_WALLET 作为通用钱包类型，
-        Antom 收银台会自动展示可用的支付方式供买家选择。
-        """
-        return 'CONNECT_WALLET'
-
     @staticmethod
     def _antom_extract_redirect_url(response_data: dict) -> str:
-        """从 Antom pay API 响应中提取重定向 URL。
+        """从 Antom createPaymentSession 响应中提取托管收银台 URL。
 
-        响应可能包含 normalUrl、schemeUrl、applinkUrl 等，
-        Web 场景优先使用 normalUrl。
+        Web 场景下 Antom 返回 normalUrl 指向托管收银台页面；
+        部分历史 / 兼容响应可能使用 redirectActionForm.redirectUrl，
+        这里按优先级兜底以兼容响应格式演进。
         """
-        # redirectActionForm 用于需要重定向的场景
-        redirect_action = response_data.get('redirectActionForm', {})
-        if redirect_action:
-            return redirect_action.get('redirectUrl', '')
-
-        # normalUrl 在某些版本的 API 响应中直接返回
         normal_url = response_data.get('normalUrl', '')
         if normal_url:
             return normal_url
 
-        # paymentRedirectUrl 作为兜底
+        redirect_action = response_data.get('redirectActionForm', {})
+        if redirect_action:
+            return redirect_action.get('redirectUrl', '')
+
         return response_data.get('paymentRedirectUrl', '')

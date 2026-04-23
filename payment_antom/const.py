@@ -24,7 +24,12 @@ GATEWAY_URLS = {
 # API 路径
 # 正式环境: /ams/api/v1/...
 # Sandbox 环境: /ams/sandbox/api/v1/...
-API_PATH_PAY = '/v1/payments/pay'
+#
+# createPaymentSession 用于 Hosted Checkout 场景（productScene=CHECKOUT_PAYMENT），
+# 由 Antom 托管收银台，自动展示商户开通的全部支付方式供买家选择；
+# 相比 /v1/payments/pay，本接口无需也不应提交 paymentMethod，
+# 避免把具体支付方式与商户业务耦合。
+API_PATH_CREATE_SESSION = '/v1/payments/createPaymentSession'
 API_PATH_INQUIRY = '/v1/payments/inquiryPayment'
 
 # Antom paymentStatus -> Odoo transaction state 映射
