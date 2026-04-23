@@ -64,9 +64,20 @@ class EsimPortal(CustomerPortal):
             )
         return values
 
+    @staticmethod
+    def _build_country_name_map(codes: set) -> dict:
+        """将 ISO Alpha-2 国家代码集合转换为 {code: 国家名称} 映射。"""
+        if not codes:
+            return {}
+        countries = request.env['res.country'].sudo().search([
+            ('code', 'in', [c.upper() for c in codes]),
+        ])
+        return {c.code.upper(): c.name for c in countries}
+
     # ── 套餐浏览 ─────────────────────────────────────────
 
-    @http.route('/my/esim/packages', type='http', auth='user', website=True)
+    @http.route(['/my/esim/packages', '/my/esim/packages/page/<int:page>'],
+                type='http', auth='user', website=True)
     def portal_esim_packages(
         self,
         page=1,
@@ -131,19 +142,27 @@ class EsimPortal(CustomerPortal):
         packages = Package.search(domain, limit=PACKAGES_PER_PAGE, offset=pager['offset'],
                                   order='location, volume, duration')
 
-        all_locations = set()
+        all_location_codes = set()
         all_durations = {}
         all_volumes = {}
         for pkg in all_packages:
             if pkg.location:
                 for loc in pkg.location.split(','):
-                    all_locations.add(loc.strip())
+                    code = loc.strip()
+                    if code:
+                        all_location_codes.add(code.upper())
             duration_option = self._get_package_duration_option(pkg)
             if duration_option:
                 all_durations[duration_option['value']] = duration_option
             volume_option = self._get_package_volume_option(pkg)
             if volume_option:
                 all_volumes[volume_option['value']] = volume_option
+
+        country_name_map = self._build_country_name_map(all_location_codes)
+        available_locations = sorted(
+            [{'value': code, 'label': country_name_map.get(code, code)} for code in all_location_codes],
+            key=lambda item: item['label'],
+        )
 
         data_type_map = dict(request.env['esim.package']._fields['data_type'].selection)
         available_data_types = [
@@ -157,7 +176,8 @@ class EsimPortal(CustomerPortal):
             'page_name': 'esim_packages',
             'default_url': '/my/esim/packages',
             'current_filters': filter_args,
-            'available_locations': sorted(all_locations),
+            'available_locations': available_locations,
+            'country_name_map': country_name_map,
             'available_durations': sorted(all_durations.values(), key=lambda item: item['label']),
             'available_volumes': sorted(all_volumes.values(), key=lambda item: float(item['value'])),
             'available_data_types': available_data_types,
@@ -172,9 +192,19 @@ class EsimPortal(CustomerPortal):
             raise MissingError(_("套餐不存在"))
 
         partner = self._get_portal_partner()
+
+        location_codes = set()
+        if package.location:
+            for loc in package.location.split(','):
+                code = loc.strip()
+                if code:
+                    location_codes.add(code.upper())
+        country_name_map = self._build_country_name_map(location_codes)
+
         values = {
             'package': package,
             'esim_balance': partner.sudo().esim_balance,
+            'country_name_map': country_name_map,
             'page_name': 'esim_package_detail',
         }
         return request.render('esim_access.portal_esim_package_detail', values)
@@ -216,7 +246,8 @@ class EsimPortal(CustomerPortal):
 
     # ── 我的订单 ─────────────────────────────────────────
 
-    @http.route('/my/esim/orders', type='http', auth='user', website=True)
+    @http.route(['/my/esim/orders', '/my/esim/orders/page/<int:page>'],
+                type='http', auth='user', website=True)
     def portal_esim_orders(self, page=1, **kw):
         """我的 eSIM 订单列表"""
         partner = self._get_portal_partner()
@@ -282,7 +313,8 @@ class EsimPortal(CustomerPortal):
 
     # ── 我的 eSIM ────────────────────────────────────────
 
-    @http.route('/my/esim/profiles', type='http', auth='user', website=True)
+    @http.route(['/my/esim/profiles', '/my/esim/profiles/page/<int:page>'],
+                type='http', auth='user', website=True)
     def portal_esim_profiles(self, page=1, **kw):
         """我的 eSIM 列表"""
         partner = self._get_portal_partner()
@@ -372,7 +404,8 @@ class EsimPortal(CustomerPortal):
 
     # ── 余额与交易记录 ─────────────────────────────────────
 
-    @http.route('/my/esim/balance', type='http', auth='user', website=True)
+    @http.route(['/my/esim/balance', '/my/esim/balance/page/<int:page>'],
+                type='http', auth='user', website=True)
     def portal_esim_balance(self, page=1, **kw):
         """余额与交易记录页"""
         partner = self._get_portal_partner()

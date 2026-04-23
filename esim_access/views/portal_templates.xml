@@ -94,15 +94,33 @@
                     <form method="GET" action="/my/esim/packages" class="row g-3">
                         <div class="col-lg-3 col-md-6">
                             <label class="form-label">地区</label>
-                            <select name="location" class="form-select">
-                                <option value="">全部地区</option>
-                                <t t-foreach="available_locations" t-as="loc">
-                                    <option t-att-value="loc"
-                                            t-att-selected="current_filters.get('location') == loc and 'selected' or None">
-                                        <t t-out="loc"/>
-                                    </option>
-                                </t>
-                            </select>
+                            <div class="position-relative" id="loc_wrapper">
+                                <div class="input-group">
+                                    <input type="text" id="loc_search" class="form-control"
+                                           autocomplete="off" placeholder="输入国家名称搜索"
+                                           t-att-value="country_name_map.get((current_filters.get('location') or '').upper(), current_filters.get('location') or '')"/>
+                                    <button type="button" class="btn btn-outline-secondary"
+                                            id="loc_toggle">
+                                        <i class="fa fa-caret-down"/>
+                                    </button>
+                                </div>
+                                <input type="hidden" name="location" id="loc_code"
+                                       t-att-value="current_filters.get('location')"/>
+                                <div id="loc_dropdown"
+                                     class="list-group position-absolute w-100 shadow"
+                                     style="max-height:220px; overflow-y:auto; z-index:1055; display:none;">
+                                    <a href="#" class="list-group-item list-group-item-action loc-opt"
+                                       data-code="" data-name="">全部地区</a>
+                                    <t t-foreach="available_locations" t-as="loc_option">
+                                        <a href="#"
+                                           class="list-group-item list-group-item-action loc-opt"
+                                           t-att-data-code="loc_option['value']"
+                                           t-att-data-name="loc_option['label']">
+                                            <t t-out="loc_option['label']"/>
+                                        </a>
+                                    </t>
+                                </div>
+                            </div>
                         </div>
                         <div class="col-lg-3 col-md-6">
                             <label class="form-label">名称</label>
@@ -158,6 +176,51 @@
                 </div>
             </div>
 
+            <script>
+                (function () {
+                    var wrap = document.getElementById('loc_wrapper');
+                    var search = document.getElementById('loc_search');
+                    var code = document.getElementById('loc_code');
+                    var dd = document.getElementById('loc_dropdown');
+                    var btn = document.getElementById('loc_toggle');
+                    var items = dd.querySelectorAll('.loc-opt');
+
+                    function show () { dd.style.display = ''; }
+                    function hide () { dd.style.display = 'none'; }
+                    function isOpen () { return dd.style.display !== 'none'; }
+
+                    function filter () {
+                        var q = search.value.toLowerCase();
+                        items.forEach(function (el) {
+                            var name = (el.dataset.name || '').toLowerCase();
+                            var c = (el.dataset.code || '').toLowerCase();
+                            el.style.display = (!q || name.indexOf(q) !== -1 || c.indexOf(q) !== -1) ? '' : 'none';
+                        });
+                    }
+
+                    btn.addEventListener('click', function (e) {
+                        e.stopPropagation();
+                        if (isOpen()) { hide(); } else { filter(); show(); }
+                    });
+
+                    search.addEventListener('focus', function () { filter(); show(); });
+                    search.addEventListener('input', function () { code.value = ''; filter(); show(); });
+
+                    items.forEach(function (el) {
+                        el.addEventListener('mousedown', function (e) {
+                            e.preventDefault();
+                            search.value = el.dataset.name;
+                            code.value = el.dataset.code;
+                            hide();
+                        });
+                    });
+
+                    document.addEventListener('click', function (e) {
+                        if (!wrap.contains(e.target)) hide();
+                    });
+                })();
+            </script>
+
             <!-- 套餐卡片网格 -->
             <div class="row">
                 <t t-foreach="packages" t-as="pkg">
@@ -166,11 +229,13 @@
                             <div class="card-body d-flex flex-column">
                                 <h5 class="card-title"><t t-out="pkg.name"/></h5>
                                 <t t-set="location_list"
-                                   t-value="[item.strip() for item in (pkg.location or '').split(',') if item.strip()]"/>
+                                   t-value="[item.strip().upper() for item in (pkg.location or '').split(',') if item.strip()]"/>
                                 <div class="mb-2">
                                     <div class="d-flex flex-wrap gap-1">
                                         <t t-foreach="location_list[:4]" t-as="loc">
-                                            <span class="badge bg-info"><t t-out="loc"/></span>
+                                            <span class="badge bg-info">
+                                                <t t-out="country_name_map.get(loc, loc)"/>
+                                            </span>
                                         </t>
                                         <span t-if="len(location_list) > 4" class="badge bg-secondary">
                                             +<t t-out="len(location_list) - 4"/>
@@ -243,14 +308,14 @@
                         <div class="col-md-6">
                             <table class="table">
                                 <t t-set="location_list"
-                                   t-value="[item.strip() for item in (package.location or '').split(',') if item.strip()]"/>
+                                   t-value="[item.strip().upper() for item in (package.location or '').split(',') if item.strip()]"/>
                                 <tr>
                                     <th>覆盖地区</th>
                                     <td class="align-top">
                                         <div class="d-flex flex-wrap gap-1">
                                             <t t-foreach="location_list" t-as="loc">
                                                 <span class="badge bg-info-subtle text-dark border">
-                                                    <t t-out="loc"/>
+                                                    <t t-out="country_name_map.get(loc, loc)"/>
                                                 </span>
                                             </t>
                                             <span t-if="not location_list" class="text-muted">
@@ -656,6 +721,15 @@
                                     <td>
                                         <a t-att-href="profile.qr_code" target="_blank">
                                             <t t-out="profile.qr_code"/>
+                                        </a>
+                                    </td>
+                                </tr>
+                                
+                                <tr t-if="profile.qr_code_url">
+                                    <th>QR 码</th>
+                                    <td>
+                                        <a t-att-href="profile.qr_code_url" target="_blank">
+                                            <img t-att-src="profile.qr_code_url" alt="QR 码" class="img-fluid"/>
                                         </a>
                                     </td>
                                 </tr>
