@@ -18,6 +18,19 @@ class EsimDistributionPortal(EsimPortal):
         values = super()._prepare_home_portal_values(counters)
         partner = self._get_portal_partner()
         distributor = self._get_partner_distributor(partner)
+        # /my/counters 复用该方法并要求只返回前端请求的 counter key；
+        # 非计数字段会让 portal_home_counters 找不到对应 DOM 节点而报错。
+        if counters:
+            if 'esim_commission_count' in counters:
+                values['esim_commission_count'] = request.env['esim.commission'].sudo().search_count([
+                    ('distributor_id', '=', distributor.id),
+                ]) if distributor else 0
+            return {
+                key: value
+                for key, value in values.items()
+                if key in counters
+            }
+
         values['esim_distributor'] = distributor
         if 'esim_commission_count' in counters:
             values['esim_commission_count'] = request.env['esim.commission'].sudo().search_count([
