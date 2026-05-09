@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <menuitem id="menu_esim_distribution"
+              name="分销"
+              parent="esim_access.menu_esim_root"
+              groups="esim_distribution.group_esim_distribution_manager"
+              sequence="30"/>
+
+    <menuitem id="menu_esim_distributor"
+              name="分销商"
+              parent="menu_esim_distribution"
+              action="action_esim_distributor"
+              sequence="10"/>
+
+    <menuitem id="menu_esim_commission"
+              name="佣金记录"
+              parent="menu_esim_distribution"
+              action="action_esim_commission"
+              sequence="20"/>
+
+    <menuitem id="menu_esim_distribution_config"
+              name="分销配置"
+              parent="esim_access.menu_esim_config"
+              groups="esim_distribution.group_esim_distribution_manager"
+              sequence="30"/>
+
+    <menuitem id="menu_esim_distributor_tier"
+              name="分销等级"
+              parent="menu_esim_distribution_config"
+              action="action_esim_distributor_tier"
+              sequence="10"/>
+
+</odoo>

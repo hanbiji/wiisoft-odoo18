@@ -1,0 +1,183 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_esim_distributor_list" model="ir.ui.view">
+        <field name="name">esim.distributor.list</field>
+        <field name="model">esim.distributor</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="state == 'pending'"
+                  decoration-success="state == 'approved'"
+                  decoration-danger="state == 'rejected'"
+                  decoration-muted="state == 'suspended'">
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="tier_id"/>
+                <field name="referral_code"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'pending'"
+                       decoration-success="state == 'approved'"
+                       decoration-danger="state == 'rejected'"
+                       decoration-muted="state == 'suspended'"/>
+                <field name="total_sales_amount"/>
+                <field name="settled_commission_amount"/>
+                <field name="pending_commission_amount"/>
+                <field name="referred_partner_count"/>
+                <field name="apply_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_esim_distributor_kanban" model="ir.ui.view">
+        <field name="name">esim.distributor.kanban</field>
+        <field name="model">esim.distributor</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="state">
+                <field name="partner_id"/>
+                <field name="tier_id"/>
+                <field name="state"/>
+                <field name="settled_commission_amount"/>
+                <field name="pending_commission_amount"/>
+                <templates>
+                    <t t-name="card">
+                        <div class="oe_kanban_global_click">
+                            <strong><field name="partner_id"/></strong>
+                            <div class="text-muted mt-1">
+                                等级：<field name="tier_id"/>
+                            </div>
+                            <div class="mt-2">
+                                已结算：$<field name="settled_commission_amount"/>
+                            </div>
+                            <div>
+                                冻结中：$<field name="pending_commission_amount"/>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+
+    <record id="view_esim_distributor_form" model="ir.ui.view">
+        <field name="name">esim.distributor.form</field>
+        <field name="model">esim.distributor</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_apply" type="object"
+                            string="提交申请" class="btn-primary"
+                            invisible="state not in ('draft', 'rejected')"/>
+                    <button name="action_approve" type="object"
+                            string="审核通过" class="btn-primary"
+                            groups="esim_distribution.group_esim_distribution_manager"
+                            invisible="state != 'pending'"/>
+                    <button name="action_reject" type="object"
+                            string="拒绝" class="btn-secondary"
+                            groups="esim_distribution.group_esim_distribution_manager"
+                            invisible="state != 'pending'"/>
+                    <button name="action_suspend" type="object"
+                            string="停用" class="btn-secondary"
+                            groups="esim_distribution.group_esim_distribution_manager"
+                            invisible="state != 'approved'"/>
+                    <button name="action_reactivate" type="object"
+                            string="重新启用" class="btn-primary"
+                            groups="esim_distribution.group_esim_distribution_manager"
+                            invisible="state != 'suspended'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="draft,pending,approved,rejected,suspended"/>
+                </header>
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_commissions" type="object"
+                                class="oe_stat_button" icon="fa-money">
+                            <field name="commission_count" widget="statinfo" string="佣金"/>
+                        </button>
+                        <button name="action_view_referred_partners" type="object"
+                                class="oe_stat_button" icon="fa-users">
+                            <field name="referred_partner_count" widget="statinfo" string="客户"/>
+                        </button>
+                    </div>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="分销商">
+                            <field name="partner_id" readonly="state not in ('draft', 'pending')"/>
+                            <field name="tier_id"
+                                   groups="esim_distribution.group_esim_distribution_manager"/>
+                            <field name="referral_code" readonly="1"/>
+                            <field name="referral_url" readonly="1"/>
+                        </group>
+                        <group string="审核">
+                            <field name="apply_date" readonly="1"/>
+                            <field name="approve_date" readonly="1"/>
+                            <field name="approver_id" readonly="1"/>
+                            <field name="reject_reason" readonly="state != 'pending'"/>
+                        </group>
+                    </group>
+                    <group string="申请说明">
+                        <field name="apply_reason" nolabel="1" readonly="state == 'approved'"/>
+                    </group>
+                    <group string="业绩">
+                        <group>
+                            <field name="total_sales_amount"/>
+                            <field name="total_orders_count"/>
+                            <field name="referred_partner_count"/>
+                        </group>
+                        <group>
+                            <field name="pending_commission_amount"/>
+                            <field name="settled_commission_amount"/>
+                            <field name="total_commission_amount"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="佣金记录" name="commissions">
+                            <field name="commission_ids" readonly="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="order_id"/>
+                                    <field name="source_partner_id"/>
+                                    <field name="order_amount"/>
+                                    <field name="commission_rate"/>
+                                    <field name="commission_amount"/>
+                                    <field name="state" widget="badge"/>
+                                    <field name="lock_release_date"/>
+                                </list>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_esim_distributor_search" model="ir.ui.view">
+        <field name="name">esim.distributor.search</field>
+        <field name="model">esim.distributor</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="partner_id"/>
+                <field name="referral_code"/>
+                <filter name="filter_pending" string="待审核" domain="[('state', '=', 'pending')]"/>
+                <filter name="filter_approved" string="已通过" domain="[('state', '=', 'approved')]"/>
+                <filter name="filter_suspended" string="已停用" domain="[('state', '=', 'suspended')]"/>
+                <separator string="分组"/>
+                <group>
+                    <filter name="group_state" string="状态" context="{'group_by': 'state'}"/>
+                    <filter name="group_tier" string="等级" context="{'group_by': 'tier_id'}"/>
+                    <filter name="group_approver" string="审核人" context="{'group_by': 'approver_id'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_esim_distributor" model="ir.actions.act_window">
+        <field name="name">分销商</field>
+        <field name="res_model">esim.distributor</field>
+        <field name="view_mode">list,kanban,form</field>
+        <field name="search_view_id" ref="view_esim_distributor_search"/>
+        <field name="context">{'search_default_filter_pending': 1}</field>
+    </record>
+
+</odoo>

@@ -1,0 +1,10 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_esim_distributor_tier_user,esim.distributor.tier.user,model_esim_distributor_tier,base.group_user,1,0,0,0
+access_esim_distributor_tier_portal,esim.distributor.tier.portal,model_esim_distributor_tier,base.group_portal,1,0,0,0
+access_esim_distributor_tier_manager,esim.distributor.tier.manager,model_esim_distributor_tier,group_esim_distribution_manager,1,1,1,1
+access_esim_distributor_user,esim.distributor.user,model_esim_distributor,esim_access.group_esim_user,1,1,1,0
+access_esim_distributor_portal,esim.distributor.portal,model_esim_distributor,base.group_portal,1,1,1,0
+access_esim_distributor_manager,esim.distributor.manager,model_esim_distributor,group_esim_distribution_manager,1,1,1,1
+access_esim_commission_user,esim.commission.user,model_esim_commission,esim_access.group_esim_user,1,0,0,0
+access_esim_commission_portal,esim.commission.portal,model_esim_commission,base.group_portal,1,0,0,0
+access_esim_commission_manager,esim.commission.manager,model_esim_commission,group_esim_distribution_manager,1,1,1,1

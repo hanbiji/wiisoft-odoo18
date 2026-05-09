@@ -1,0 +1,39 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="mail_template_distributor_approved" model="mail.template">
+        <field name="name">eSIM 分销申请通过</field>
+        <field name="model_id" ref="model_esim_distributor"/>
+        <field name="subject">您的 eSIM 分销商申请已通过</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div>
+                <p>您好 <t t-out="object.partner_id.name or ''"/>，</p>
+                <p>您的 eSIM 分销商申请已审核通过。</p>
+                <p>
+                    当前等级：<strong><t t-out="object.tier_id.display_name or ''"/></strong><br/>
+                    推广链接：<a t-att-href="object.referral_url"><t t-out="object.referral_url"/></a>
+                </p>
+                <p>您可以登录门户的分销中心查看佣金记录。</p>
+            </div>
+        </field>
+    </record>
+
+    <record id="mail_template_distributor_rejected" model="mail.template">
+        <field name="name">eSIM 分销申请拒绝</field>
+        <field name="model_id" ref="model_esim_distributor"/>
+        <field name="subject">您的 eSIM 分销商申请未通过</field>
+        <field name="email_to">{{ object.partner_id.email }}</field>
+        <field name="body_html" type="html">
+            <div>
+                <p>您好 <t t-out="object.partner_id.name or ''"/>，</p>
+                <p>您的 eSIM 分销商申请未通过。</p>
+                <p t-if="object.reject_reason">
+                    原因：<t t-out="object.reject_reason"/>
+                </p>
+                <p>如需重新申请，请登录门户分销中心更新申请说明后再次提交。</p>
+            </div>
+        </field>
+    </record>
+
+</odoo>

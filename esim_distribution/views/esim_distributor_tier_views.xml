@@ -1,0 +1,72 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_esim_distributor_tier_list" model="ir.ui.view">
+        <field name="name">esim.distributor.tier.list</field>
+        <field name="model">esim.distributor.tier</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="sequence" widget="handle"/>
+                <field name="name"/>
+                <field name="code"/>
+                <field name="commission_rate"/>
+                <field name="min_sales_amount"/>
+                <field name="min_referral_count"/>
+                <field name="is_default"/>
+                <field name="active"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_esim_distributor_tier_form" model="ir.ui.view">
+        <field name="name">esim.distributor.tier.form</field>
+        <field name="model">esim.distributor.tier</field>
+        <field name="arch" type="xml">
+            <form>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name"/></h1>
+                    </div>
+                    <group>
+                        <group string="等级">
+                            <field name="code"/>
+                            <field name="sequence"/>
+                            <field name="active"/>
+                            <field name="is_default"/>
+                        </group>
+                        <group string="规则">
+                            <field name="commission_rate"/>
+                            <field name="min_sales_amount"/>
+                            <field name="min_referral_count"/>
+                        </group>
+                    </group>
+                    <group string="说明">
+                        <field name="description" nolabel="1"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_esim_distributor_tier_search" model="ir.ui.view">
+        <field name="name">esim.distributor.tier.search</field>
+        <field name="model">esim.distributor.tier</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="code"/>
+                <filter name="filter_active" string="启用" domain="[('active', '=', True)]"/>
+                <filter name="filter_default" string="默认等级" domain="[('is_default', '=', True)]"/>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_esim_distributor_tier" model="ir.actions.act_window">
+        <field name="name">分销等级</field>
+        <field name="res_model">esim.distributor.tier</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_esim_distributor_tier_search"/>
+        <field name="context">{'search_default_filter_active': 1}</field>
+    </record>
+
+</odoo>

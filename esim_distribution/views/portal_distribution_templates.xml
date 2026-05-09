@@ -1,0 +1,254 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <template id="portal_breadcrumbs_distribution" name="Portal Breadcrumbs - Distribution"
+              inherit_id="portal.portal_breadcrumbs" priority="50">
+        <xpath expr="//ol[hasclass('o_portal_submenu')]" position="inside">
+            <li t-if="page_name == 'esim_distribution'" class="breadcrumb-item">
+                分销中心
+            </li>
+            <li t-if="page_name in ('esim_distribution_apply', 'esim_distribution_commissions')"
+                class="breadcrumb-item">
+                <a href="/my/distribution">分销中心</a>
+            </li>
+            <li t-if="page_name == 'esim_distribution_apply'" class="breadcrumb-item active">
+                申请分销商
+            </li>
+            <li t-if="page_name == 'esim_distribution_commissions'" class="breadcrumb-item active">
+                佣金记录
+            </li>
+        </xpath>
+    </template>
+
+    <template id="portal_distribution_home" name="Portal Distribution Home">
+        <t t-call="portal.portal_layout">
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">分销中心</t>
+            </t>
+
+            <t t-if="not distributor">
+                <div class="card shadow-sm">
+                    <div class="card-body text-center py-5">
+                        <i class="fa fa-share-alt fa-3x text-primary mb-3"/>
+                        <h4>申请成为 eSIM 分销商</h4>
+                        <p class="text-muted mb-4">
+                            审核通过后，您可以通过专属推广链接推广 eSIM 套餐并获得返佣。
+                        </p>
+                        <a href="/my/distribution/apply" class="btn btn-primary">
+                            立即申请
+                        </a>
+                    </div>
+                </div>
+            </t>
+
+            <t t-if="distributor">
+                <t t-set="state_labels" t-value="{
+                    'draft': '草稿',
+                    'pending': '待审核',
+                    'approved': '已通过',
+                    'rejected': '已拒绝',
+                    'suspended': '已停用',
+                }"/>
+
+                <div t-if="distributor.state == 'pending'" class="alert alert-info">
+                    您的分销商申请正在审核中，请等待管理员处理。
+                </div>
+                <div t-if="distributor.state == 'rejected'" class="alert alert-warning">
+                    您的申请未通过。
+                    <span t-if="distributor.reject_reason">
+                        原因：<t t-out="distributor.reject_reason"/>
+                    </span>
+                    <a href="/my/distribution/apply" class="alert-link ms-2">重新申请</a>
+                </div>
+                <div t-if="distributor.state == 'suspended'" class="alert alert-secondary">
+                    您的分销权限已停用，如需恢复请联系管理员。
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">当前状态</div>
+                                <strong t-out="state_labels.get(distributor.state, distributor.state)"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">当前等级</div>
+                                <strong t-out="distributor.tier_id.display_name or '-'"/>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">累计销售额</div>
+                                <strong>$<t t-out="'%.2f' % (distributor.total_sales_amount or 0)"/></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-lg-3 col-md-6">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">累计佣金</div>
+                                <strong>$<t t-out="'%.2f' % (distributor.total_commission_amount or 0)"/></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div t-if="distributor.state == 'approved'" class="card shadow-sm mb-4">
+                    <div class="card-body">
+                        <h5 class="mb-3">专属推广链接</h5>
+                        <div class="input-group">
+                            <input id="distributionReferralUrl" type="text"
+                                   class="form-control" readonly="readonly"
+                                   t-att-value="distributor.referral_url"/>
+                            <button type="button" class="btn btn-outline-primary"
+                                    onclick="navigator.clipboard.writeText(document.getElementById('distributionReferralUrl').value)">
+                                复制
+                            </button>
+                        </div>
+                        <div class="text-muted small mt-2">
+                            客户首次通过该链接登录后会绑定为您的推荐客户。
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-3 mb-4">
+                    <div class="col-md-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">推荐客户</div>
+                                <strong><t t-out="distributor.referred_partner_count"/></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">冻结佣金</div>
+                                <strong>$<t t-out="'%.2f' % (distributor.pending_commission_amount or 0)"/></strong>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="card shadow-sm h-100">
+                            <div class="card-body">
+                                <div class="text-muted small">已结算佣金</div>
+                                <strong>$<t t-out="'%.2f' % (distributor.settled_commission_amount or 0)"/></strong>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-3">
+                    <h5 class="mb-0">最近佣金</h5>
+                    <a href="/my/distribution/commissions" class="btn btn-outline-primary btn-sm">
+                        查看全部
+                    </a>
+                </div>
+                <t t-call="esim_distribution.portal_distribution_commission_table">
+                    <t t-set="commissions" t-value="recent_commissions"/>
+                </t>
+            </t>
+        </t>
+    </template>
+
+    <template id="portal_distribution_apply" name="Portal Distribution Apply">
+        <t t-call="portal.portal_layout">
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">申请分销商</t>
+            </t>
+
+            <div class="card shadow-sm">
+                <div class="card-body">
+                    <form method="post" action="/my/distribution/apply">
+                        <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                        <div class="mb-3">
+                            <label class="form-label">申请说明</label>
+                            <textarea name="apply_reason" class="form-control" rows="5"
+                                      placeholder="请简单说明您的推广渠道或客户资源。"><t t-out="distributor.apply_reason if distributor else ''"/></textarea>
+                        </div>
+                        <button type="submit" class="btn btn-primary"
+                                t-att-disabled="distributor and distributor.state in ('pending', 'approved', 'suspended') and 'disabled' or None">
+                            提交申请
+                        </button>
+                        <a href="/my/distribution" class="btn btn-outline-secondary ms-2">
+                            返回
+                        </a>
+                    </form>
+                </div>
+            </div>
+        </t>
+    </template>
+
+    <template id="portal_distribution_commissions" name="Portal Distribution Commissions">
+        <t t-call="portal.portal_layout">
+            <t t-call="portal.portal_searchbar">
+                <t t-set="title">佣金记录</t>
+            </t>
+
+            <t t-call="esim_distribution.portal_distribution_commission_table"/>
+            <t t-call="portal.portal_pager"/>
+        </t>
+    </template>
+
+    <template id="portal_distribution_commission_table" name="Portal Distribution Commission Table">
+        <t t-if="commissions">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle">
+                    <thead>
+                        <tr>
+                            <th>编号</th>
+                            <th>订单</th>
+                            <th>客户</th>
+                            <th class="text-end">订单金额</th>
+                            <th class="text-end">比例</th>
+                            <th class="text-end">佣金</th>
+                            <th>状态</th>
+                            <th>解冻时间</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <t t-set="state_labels" t-value="{
+                            'pending': '冻结中',
+                            'settled': '已结算',
+                            'cancelled': '已取消',
+                        }"/>
+                        <t t-foreach="commissions" t-as="commission">
+                            <tr>
+                                <td><t t-out="commission.name"/></td>
+                                <td><t t-out="commission.order_id.name"/></td>
+                                <td><t t-out="commission.source_partner_id.name"/></td>
+                                <td class="text-end">
+                                    $<t t-out="'%.2f' % (commission.order_amount or 0)"/>
+                                </td>
+                                <td class="text-end">
+                                    <t t-out="'%.2f' % (commission.commission_rate or 0)"/>%
+                                </td>
+                                <td class="text-end">
+                                    $<t t-out="'%.2f' % (commission.commission_amount or 0)"/>
+                                </td>
+                                <td>
+                                    <span class="badge text-bg-secondary"
+                                          t-out="state_labels.get(commission.state, commission.state)"/>
+                                </td>
+                                <td><span t-field="commission.lock_release_date"/></td>
+                            </tr>
+                        </t>
+                    </tbody>
+                </table>
+            </div>
+        </t>
+        <t t-if="not commissions">
+            <div class="text-center py-5 text-muted">
+                <i class="fa fa-money fa-3x mb-3 d-block"/>
+                <p>暂无佣金记录</p>
+            </div>
+        </t>
+    </template>
+
+</odoo>

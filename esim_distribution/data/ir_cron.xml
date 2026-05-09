@@ -1,0 +1,19 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="param_esim_distribution_cooldown_days" model="ir.config_parameter">
+        <field name="key">esim_distribution.cooldown_days</field>
+        <field name="value">7</field>
+    </record>
+
+    <record id="cron_settle_esim_commissions" model="ir.cron">
+        <field name="name">eSIM：结算分销佣金</field>
+        <field name="model_id" ref="model_esim_commission"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_settle_pending()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">hours</field>
+        <field name="active">True</field>
+    </record>
+
+</odoo>

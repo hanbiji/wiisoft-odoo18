@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <template id="portal_my_home_distribution" name="Portal My Home - Distribution"
+              inherit_id="portal.portal_my_home" priority="45">
+        <xpath expr="//div[hasclass('o_portal_docs')]" position="before">
+            <t t-set="portal_client_category_enable" t-value="True"/>
+        </xpath>
+        <div id="portal_client_category" position="inside">
+            <t t-call="portal.portal_docs_entry">
+                <t t-set="icon" t-value="'/esim_access/static/description/icon.png'"/>
+                <t t-set="title">分销中心</t>
+                <t t-set="url" t-value="'/my/distribution'"/>
+                <t t-set="text"
+                   t-value="esim_distributor and '查看推广链接与佣金记录' or '申请成为 eSIM 分销商'"/>
+                <t t-set="config_card" t-value="True"/>
+                <t t-set="show_count" t-value="bool(esim_distributor)"/>
+                <t t-set="placeholder_count" t-value="'esim_commission_count'"/>
+            </t>
+        </div>
+    </template>
+
+</odoo>

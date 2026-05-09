@@ -1,0 +1,119 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_esim_commission_list" model="ir.ui.view">
+        <field name="name">esim.commission.list</field>
+        <field name="model">esim.commission</field>
+        <field name="arch" type="xml">
+            <list decoration-warning="state == 'pending'"
+                  decoration-success="state == 'settled'"
+                  decoration-muted="state == 'cancelled'">
+                <header>
+                    <button name="action_settle" type="object"
+                            string="立即结算" class="btn-primary"
+                            groups="esim_distribution.group_esim_distribution_manager"/>
+                    <button name="action_cancel" type="object"
+                            string="取消佣金" class="btn-secondary"
+                            groups="esim_distribution.group_esim_distribution_manager"/>
+                </header>
+                <field name="name"/>
+                <field name="distributor_id"/>
+                <field name="source_partner_id"/>
+                <field name="order_id"/>
+                <field name="order_amount"/>
+                <field name="tier_id_snapshot"/>
+                <field name="commission_rate"/>
+                <field name="commission_amount"/>
+                <field name="state" widget="badge"
+                       decoration-warning="state == 'pending'"
+                       decoration-success="state == 'settled'"
+                       decoration-muted="state == 'cancelled'"/>
+                <field name="lock_release_date"/>
+                <field name="settled_date"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_esim_commission_form" model="ir.ui.view">
+        <field name="name">esim.commission.form</field>
+        <field name="model">esim.commission</field>
+        <field name="arch" type="xml">
+            <form>
+                <header>
+                    <button name="action_settle" type="object"
+                            string="立即结算" class="btn-primary"
+                            groups="esim_distribution.group_esim_distribution_manager"
+                            invisible="state != 'pending'"/>
+                    <button name="action_cancel" type="object"
+                            string="取消佣金" class="btn-secondary"
+                            groups="esim_distribution.group_esim_distribution_manager"
+                            invisible="state != 'pending'"/>
+                    <field name="state" widget="statusbar"
+                           statusbar_visible="pending,settled,cancelled"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1><field name="name" readonly="1"/></h1>
+                    </div>
+                    <group>
+                        <group string="来源">
+                            <field name="distributor_id" readonly="1"/>
+                            <field name="source_partner_id" readonly="1"/>
+                            <field name="order_id" readonly="1"/>
+                        </group>
+                        <group string="佣金">
+                            <field name="order_amount" readonly="1"/>
+                            <field name="tier_id_snapshot" readonly="1"/>
+                            <field name="commission_rate" readonly="1"/>
+                            <field name="commission_amount" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group string="结算">
+                            <field name="lock_release_date" readonly="1"/>
+                            <field name="settled_date" readonly="1"/>
+                            <field name="balance_log_id" readonly="1"/>
+                        </group>
+                        <group string="取消">
+                            <field name="cancel_reason" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <chatter/>
+            </form>
+        </field>
+    </record>
+
+    <record id="view_esim_commission_search" model="ir.ui.view">
+        <field name="name">esim.commission.search</field>
+        <field name="model">esim.commission</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name"/>
+                <field name="distributor_id"/>
+                <field name="source_partner_id"/>
+                <field name="order_id"/>
+                <filter name="filter_pending" string="冻结中" domain="[('state', '=', 'pending')]"/>
+                <filter name="filter_settled" string="已结算" domain="[('state', '=', 'settled')]"/>
+                <filter name="filter_cancelled" string="已取消" domain="[('state', '=', 'cancelled')]"/>
+                <filter name="filter_releasable" string="可解冻"
+                        domain="[('state', '=', 'pending'), ('lock_release_date', '&lt;=', context_today())]"/>
+                <separator string="分组"/>
+                <group>
+                    <filter name="group_distributor" string="分销商" context="{'group_by': 'distributor_id'}"/>
+                    <filter name="group_state" string="状态" context="{'group_by': 'state'}"/>
+                    <filter name="group_create_month" string="创建月份" context="{'group_by': 'create_date:month'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <record id="action_esim_commission" model="ir.actions.act_window">
+        <field name="name">分销佣金</field>
+        <field name="res_model">esim.commission</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_esim_commission_search"/>
+        <field name="context">{'search_default_filter_pending': 1}</field>
+    </record>
+
+</odoo>

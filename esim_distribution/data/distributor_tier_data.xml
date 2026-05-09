@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo noupdate="1">
+
+    <record id="tier_basic" model="esim.distributor.tier">
+        <field name="name">普通分销商</field>
+        <field name="code">basic</field>
+        <field name="sequence">10</field>
+        <field name="commission_rate">5.0</field>
+        <field name="min_sales_amount">0.0</field>
+        <field name="min_referral_count">0</field>
+        <field name="is_default">True</field>
+        <field name="description">默认入门等级。</field>
+    </record>
+
+    <record id="tier_silver" model="esim.distributor.tier">
+        <field name="name">银牌分销商</field>
+        <field name="code">silver</field>
+        <field name="sequence">20</field>
+        <field name="commission_rate">8.0</field>
+        <field name="min_sales_amount">1000.0</field>
+        <field name="min_referral_count">10</field>
+        <field name="description">累计已结算销售额达到 1000 且有效订单数达到 10。</field>
+    </record>
+
+    <record id="tier_gold" model="esim.distributor.tier">
+        <field name="name">金牌分销商</field>
+        <field name="code">gold</field>
+        <field name="sequence">30</field>
+        <field name="commission_rate">12.0</field>
+        <field name="min_sales_amount">5000.0</field>
+        <field name="min_referral_count">50</field>
+        <field name="description">累计已结算销售额达到 5000 且有效订单数达到 50。</field>
+    </record>
+
+    <record id="tier_diamond" model="esim.distributor.tier">
+        <field name="name">钻石分销商</field>
+        <field name="code">diamond</field>
+        <field name="sequence">40</field>
+        <field name="commission_rate">15.0</field>
+        <field name="min_sales_amount">20000.0</field>
+        <field name="min_referral_count">200</field>
+        <field name="description">累计已结算销售额达到 20000 且有效订单数达到 200。</field>
+    </record>
+
+</odoo>

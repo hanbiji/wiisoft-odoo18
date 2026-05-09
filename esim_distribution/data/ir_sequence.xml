@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="seq_esim_distributor" model="ir.sequence">
+        <field name="name">eSIM 分销商</field>
+        <field name="code">esim.distributor</field>
+        <field name="prefix">DIST-</field>
+        <field name="padding">6</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+    <record id="seq_esim_commission" model="ir.sequence">
+        <field name="name">eSIM 分销佣金</field>
+        <field name="code">esim.commission</field>
+        <field name="prefix">COMM-</field>
+        <field name="padding">6</field>
+        <field name="number_next">1</field>
+        <field name="number_increment">1</field>
+    </record>
+
+</odoo>

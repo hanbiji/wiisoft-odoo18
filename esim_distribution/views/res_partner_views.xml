@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_partner_form_inherit_esim_distribution" model="ir.ui.view">
+        <field name="name">res.partner.form.esim.distribution</field>
+        <field name="model">res.partner</field>
+        <field name="inherit_id" ref="base.view_partner_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="(//field[@name='category_id'])[1]" position="after">
+                <field name="referrer_distributor_id"
+                       groups="esim_distribution.group_esim_distribution_manager"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_esim_order_form_inherit_distribution" model="ir.ui.view">
+        <field name="name">esim.order.form.distribution</field>
+        <field name="model">esim.order</field>
+        <field name="inherit_id" ref="esim_access.view_esim_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//div[@name='button_box']" position="inside">
+                <button name="action_view_commissions" type="object"
+                        class="oe_stat_button" icon="fa-money"
+                        invisible="commission_count == 0"
+                        groups="esim_distribution.group_esim_distribution_manager">
+                    <field name="commission_count" widget="statinfo" string="佣金"/>
+                </button>
+            </xpath>
+            <xpath expr="//page[@name='profiles']" position="after">
+                <page string="分销佣金" name="distribution_commissions"
+                      groups="esim_distribution.group_esim_distribution_manager"
+                      invisible="commission_count == 0">
+                    <field name="commission_ids" readonly="1">
+                        <list>
+                            <field name="name"/>
+                            <field name="distributor_id"/>
+                            <field name="commission_rate"/>
+                            <field name="commission_amount"/>
+                            <field name="state" widget="badge"/>
+                            <field name="lock_release_date"/>
+                            <field name="settled_date"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

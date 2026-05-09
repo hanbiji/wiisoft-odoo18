@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="privilege_esim_distribution_user" model="res.groups.privilege">
+        <field name="name">eSIM 分销用户权限</field>
+        <field name="category_id" ref="esim_access.module_category_esim"/>
+    </record>
+
+    <record id="privilege_esim_distribution_manager" model="res.groups.privilege">
+        <field name="name">eSIM 分销管理员权限</field>
+        <field name="category_id" ref="esim_access.module_category_esim"/>
+    </record>
+
+    <record id="group_esim_distribution_user" model="res.groups">
+        <field name="name">eSIM 分销用户</field>
+        <field name="privilege_id" ref="privilege_esim_distribution_user"/>
+        <field name="implied_ids" eval="[(4, ref('base.group_portal'))]"/>
+    </record>
+
+    <record id="group_esim_distribution_manager" model="res.groups">
+        <field name="name">eSIM 分销管理员</field>
+        <field name="privilege_id" ref="privilege_esim_distribution_manager"/>
+        <field name="implied_ids" eval="[(4, ref('esim_access.group_esim_manager'))]"/>
+    </record>
+
+    <!-- 等级：所有登录用户可读，只有分销管理员可维护。 -->
+    <record id="rule_tier_internal_read" model="ir.rule">
+        <field name="name">分销等级：内部用户可读</field>
+        <field name="model_id" ref="model_esim_distributor_tier"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_tier_portal_read" model="ir.rule">
+        <field name="name">分销等级：门户用户可读</field>
+        <field name="model_id" ref="model_esim_distributor_tier"/>
+        <field name="domain_force">[('active', '=', True)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_tier_manager" model="ir.rule">
+        <field name="name">分销等级：管理员全部访问</field>
+        <field name="model_id" ref="model_esim_distributor_tier"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_esim_distribution_manager'))]"/>
+    </record>
+
+    <!-- 分销商：用户只能访问自己的档案，管理员全部访问。 -->
+    <record id="rule_distributor_user" model="ir.rule">
+        <field name="name">分销商：内部用户仅自己的</field>
+        <field name="model_id" ref="model_esim_distributor"/>
+        <field name="domain_force">[('partner_id.user_ids', 'in', user.id)]</field>
+        <field name="groups" eval="[(4, ref('esim_access.group_esim_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_distributor_portal" model="ir.rule">
+        <field name="name">分销商：门户用户</field>
+        <field name="model_id" ref="model_esim_distributor"/>
+        <field name="domain_force">[('partner_id', '=', user.partner_id.commercial_partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_distributor_manager" model="ir.rule">
+        <field name="name">分销商：管理员全部访问</field>
+        <field name="model_id" ref="model_esim_distributor"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_esim_distribution_manager'))]"/>
+    </record>
+
+    <!-- 佣金：用户只能查看自己的佣金，管理员全部访问。 -->
+    <record id="rule_commission_user" model="ir.rule">
+        <field name="name">分销佣金：内部用户仅自己的</field>
+        <field name="model_id" ref="model_esim_commission"/>
+        <field name="domain_force">[('distributor_id.partner_id.user_ids', 'in', user.id)]</field>
+        <field name="groups" eval="[(4, ref('esim_access.group_esim_user'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_commission_portal" model="ir.rule">
+        <field name="name">分销佣金：门户用户</field>
+        <field name="model_id" ref="model_esim_commission"/>
+        <field name="domain_force">[('distributor_id.partner_id', '=', user.partner_id.commercial_partner_id.id)]</field>
+        <field name="groups" eval="[(4, ref('base.group_portal'))]"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="False"/>
+        <field name="perm_create" eval="False"/>
+        <field name="perm_unlink" eval="False"/>
+    </record>
+
+    <record id="rule_commission_manager" model="ir.rule">
+        <field name="name">分销佣金：管理员全部访问</field>
+        <field name="model_id" ref="model_esim_commission"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('group_esim_distribution_manager'))]"/>
+    </record>
+
+</odoo>

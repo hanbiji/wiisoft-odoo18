@@ -1,0 +1,30 @@
+# -*- coding: utf-8 -*-
+{
+    'name': 'eSIM 分销返佣',
+    'version': '19.0.1.0.0',
+    'summary': 'eSIM 套餐分销商注册、审核、推广与佣金返还',
+    'description': '为 eSIM Access 套餐提供一级分销返佣能力，支持分销商申请审核、'
+                   '等级佣金比例、推广链接绑定、订单佣金冻结和自动入账。',
+    'author': 'WiiSoft',
+    'license': 'LGPL-3',
+    'category': 'Services',
+    'depends': ['esim_access', 'portal', 'mail', 'web'],
+    'data': [
+        'security/distribution_security.xml',
+        'security/ir.model.access.csv',
+        'data/ir_sequence.xml',
+        'data/distributor_tier_data.xml',
+        'data/ir_cron.xml',
+        'data/mail_template_data.xml',
+        'views/esim_distributor_tier_views.xml',
+        'views/esim_distributor_views.xml',
+        'views/esim_commission_views.xml',
+        'views/res_partner_views.xml',
+        'views/portal_distribution_templates.xml',
+        'views/portal_menu_inherit.xml',
+        'views/menu.xml',
+    ],
+    'installable': True,
+    'application': False,
+    'auto_install': False,
+}
