@@ -106,9 +106,14 @@
                                 </div>
                                 <input type="hidden" name="location" id="loc_code"
                                        t-att-value="current_filters.get('location')"/>
+                                <!--
+                                    使用 position-fixed 让下拉层脱离父级 .card 等布局上下文，
+                                    避免被网格区或祖先创建的堆叠上下文遮挡；
+                                    具体位置在展开时由 JS 根据触发器实时计算。
+                                -->
                                 <div id="loc_dropdown"
-                                     class="list-group position-absolute w-100 shadow"
-                                     style="max-height:220px; overflow-y:auto; z-index:1055; display:none;">
+                                     class="list-group position-fixed shadow"
+                                     style="max-height:220px; overflow-y:auto; z-index:1080; display:none;">
                                     <a href="#" class="list-group-item list-group-item-action loc-opt"
                                        data-code="" data-name="">全部地区</a>
                                     <t t-foreach="available_locations" t-as="loc_option">
@@ -177,6 +182,7 @@
             </div>
 
             <script>
+                <![CDATA[
                 (function () {
                     var wrap = document.getElementById('loc_wrapper');
                     var search = document.getElementById('loc_search');
@@ -185,7 +191,18 @@
                     var btn = document.getElementById('loc_toggle');
                     var items = dd.querySelectorAll('.loc-opt');
 
-                    function show () { dd.style.display = ''; }
+                    // 根据触发器位置实时定位下拉层（fixed 定位，相对视口）
+                    function reposition () {
+                        var rect = wrap.getBoundingClientRect();
+                        dd.style.top = rect.bottom + 'px';
+                        dd.style.left = rect.left + 'px';
+                        dd.style.width = rect.width + 'px';
+                    }
+
+                    function show () {
+                        reposition();
+                        dd.style.display = '';
+                    }
                     function hide () { dd.style.display = 'none'; }
                     function isOpen () { return dd.style.display !== 'none'; }
 
@@ -207,6 +224,8 @@
                     search.addEventListener('input', function () { code.value = ''; filter(); show(); });
 
                     items.forEach(function (el) {
+                        // 阻止选项链接的默认跳转，避免触发页面 hash 滚动
+                        el.addEventListener('click', function (e) { e.preventDefault(); });
                         el.addEventListener('mousedown', function (e) {
                             e.preventDefault();
                             search.value = el.dataset.name;
@@ -216,9 +235,22 @@
                     });
 
                     document.addEventListener('click', function (e) {
+                        // dd 因 fixed 定位渲染脱离 wrap，但仍是其 DOM 子节点，contains 仍可判断
                         if (!wrap.contains(e.target)) hide();
                     });
+
+                    // 视口或祖先滚动时跟随更新位置，但忽略下拉层自身的内部滚动，
+                    // 避免出现"刚滚动列表就关闭"和"无法滚动"的体验问题
+                    window.addEventListener('resize', function () {
+                        if (isOpen()) reposition();
+                    });
+                    window.addEventListener('scroll', function (e) {
+                        if (!isOpen()) return;
+                        if (e.target === dd || (e.target.nodeType === 1 && dd.contains(e.target))) return;
+                        reposition();
+                    }, true);
                 })();
+                ]]>
             </script>
 
             <!-- 套餐卡片网格 -->
