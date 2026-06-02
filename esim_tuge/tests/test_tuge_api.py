@@ -6,6 +6,7 @@ from odoo.addons.esim_tuge.services.tuge_api import (
     build_sign_source,
     compute_sign,
     parse_tuge_datetime,
+    parse_token_payload,
     verify_sign,
     data_amount_to_gb,
 )
@@ -46,6 +47,24 @@ class TestTugeAPIUtils(unittest.TestCase):
     def test_verify_sign_fail(self):
         params = {'code': '0000', 'sign': 'invalid'}
         self.assertFalse(verify_sign(params, 'secret'))
+
+    def test_parse_token_payload_nested_data(self):
+        result = {
+            'code': '0000',
+            'data': {'accessToken': 'abc123', 'expires': 86400},
+        }
+        token = parse_token_payload(result)
+        self.assertEqual(token['accessToken'], 'abc123')
+        self.assertEqual(token['expires'], 86400)
+
+    def test_parse_token_payload_top_level(self):
+        result = {
+            'code': '0000',
+            'accessToken': 'top-level-token',
+            'expires': 3600,
+        }
+        token = parse_token_payload(result)
+        self.assertEqual(token['accessToken'], 'top-level-token')
 
 
 if __name__ == '__main__':

@@ -126,6 +126,38 @@ def verify_sign(params: dict, secret: str) -> bool:
     return computed.lower() == str(expected).lower()
 
 
+def parse_token_payload(result: dict) -> dict:
+    """
+    从 OAuth 响应提取 TokenInfo。
+
+    文档约定为 data.accessToken；部分环境可能在顶层返回 token 字段。
+    """
+    if not isinstance(result, dict):
+        return {}
+
+    payloads: list[dict] = []
+    data = result.get('data')
+    if isinstance(data, dict):
+        payloads.append(data)
+    payloads.append(result)
+
+    for payload in payloads:
+        access_token = (
+            payload.get('accessToken')
+            or payload.get('access_token')
+            or payload.get('token')
+        )
+        if not access_token:
+            continue
+        expires = payload.get('expires', payload.get('expire', 86400))
+        try:
+            expires_int = int(expires)
+        except (TypeError, ValueError):
+            expires_int = 86400
+        return {'accessToken': str(access_token), 'expires': expires_int}
+    return {}
+
+
 def data_amount_to_gb(amount: float | int | str, unit: str) -> float:
     """将 dataTotal + dataUnit 转为 GB。"""
     try:
@@ -162,7 +194,7 @@ class TugeAPI:
             'accountId': self.account_id,
             'secret': self.secret,
         }
-        return self._post_raw(url, payload, use_auth=False)
+        return self._request_oauth(url, payload)
 
     def refresh_token(self) -> dict:
         """刷新 token（值不变，延长有效期）。"""
@@ -171,16 +203,38 @@ class TugeAPI:
             'accountId': self.account_id,
             'accessToken': self.access_token,
         }
-        return self._post_raw(url, payload, use_auth=False)
+        return self._request_oauth(url, payload)
 
-    def _post_raw(
+    def _request_oauth(self, url: str, payload: dict) -> dict:
+        """OAuth 请求：解析完整响应体中的 token。"""
+        result = self._post_json(url, payload, use_auth=False)
+        code = str(result.get('code', ''))
+        if code != CODE_SUCCESS:
+            msg = result.get('msg') or result.get('message') or 'Unknown error'
+            sub_code = str(result.get('subCode', '') or '')
+            sub_msg = str(result.get('subMsg', '') or '')
+            raise TugeAPIError(code, msg, sub_code, sub_msg)
+
+        token_data = parse_token_payload(result)
+        if not token_data.get('accessToken'):
+            _logger.error(
+                "Tuge OAuth 成功但未解析到 accessToken，响应键: %s, data类型: %s",
+                list(result.keys()),
+                type(result.get('data')).__name__,
+            )
+            raise TugeAPIError(
+                'NO_TOKEN',
+                '授权响应中未包含 accessToken，请核对 Account ID、Secret 与 API 基础 URL',
+            )
+        return token_data
+
+    def _post_json(
         self,
         url: str,
         payload: dict,
         use_auth: bool = True,
-        retry_on_token: bool = True,
     ) -> dict:
-        """发送 POST 并解析顶层 code/data（业务接口与 OAuth 共用结构）。"""
+        """POST 请求并返回完整 JSON 响应（不剥离 data）。"""
         body = json.dumps(payload, separators=(',', ':'), ensure_ascii=False)
         headers = {
             'Content-Type': 'application/json;charset=UTF-8',
@@ -192,13 +246,29 @@ class TugeAPI:
 
         _logger.info("Tuge API POST %s", url)
         try:
-            resp = requests.post(url, data=body.encode('utf-8'), headers=headers, timeout=self.DEFAULT_TIMEOUT)
+            resp = requests.post(
+                url, data=body.encode('utf-8'), headers=headers, timeout=self.DEFAULT_TIMEOUT,
+            )
             resp.raise_for_status()
         except requests.RequestException as e:
-            _logger.error("Tuge API HTTP error: %s", e)
+            _logger.error("Tuge API HTTP error on %s: %s", url, e)
             raise TugeAPIError('HTTP_ERROR', str(e)) from e
 
-        result = resp.json()
+        try:
+            return resp.json()
+        except ValueError as e:
+            _logger.error("Tuge API 非 JSON 响应: %s", resp.text[:500])
+            raise TugeAPIError('INVALID_JSON', '响应不是有效 JSON') from e
+
+    def _post_raw(
+        self,
+        url: str,
+        payload: dict,
+        use_auth: bool = True,
+        retry_on_token: bool = True,
+    ) -> dict:
+        """发送 POST 并解析顶层 code，成功时返回 data 段。"""
+        result = self._post_json(url, payload, use_auth=use_auth)
         code = str(result.get('code', ''))
         if code == CODE_SUCCESS:
             return result.get('data') or {}

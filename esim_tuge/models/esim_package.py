@@ -64,12 +64,15 @@ class EsimPackage(models.Model):
         """读取途鸽 API 配置参数。"""
         ICP = self.env['ir.config_parameter'].sudo()
         return {
-            'account_id': ICP.get_param('tuge.account_id', ''),
-            'secret': ICP.get_param('tuge.secret', ''),
-            'base_url': ICP.get_param(
-                'tuge.base_url',
-                'https://enterpriseapisandbox.tugegroup.com:8070/openapi',
-            ),
+            'account_id': (ICP.get_param('tuge.account_id', '') or '').strip(),
+            'secret': (ICP.get_param('tuge.secret', '') or '').strip(),
+            'base_url': (
+                ICP.get_param(
+                    'tuge.base_url',
+                    'https://enterpriseapisandbox.tugegroup.com:8070/openapi',
+                )
+                or ''
+            ).strip().rstrip('/'),
             'markup': float(ICP.get_param('tuge.default_markup', '1.3')),
         }
 
@@ -118,12 +121,20 @@ class EsimPackage(models.Model):
                     data = client.refresh_token()
                 else:
                     data = client.get_token()
-            except TugeAPIError:
-                data = client.get_token()
+            except TugeAPIError as refresh_err:
+                if token and not force_new_token:
+                    _logger.info("途鸽 refreshToken 失败，改走 get_token: %s", refresh_err)
+                    data = client.get_token()
+                else:
+                    raise UserError(_("途鸽授权失败: %s") % refresh_err) from refresh_err
             new_token = data.get('accessToken', '')
             expires = int(data.get('expires', 86400))
             if not new_token:
-                raise UserError(_("途鸽授权失败：未返回 accessToken"))
+                raise UserError(_(
+                    "途鸽授权失败：未返回 accessToken。请检查设置中的 Account ID、Secret，"
+                    "以及 API 基础 URL 是否为 …/openapi（沙箱示例: "
+                    "https://enterpriseapisandbox.tugegroup.com:8070/openapi）"
+                ))
             client.access_token = new_token
             self._store_tuge_token(new_token, expires)
         return client
