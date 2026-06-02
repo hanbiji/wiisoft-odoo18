@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_esim_package_list_tuge" model="ir.ui.view">
+        <field name="name">esim.package.list.tuge</field>
+        <field name="model">esim.package</field>
+        <field name="inherit_id" ref="esim_access.view_esim_package_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//list/header/button[@name='action_sync_packages']" position="after">
+                <button name="action_sync_tuge_packages" type="object"
+                        string="同步途鸽套餐" class="btn-secondary"
+                        icon="fa-cloud-download"
+                        groups="esim_access.group_esim_manager"/>
+            </xpath>
+            <xpath expr="//field[@name='package_code']" position="before">
+                <field name="provider" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_esim_package_form_tuge" model="ir.ui.view">
+        <field name="name">esim.package.form.tuge</field>
+        <field name="model">esim.package</field>
+        <field name="inherit_id" ref="esim_access.view_esim_package_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='package_type']" position="after">
+                <field name="provider"/>
+            </xpath>
+            <xpath expr="//sheet/group[last()]" position="after">
+                <group string="途鸽参数" invisible="provider != 'tuge'">
+                    <group>
+                        <field name="tuge_card_type" readonly="1"/>
+                        <field name="tuge_product_type" readonly="1"/>
+                        <field name="tuge_active_type" readonly="1"/>
+                    </group>
+                    <group>
+                        <field name="tuge_usage_period" readonly="1"/>
+                        <field name="tuge_validity_period" readonly="1"/>
+                        <field name="tuge_period_type" readonly="1"/>
+                    </group>
+                </group>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_esim_package_search_tuge" model="ir.ui.view">
+        <field name="name">esim.package.search.tuge</field>
+        <field name="model">esim.package</field>
+        <field name="inherit_id" ref="esim_access.view_esim_package_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='filter_published']" position="after">
+                <separator/>
+                <filter name="filter_provider_access" string="eSIM Access"
+                        domain="[('provider', '=', 'access')]"/>
+                <filter name="filter_provider_tuge" string="途鸽 Tuge"
+                        domain="[('provider', '=', 'tuge')]"/>
+            </xpath>
+            <xpath expr="//filter[@name='group_type']" position="after">
+                <filter name="group_provider" string="供应商" context="{'group_by': 'provider'}"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="res_config_settings_view_form_tuge" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.tuge</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base.res_config_settings_view_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//form" position="inside">
+                <app name="esim_tuge" string="途鸽 Tuge" logo="/esim_access/static/description/icon.png">
+                    <block title="套餐同步" name="tuge_sync">
+                        <setting string="拉取途鸽全部套餐"
+                                 help="从途鸽 OpenAPI 分页拉取可售套餐并写入 esim.package（provider=途鸽）">
+                            <div class="content-group">
+                                <div class="mt16">
+                                    <button name="action_tuge_sync_packages" type="object"
+                                            string="立即同步途鸽套餐" class="btn-primary"
+                                            icon="fa-refresh"
+                                            confirm="将从途鸽 API 拉取全部套餐，是否继续？"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="API 凭证" name="tuge_credentials">
+                        <setting string="Account ID" help="途鸽渠道账户 ID">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="tuge_account_id" class="col-lg-3 o_light_label"/>
+                                    <field name="tuge_account_id" class="col-lg-6"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="Secret" help="途鸽 API 密钥">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="tuge_secret" class="col-lg-3 o_light_label"/>
+                                    <field name="tuge_secret" class="col-lg-6" password="True"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="API 基础 URL" help="沙箱或生产环境 OpenAPI 地址">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="tuge_base_url" class="col-lg-3 o_light_label"/>
+                                    <field name="tuge_base_url" class="col-lg-8"/>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                    <block title="业务与回调" name="tuge_business">
+                        <setting string="默认加价比例" help="售价 = 途鸽 netPrice × 加价比例">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="tuge_default_markup" class="col-lg-3 o_light_label"/>
+                                    <field name="tuge_default_markup" class="col-lg-3"/>
+                                </div>
+                            </div>
+                        </setting>
+                        <setting string="回调验签 Secret"
+                                 help="用于验证 POST /esim/tuge/callback 的 MD5 签名；留空则使用 API Secret">
+                            <div class="content-group">
+                                <div class="row mt16">
+                                    <label for="tuge_callback_secret" class="col-lg-3 o_light_label"/>
+                                    <field name="tuge_callback_secret" class="col-lg-6" password="True"/>
+                                </div>
+                                <div class="text-muted mt8">
+                                    请在途鸽侧配置回调地址：<code>/esim/tuge/callback</code>
+                                </div>
+                            </div>
+                        </setting>
+                    </block>
+                </app>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>

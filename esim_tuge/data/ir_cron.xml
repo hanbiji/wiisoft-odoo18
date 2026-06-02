@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <!-- 每天同步途鸽套餐 -->
+    <record id="cron_sync_tuge_packages" model="ir.cron">
+        <field name="name">途鸽：同步套餐列表</field>
+        <field name="model_id" ref="esim_access.model_esim_package"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_sync_tuge_packages()</field>
+        <field name="interval_number">1</field>
+        <field name="interval_type">days</field>
+        <field name="active">True</field>
+    </record>
+
+    <!-- 每 30 分钟轮询 processing 途鸽订单（回调丢失兜底） -->
+    <record id="cron_poll_tuge_processing_orders" model="ir.cron">
+        <field name="name">途鸽：轮询处理中订单</field>
+        <field name="model_id" ref="esim_access.model_esim_order"/>
+        <field name="state">code</field>
+        <field name="code">model._cron_poll_tuge_processing_orders()</field>
+        <field name="interval_number">30</field>
+        <field name="interval_type">minutes</field>
+        <field name="active">True</field>
+    </record>
+
+</odoo>

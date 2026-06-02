@@ -1,0 +1,46 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<odoo>
+
+    <record id="view_esim_order_list_tuge" model="ir.ui.view">
+        <field name="name">esim.order.list.tuge</field>
+        <field name="model">esim.order</field>
+        <field name="inherit_id" ref="esim_access.view_esim_order_list"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='package_id']" position="after">
+                <field name="provider" optional="show"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_esim_order_form_tuge" model="ir.ui.view">
+        <field name="name">esim.order.form.tuge</field>
+        <field name="model">esim.order</field>
+        <field name="inherit_id" ref="esim_access.view_esim_order_form"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='api_order_no']" position="after">
+                <field name="provider" readonly="1"/>
+                <field name="tuge_idempotency_key" readonly="1"
+                       invisible="provider != 'tuge'"/>
+            </xpath>
+        </field>
+    </record>
+
+    <record id="view_esim_order_search_tuge" model="ir.ui.view">
+        <field name="name">esim.order.search.tuge</field>
+        <field name="model">esim.order</field>
+        <field name="inherit_id" ref="esim_access.view_esim_order_search"/>
+        <field name="arch" type="xml">
+            <xpath expr="//filter[@name='filter_done']" position="after">
+                <separator/>
+                <filter name="filter_provider_tuge" string="途鸽订单"
+                        domain="[('provider', '=', 'tuge')]"/>
+                <filter name="filter_provider_access" string="Access 订单"
+                        domain="[('provider', '=', 'access')]"/>
+            </xpath>
+            <xpath expr="//filter[@name='group_package']" position="after">
+                <filter name="group_provider" string="供应商" context="{'group_by': 'provider'}"/>
+            </xpath>
+        </field>
+    </record>
+
+</odoo>
