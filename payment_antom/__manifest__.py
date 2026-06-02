@@ -2,7 +2,7 @@
 
 {
     'name': 'Payment Provider: Antom',
-    'version': '18.0.1.0.0',
+    'version': '19.0.1.0.0',
     'category': 'Accounting/Payment Providers',
     'sequence': 350,
     'summary': "Antom (Alipay+) 国际在线支付，支持数字钱包、银行卡、银行转账等。",
