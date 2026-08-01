@@ -28,29 +28,33 @@
                 <t t-set="title">在线充值</t>
             </t>
 
+            <t t-call="esim_access.portal_esim_currency_selector"/>
+
             <!-- 当前余额 -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body text-center py-3">
-                    <span class="text-muted">当前余额：</span>
+                    <span class="text-muted">当前余额（<t t-out="shop_currency.name"/>）：</span>
                     <strong class="h5 text-primary ms-2">
-                        $<t t-out="'%.2f' % (esim_balance or 0)"/>
+                        <t t-out="shop_currency.symbol or shop_currency.name"/>
+                        <t t-out="'%.2f' % (esim_balance or 0)"/>
                     </strong>
                 </div>
             </div>
 
-            <t t-if="options">
+            <t t-if="display_options">
                 <div class="row">
-                    <t t-foreach="options" t-as="opt">
+                    <t t-foreach="display_options" t-as="item">
                         <div class="col-lg-3 col-md-4 col-6 mb-4">
                             <div class="card h-100 shadow-sm text-center">
                                 <div class="card-body d-flex flex-column justify-content-center py-4">
                                     <div class="display-6 fw-bold text-primary mb-2">
-                                        <t t-out="opt.currency_id.symbol"/><t t-out="'%.2f' % opt.amount"/>
+                                        <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                        <t t-out="'%.2f' % item['amount']"/>
                                     </div>
                                     <p class="text-muted mb-3">
-                                        <t t-out="opt.name"/>
+                                        <t t-out="item['option'].name"/>
                                     </p>
-                                    <a t-attf-href="/my/esim/recharge/#{opt.id}"
+                                    <a t-attf-href="/my/esim/recharge/#{item['option'].id}"
                                        class="btn btn-primary">
                                         选择
                                     </a>
@@ -61,7 +65,7 @@
                 </div>
             </t>
 
-            <t t-if="not options">
+            <t t-if="not display_options">
                 <div class="text-center py-5 text-muted">
                     <i class="fa fa-credit-card fa-3x mb-3 d-block"/>
                     <p>暂无可用充值档位</p>
@@ -82,6 +86,8 @@
     <template id="portal_recharge_pay" name="Portal eSIM Recharge Pay">
         <t t-call="portal.portal_layout">
 
+            <t t-call="esim_access.portal_esim_currency_selector"/>
+
             <div class="row justify-content-center my-3">
                 <div class="col-lg-7">
 
@@ -90,15 +96,20 @@
                         <div class="card-body text-center py-4">
                             <h5 class="mb-3">充值金额</h5>
                             <div class="display-4 fw-bold text-primary mb-2">
-                                <t t-out="option.currency_id.symbol"/><t t-out="'%.2f' % option.amount"/>
+                                <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                <t t-out="'%.2f' % (pay_amount or amount)"/>
                             </div>
                             <p class="text-muted mb-0">
                                 <t t-out="option.name"/>
                             </p>
                             <div class="mt-2 small text-muted">
-                                当前余额：$<t t-out="'%.2f' % (esim_balance or 0)"/>
+                                当前余额：
+                                <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                <t t-out="'%.2f' % (esim_balance or 0)"/>
                                 <i class="fa fa-arrow-right mx-1"/>
-                                充值后：$<t t-out="'%.2f' % ((esim_balance or 0) + option.amount)"/>
+                                充值后：
+                                <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                <t t-out="'%.2f' % ((esim_balance or 0) + (pay_amount or amount or 0))"/>
                             </div>
                         </div>
                     </div>

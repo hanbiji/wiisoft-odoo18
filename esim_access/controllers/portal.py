@@ -16,10 +16,41 @@ TRANSACTIONS_PER_PAGE = 20
 
 class EsimPortal(CustomerPortal):
 
+    SESSION_CURRENCY_KEY = 'esim_shop_currency_id'
+
     @staticmethod
     def _get_portal_partner():
         """门户统一使用商业伙伴作为客户主档，避免联系人与公司余额分裂。"""
         return request.env.user.partner_id.commercial_partner_id
+
+    def _get_shop_currency(self):
+        """解析当前门户购物币种：会话 > 客户首选 > USD/公司币。"""
+        Currency = request.env['res.currency'].sudo()
+        active_currencies = request.env['esim.package']._get_active_shop_currencies()
+
+        session_id = request.session.get(self.SESSION_CURRENCY_KEY)
+        if session_id:
+            currency = Currency.browse(int(session_id)).exists()
+            if currency and currency in active_currencies:
+                return currency
+
+        partner = self._get_portal_partner().sudo()
+        preferred = partner.esim_preferred_currency_id
+        if preferred and preferred in active_currencies:
+            return preferred
+
+        return request.env['esim.package']._get_fallback_shop_currency()
+
+    def _prepare_esim_currency_values(self, partner=None) -> dict:
+        """门户模板共用的币种与余额上下文。"""
+        partner = partner or self._get_portal_partner()
+        shop_currency = self._get_shop_currency()
+        return {
+            'shop_currency': shop_currency,
+            'esim_currencies': request.env['esim.package']._get_active_shop_currencies(),
+            'esim_balance': partner.sudo()._esim_get_balance(shop_currency),
+            'esim_wallets': partner.sudo().esim_balance_ids,
+        }
 
     @staticmethod
     def _normalize_filter_value(value) -> str:
@@ -50,9 +81,7 @@ class EsimPortal(CustomerPortal):
     def _prepare_home_portal_values(self, counters):
         values = super()._prepare_home_portal_values(counters)
         partner = self._get_portal_partner()
-
-        # 余额卡片展示的是实际金额，不属于 portal counter 机制，首页首屏始终提供。
-        values['esim_balance'] = partner.sudo().esim_balance
+        values.update(self._prepare_esim_currency_values(partner))
 
         if 'esim_profile_count' in counters:
             values['esim_profile_count'] = request.env['esim.profile'].sudo().search_count(
@@ -182,6 +211,7 @@ class EsimPortal(CustomerPortal):
             'available_volumes': sorted(all_volumes.values(), key=lambda item: float(item['value'])),
             'available_data_types': available_data_types,
         }
+        values.update(self._prepare_esim_currency_values())
         return request.render('esim_access.portal_esim_packages', values)
 
     @http.route('/my/esim/packages/<int:package_id>', type='http', auth='user', website=True)
@@ -200,13 +230,16 @@ class EsimPortal(CustomerPortal):
                 if code:
                     location_codes.add(code.upper())
         country_name_map = self._build_country_name_map(location_codes)
+        currency_values = self._prepare_esim_currency_values(partner)
+        shop_currency = currency_values['shop_currency']
 
         values = {
             'package': package,
-            'esim_balance': partner.sudo().esim_balance,
+            'package_price': package._get_sale_price(shop_currency),
             'country_name_map': country_name_map,
             'page_name': 'esim_package_detail',
         }
+        values.update(currency_values)
         return request.render('esim_access.portal_esim_package_detail', values)
 
     # ── 下单 ─────────────────────────────────────────────
@@ -221,11 +254,15 @@ class EsimPortal(CustomerPortal):
 
         quantity = max(int(quantity), 1)
         period_num = max(int(period_num), 0)
+        shop_currency = self._get_shop_currency()
+        unit_price = package._get_sale_price(shop_currency)
 
         vals = {
             'partner_id': partner.id,
             'package_id': package.id,
             'quantity': quantity,
+            'currency_id': shop_currency.id,
+            'unit_price': unit_price,
         }
         if period_num:
             vals['period_num'] = period_num
@@ -237,9 +274,11 @@ class EsimPortal(CustomerPortal):
         except UserError as e:
             values = {
                 'package': package,
+                'package_price': unit_price,
                 'error_message': str(e),
                 'page_name': 'esim_package_detail',
             }
+            values.update(self._prepare_esim_currency_values(partner))
             return request.render('esim_access.portal_esim_package_detail', values)
 
         return request.redirect(f'/my/esim/orders/{order.id}')
@@ -270,6 +309,7 @@ class EsimPortal(CustomerPortal):
             'page_name': 'esim_orders',
             'default_url': '/my/esim/orders',
         }
+        values.update(self._prepare_esim_currency_values(partner))
         return request.render('esim_access.portal_esim_orders', values)
 
     @http.route('/my/esim/orders/<int:order_id>', type='http', auth='user', website=True)
@@ -287,6 +327,7 @@ class EsimPortal(CustomerPortal):
                                if kw.get('cancelled') else '',
             'error_message': '',
         }
+        values.update(self._prepare_esim_currency_values(partner))
         return request.render('esim_access.portal_esim_order_detail', values)
 
     @http.route('/my/esim/orders/<int:order_id>/cancel', type='http', auth='user',
@@ -307,6 +348,7 @@ class EsimPortal(CustomerPortal):
                 'success_message': '',
                 'error_message': str(e),
             }
+            values.update(self._prepare_esim_currency_values(partner))
             return request.render('esim_access.portal_esim_order_detail', values)
 
         return request.redirect(f'/my/esim/orders/{order.id}?cancelled=1')
@@ -337,6 +379,7 @@ class EsimPortal(CustomerPortal):
             'page_name': 'esim_profiles',
             'default_url': '/my/esim/profiles',
         }
+        values.update(self._prepare_esim_currency_values(partner))
         return request.render('esim_access.portal_esim_profiles', values)
 
     @http.route('/my/esim/profiles/<int:profile_id>', type='http', auth='user', website=True)
@@ -361,6 +404,7 @@ class EsimPortal(CustomerPortal):
             'topup_packages': topup_packages,
             'page_name': 'esim_profile_detail',
         }
+        values.update(self._prepare_esim_currency_values(partner))
         return request.render('esim_access.portal_esim_profile_detail', values)
 
     # ── 充值 ─────────────────────────────────────────────
@@ -398,6 +442,7 @@ class EsimPortal(CustomerPortal):
                 'error_message': str(e),
                 'page_name': 'esim_profile_detail',
             }
+            values.update(self._prepare_esim_currency_values(partner))
             return request.render('esim_access.portal_esim_profile_detail', values)
 
         return request.redirect(f'/my/esim/profiles/{profile.id}')
@@ -410,7 +455,9 @@ class EsimPortal(CustomerPortal):
         """余额与交易记录页"""
         partner = self._get_portal_partner()
         BalanceLog = request.env['esim.balance.log'].sudo()
-        domain = [('partner_id', '=', partner.id)]
+        currency_values = self._prepare_esim_currency_values(partner)
+        shop_currency = currency_values['shop_currency']
+        domain = [('partner_id', '=', partner.id), ('currency_id', '=', shop_currency.id)]
 
         log_count = BalanceLog.search_count(domain)
         pager = portal_pager(
@@ -426,9 +473,9 @@ class EsimPortal(CustomerPortal):
 
         values = {
             'logs': logs,
-            'esim_balance': partner.sudo().esim_balance,
             'pager': pager,
             'page_name': 'esim_balance',
             'default_url': '/my/esim/balance',
         }
+        values.update(currency_values)
         return request.render('esim_access.portal_esim_balance', values)

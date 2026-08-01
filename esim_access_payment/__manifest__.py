@@ -4,7 +4,8 @@
     'version': '19.0.2.0.0',
     'summary': '通过在线支付为 eSIM 余额充值 & 购买套餐',
     'description': '桥接 esim_access 与 payment 模块，'
-                   '支持客户在门户通过在线支付网关完成余额充值和套餐购买。',
+                   '支持客户在门户通过在线支付网关完成余额充值和套餐购买，'
+                   '支付与入账币种跟随门户所选币种。',
     'author': 'WiiSoft',
     'license': 'LGPL-3',
     'category': 'Services',

@@ -2,6 +2,30 @@
 <odoo>
 
     <!-- ══════════════════════════════════════════════════════
+         币种选择器（门户购物页复用）
+         ══════════════════════════════════════════════════════ -->
+    <template id="portal_esim_currency_selector" name="Portal eSIM Currency Selector">
+        <div t-if="esim_currencies and shop_currency" class="d-flex justify-content-end mb-3">
+            <form method="POST" action="/my/esim/currency/set" class="d-flex align-items-center gap-2">
+                <input type="hidden" name="csrf_token" t-att-value="request.csrf_token()"/>
+                <input type="hidden" name="redirect" t-att-value="request.httprequest.path"/>
+                <label class="form-label mb-0 small text-muted">币种</label>
+                <select name="currency_id" class="form-select form-select-sm"
+                        style="width: auto; min-width: 7rem;"
+                        onchange="this.form.submit()">
+                    <t t-foreach="esim_currencies" t-as="cur">
+                        <option t-att-value="cur.id"
+                                t-att-selected="cur.id == shop_currency.id and 'selected' or None">
+                            <t t-out="cur.name"/>
+                            <t t-if="cur.symbol"> (<t t-out="cur.symbol"/>)</t>
+                        </option>
+                    </t>
+                </select>
+            </form>
+        </div>
+    </template>
+
+    <!-- ══════════════════════════════════════════════════════
          门户首页：添加 eSIM 入口
          ══════════════════════════════════════════════════════ -->
     <template id="portal_my_home_esim" name="Portal My Home - eSIM"
@@ -32,7 +56,8 @@
                 <t t-set="icon" t-value="'/esim_access/static/description/icon.png'"/>
                 <t t-set="title">我的余额</t>
                 <t t-set="url" t-value="'/my/esim/balance'"/>
-                <t t-set="text" t-valuef="余额: $#{esim_balance and '%.2f' % esim_balance or '0.00'}"/>
+                <t t-set="text"
+                   t-valuef="余额: #{shop_currency and (shop_currency.symbol or shop_currency.name) or '$'}#{esim_balance and '%.2f' % esim_balance or '0.00'}"/>
                 <t t-set="config_card" t-value="True"/>
             </t>
         </div>
@@ -87,6 +112,8 @@
             <t t-call="portal.portal_searchbar">
                 <t t-set="title">eSIM 套餐</t>
             </t>
+
+            <t t-call="esim_access.portal_esim_currency_selector"/>
 
             <!-- 组合筛选 -->
             <div class="card shadow-sm mb-4">
@@ -291,7 +318,8 @@
                                 </ul>
                                 <div class="d-flex justify-content-between align-items-center mt-3">
                                     <span class="h4 mb-0 text-primary">
-                                        $<t t-out="'%.2f' % pkg.sale_price"/>
+                                        <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                        <t t-out="'%.2f' % pkg._get_sale_price(shop_currency)"/>
                                     </span>
                                     <a t-attf-href="/my/esim/packages/#{pkg.id}" class="btn btn-primary">
                                         查看详情
@@ -323,7 +351,9 @@
         <t t-call="portal.portal_layout">
             <!-- 统一归一化模板比较用的核心金额，避免空值参与大小比较 -->
             <t t-set="current_balance" t-value="esim_balance or 0.0"/>
-            <t t-set="package_price" t-value="package.sale_price or 0.0"/>
+            <t t-set="package_price" t-value="package_price if package_price is not None else (package._get_sale_price(shop_currency) if shop_currency else (package.sale_price or 0.0))"/>
+
+            <t t-call="esim_access.portal_esim_currency_selector"/>
 
             <t t-if="error_message">
                 <div class="alert alert-danger" role="alert">
@@ -380,15 +410,17 @@
                         <div class="col-md-6">
                             <div class="text-center py-4">
                                 <div class="display-4 text-primary fw-bold mb-3">
-                                    $<t t-out="'%.2f' % package_price"/>
+                                    <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                    <t t-out="'%.2f' % package_price"/>
                                 </div>
                                 <p class="text-muted" t-if="package.description">
                                     <t t-out="package.description"/>
                                 </p>
                                 <div class="mb-3 p-2 rounded bg-light text-center">
-                                    <small class="text-muted">我的余额：</small>
+                                    <small class="text-muted">我的余额（<t t-out="shop_currency.name"/>）：</small>
                                     <strong t-attf-class="#{current_balance &lt; package_price and 'text-danger' or 'text-success'}">
-                                        $<t t-out="'%.2f' % current_balance"/>
+                                        <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                        <t t-out="'%.2f' % current_balance"/>
                                     </strong>
                                 </div>
                                 <form method="POST" action="/my/esim/order">
@@ -410,8 +442,9 @@
                                     </t>
                                     <t t-if="current_balance &lt; package_price">
                                         <div class="alert alert-warning small mb-3">
-                                            余额不足，请先
+                                            当前币种余额不足，请先
                                             <a href="/my/esim/balance">充值</a>
+                                            或切换币种。
                                         </div>
                                     </t>
                                     <button type="submit" class="btn btn-primary btn-lg">
@@ -464,7 +497,10 @@
                                     </td>
                                     <td><t t-out="order.package_id.name"/></td>
                                     <td><t t-out="order.quantity"/></td>
-                                    <td>$<t t-out="'%.2f' % order.total_amount"/></td>
+                                    <td>
+                                        <t t-out="order.currency_id.symbol or order.currency_id.name or '$'"/>
+                                        <t t-out="'%.2f' % order.total_amount"/>
+                                    </td>
                                     <td>
                                         <span t-attf-class="badge #{
                                             'bg-secondary' if order.state == 'draft' else
@@ -548,11 +584,17 @@
                                 </tr>
                                 <tr>
                                     <th>单价</th>
-                                    <td>$<t t-out="'%.2f' % order.unit_price"/></td>
+                                    <td>
+                                        <t t-out="order.currency_id.symbol or order.currency_id.name or '$'"/>
+                                        <t t-out="'%.2f' % order.unit_price"/>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th>总金额</th>
-                                    <td class="fw-bold">$<t t-out="'%.2f' % order.total_amount"/></td>
+                                    <td class="fw-bold">
+                                        <t t-out="order.currency_id.symbol or order.currency_id.name or '$'"/>
+                                        <t t-out="'%.2f' % order.total_amount"/>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th>下单时间</th>
@@ -814,7 +856,8 @@
                                                 <t t-if="tp.duration_unit == 'MONTH'"> 月</t>
                                             </p>
                                             <p class="h5 text-primary">
-                                                $<t t-out="'%.2f' % tp.sale_price"/>
+                                                <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                                <t t-out="'%.2f' % tp._get_sale_price(shop_currency)"/>
                                             </p>
                                             <form method="POST"
                                                   t-attf-action="/my/esim/topup/#{profile.id}">
@@ -853,7 +896,10 @@
                                         <tr>
                                             <td><t t-out="topup.name"/></td>
                                             <td><t t-out="topup.package_id.name"/></td>
-                                            <td>$<t t-out="'%.2f' % topup.amount"/></td>
+                                            <td>
+                                                <t t-out="topup.package_id._get_currency().symbol or topup.package_id.currency_code or '$'"/>
+                                                <t t-out="'%.2f' % topup.amount"/>
+                                            </td>
                                             <td>
                                                 <span t-attf-class="badge #{
                                                     'bg-info' if topup.state == 'draft' else
@@ -889,13 +935,28 @@
                 <t t-set="title">我的余额</t>
             </t>
 
+            <t t-call="esim_access.portal_esim_currency_selector"/>
+
             <!-- 余额卡片 -->
             <div class="card shadow-sm mb-4">
                 <div class="card-body text-center py-4">
-                    <p class="text-muted mb-1">当前余额</p>
+                    <p class="text-muted mb-1">当前余额（<t t-out="shop_currency.name"/>）</p>
                     <div class="display-4 fw-bold text-primary">
-                        $<t t-out="'%.2f' % (esim_balance or 0)"/>
+                        <t t-out="shop_currency.symbol or shop_currency.name"/>
+                        <t t-out="'%.2f' % (esim_balance or 0)"/>
                     </div>
+                    <t t-if="esim_wallets and len(esim_wallets) > 1">
+                        <div class="mt-3 small text-muted">
+                            <div class="mb-1">其他币种钱包：</div>
+                            <t t-foreach="esim_wallets" t-as="wallet">
+                                <span t-if="wallet.currency_id != shop_currency" class="badge bg-light text-dark border me-1">
+                                    <t t-out="wallet.currency_id.name"/>
+                                    <t t-out="wallet.currency_id.symbol or ''"/>
+                                    <t t-out="'%.2f' % wallet.amount"/>
+                                </span>
+                            </t>
+                        </div>
+                    </t>
                     <a href="/my/esim/packages" class="btn btn-outline-primary mt-3">
                         <i class="fa fa-shopping-cart me-1"/> 购买套餐
                     </a>
@@ -903,7 +964,7 @@
             </div>
 
             <!-- 交易记录 -->
-            <h5 class="mb-3">交易记录</h5>
+            <h5 class="mb-3">交易记录（<t t-out="shop_currency.name"/>）</h5>
             <t t-if="logs">
                 <div class="table-responsive">
                     <table class="table table-hover">
@@ -936,10 +997,14 @@
                                         <span t-attf-class="#{log.type == 'consume' and 'text-danger' or 'text-success'}">
                                             <t t-if="log.type == 'consume'">-</t>
                                             <t t-else="">+</t>
-                                            $<t t-out="'%.2f' % log.amount"/>
+                                            <t t-out="log.currency_id.symbol or log.currency_id.name"/>
+                                            <t t-out="'%.2f' % log.amount"/>
                                         </span>
                                     </td>
-                                    <td>$<t t-out="'%.2f' % log.balance_after"/></td>
+                                    <td>
+                                        <t t-out="log.currency_id.symbol or log.currency_id.name"/>
+                                        <t t-out="'%.2f' % log.balance_after"/>
+                                    </td>
                                     <td class="text-muted"><t t-out="log.description"/></td>
                                 </tr>
                             </t>
@@ -951,7 +1016,7 @@
             <t t-if="not logs">
                 <div class="text-center py-5 text-muted">
                     <i class="fa fa-list fa-3x mb-3 d-block"/>
-                    <p>暂无交易记录</p>
+                    <p>当前币种暂无交易记录</p>
                 </div>
             </t>
 

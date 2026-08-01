@@ -74,6 +74,7 @@ class EsimBalanceRecharge(models.Model):
             'topup',
             self.amount,
             _("在线充值 %s", self.name),
+            currency=self.currency_id,
         )
         self.write({
             'state': 'done',

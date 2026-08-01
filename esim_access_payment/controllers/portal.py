@@ -3,12 +3,13 @@ import logging
 
 from werkzeug.exceptions import NotFound
 
-from odoo import _, http
+from odoo import _, fields, http
 from odoo.exceptions import ValidationError
 from odoo.http import request
 
 from odoo.addons.payment import utils as payment_utils
 from odoo.addons.payment.controllers import portal as payment_portal
+from odoo.addons.esim_access.controllers.portal import EsimPortal
 
 _logger = logging.getLogger(__name__)
 
@@ -20,18 +21,20 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
     #  通用工具
     # ==================================================================
 
-    @staticmethod
-    def _get_package_currency(package):
-        """根据套餐的 currency_code 查找 res.currency 记录。"""
-        code = (package.currency_code or 'USD').upper()
-        currency = request.env['res.currency'].sudo().search(
-            [('name', '=', code)], limit=1,
+    def _get_shop_currency(self):
+        """复用 eSIM 门户会话币种。"""
+        return EsimPortal()._get_shop_currency()
+
+    def _convert_amount(self, amount: float, from_currency, to_currency) -> float:
+        """按公司汇率将金额换算到目标币种。"""
+        if not from_currency or not to_currency or from_currency == to_currency:
+            return amount
+        return from_currency._convert(
+            amount,
+            to_currency,
+            request.env.company,
+            fields.Date.context_today(request.env.user),
         )
-        if not currency:
-            raise ValidationError(
-                _("找不到套餐对应的货币: %s") % code,
-            )
-        return currency
 
     # ==================================================================
     #  通用：构建支付上下文
@@ -87,35 +90,53 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
 
     @http.route('/my/esim/recharge', type='http', auth='user', website=True)
     def portal_recharge_options(self, **kw):
-        """展示可用的充值档位列表。"""
+        """展示可用充值档位（金额按当前购物币种换算）。"""
         options = request.env['esim.recharge.option'].sudo().search(
             [('active', '=', True)], order='sequence, id',
         )
         partner = request.env.user.partner_id.commercial_partner_id
+        shop_currency = self._get_shop_currency()
+        display_options = []
+        for opt in options:
+            converted = self._convert_amount(opt.amount, opt.currency_id, shop_currency)
+            display_options.append({
+                'option': opt,
+                'amount': converted,
+            })
         return request.render('esim_access_payment.portal_recharge_options', {
             'options': options,
-            'esim_balance': partner.sudo().esim_balance,
+            'display_options': display_options,
+            'shop_currency': shop_currency,
+            'esim_currencies': request.env['esim.package']._get_active_shop_currencies(),
+            'esim_balance': partner.sudo()._esim_get_balance(shop_currency),
             'page_name': 'esim_recharge',
         })
 
     @http.route('/my/esim/recharge/<int:option_id>', type='http', auth='user', website=True)
     def portal_recharge_pay(self, option_id, **kw):
-        """选定档位后展示支付表单。"""
+        """选定档位后按当前购物币种展示支付表单。"""
         option = request.env['esim.recharge.option'].sudo().browse(option_id)
         if not option.exists() or not option.active:
             raise NotFound()
 
         partner_sudo = request.env.user.partner_id
+        commercial = partner_sudo.commercial_partner_id
+        shop_currency = self._get_shop_currency()
+        amount = self._convert_amount(option.amount, option.currency_id, shop_currency)
+
         ctx = self._prepare_payment_rendering_context(
-            amount=option.amount,
-            currency=option.currency_id,
+            amount=amount,
+            currency=shop_currency,
             partner_sudo=partner_sudo,
             transaction_route=f'/my/esim/recharge/transaction/{option.id}',
             landing_route='/my/esim/balance',
             reference_prefix='RCH',
             extra_values={
                 'option': option,
-                'esim_balance': partner_sudo.commercial_partner_id.sudo().esim_balance,
+                'shop_currency': shop_currency,
+                'esim_currencies': request.env['esim.package']._get_active_shop_currencies(),
+                'pay_amount': amount,
+                'esim_balance': commercial.sudo()._esim_get_balance(shop_currency),
                 'page_name': 'esim_recharge_pay',
             },
         )
@@ -126,24 +147,24 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
         type='jsonrpc', auth='user',
     )
     def portal_recharge_transaction(self, option_id, access_token, **kwargs):
-        """创建充值单和支付交易，返回 processing values。"""
+        """创建充值单和支付交易（按购物币种收款并入账）。"""
         option = request.env['esim.recharge.option'].sudo().browse(option_id)
         if not option.exists() or not option.active:
             raise ValidationError(_("充值档位无效。"))
 
         partner_sudo = request.env.user.partner_id
-        amount = option.amount
-        currency = option.currency_id
+        shop_currency = self._get_shop_currency()
+        amount = self._convert_amount(option.amount, option.currency_id, shop_currency)
 
         if not payment_utils.check_access_token(
-            access_token, partner_sudo.id, amount, currency.id,
+            access_token, partner_sudo.id, amount, shop_currency.id,
         ):
             raise ValidationError(_("验证信息无效。"))
 
         recharge = request.env['esim.balance.recharge'].sudo().create({
             'partner_id': partner_sudo.commercial_partner_id.id,
             'amount': amount,
-            'currency_id': currency.id,
+            'currency_id': shop_currency.id,
             'option_id': option.id,
             'state': 'pending',
         })
@@ -151,7 +172,7 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
         self._validate_transaction_kwargs(kwargs)
         kwargs.update({
             'amount': amount,
-            'currency_id': currency.id,
+            'currency_id': shop_currency.id,
             'partner_id': partner_sudo.id,
             'reference_prefix': recharge.name,
         })
@@ -178,18 +199,18 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
 
         quantity = max(int(quantity), 1)
         period_num = max(int(period_num), 0)
-        amount = package.sale_price * quantity
-        currency = self._get_package_currency(package)
+        shop_currency = self._get_shop_currency()
+        unit_price = package._get_sale_price(shop_currency)
+        amount = unit_price * quantity
         partner_sudo = request.env.user.partner_id
 
-        # quantity 和 period_num 编入 URL 路径，确保 JSON RPC 调用能正确携带
         tx_route = (
             f'/my/esim/package/transaction'
             f'/{package.id}/{quantity}/{period_num}'
         )
         ctx = self._prepare_payment_rendering_context(
             amount=amount,
-            currency=currency,
+            currency=shop_currency,
             partner_sudo=partner_sudo,
             transaction_route=tx_route,
             landing_route='/my/esim/orders',
@@ -198,7 +219,10 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
                 'package': package,
                 'quantity': quantity,
                 'period_num': period_num,
+                'unit_price': unit_price,
                 'total_amount': amount,
+                'shop_currency': shop_currency,
+                'esim_currencies': request.env['esim.package']._get_active_shop_currencies(),
                 'page_name': 'esim_package_pay',
             },
         )
@@ -210,19 +234,20 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
     )
     def portal_package_transaction(self, package_id, quantity, period_num,
                                    access_token, **kwargs):
-        """创建 eSIM 订单和支付交易，返回 processing values。"""
+        """创建 eSIM 订单和支付交易，按购物币种收款。"""
         package = request.env['esim.package'].sudo().browse(package_id)
         if not package.exists() or not package.is_published:
             raise ValidationError(_("套餐无效。"))
 
         quantity = max(int(quantity), 1)
         period_num = max(int(period_num), 0)
-        amount = package.sale_price * quantity
-        currency = self._get_package_currency(package)
+        shop_currency = self._get_shop_currency()
+        unit_price = package._get_sale_price(shop_currency)
+        amount = unit_price * quantity
         partner_sudo = request.env.user.partner_id
 
         if not payment_utils.check_access_token(
-            access_token, partner_sudo.id, amount, currency.id,
+            access_token, partner_sudo.id, amount, shop_currency.id,
         ):
             raise ValidationError(_("验证信息无效。"))
 
@@ -230,6 +255,8 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
             'partner_id': partner_sudo.commercial_partner_id.id,
             'package_id': package.id,
             'quantity': quantity,
+            'currency_id': shop_currency.id,
+            'unit_price': unit_price,
             'is_paid_online': True,
         }
         if period_num:
@@ -239,7 +266,7 @@ class EsimPaymentPortal(payment_portal.PaymentPortal):
         self._validate_transaction_kwargs(kwargs)
         kwargs.update({
             'amount': amount,
-            'currency_id': currency.id,
+            'currency_id': shop_currency.id,
             'partner_id': partner_sudo.id,
             'reference_prefix': order.name,
         })

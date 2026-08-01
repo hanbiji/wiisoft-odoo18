@@ -38,7 +38,10 @@
                                 </tr>
                                 <tr>
                                     <th class="text-muted">单价</th>
-                                    <td>$<t t-out="'%.2f' % package.sale_price"/></td>
+                                    <td>
+                                        <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                        <t t-out="'%.2f' % (unit_price if unit_price is not None else package.sale_price)"/>
+                                    </td>
                                 </tr>
                                 <tr>
                                     <th class="text-muted">数量</th>
@@ -52,7 +55,8 @@
                                     <th>合计</th>
                                     <td>
                                         <span class="h4 text-primary fw-bold mb-0">
-                                            $<t t-out="'%.2f' % total_amount"/>
+                                            <t t-out="shop_currency.symbol or shop_currency.name"/>
+                                            <t t-out="'%.2f' % total_amount"/>
                                         </span>
                                     </td>
                                 </tr>

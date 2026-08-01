@@ -38,8 +38,18 @@ class EsimOrder(models.Model):
         domain=[('package_type', '=', 'BASE')],
     )
     quantity = fields.Integer(string="数量", default=1, required=True)
-    unit_price = fields.Float(string="单价", digits=(12, 2), related='package_id.sale_price', store=True)
-    total_amount = fields.Float(string="总金额", digits=(12, 2), compute='_compute_total_amount', store=True)
+    currency_id = fields.Many2one(
+        'res.currency', string="币种", required=True, index=True,
+        default=lambda self: self.env['esim.package']._get_fallback_shop_currency().id,
+    )
+    unit_price = fields.Monetary(
+        string="单价", currency_field='currency_id',
+        readonly=True, copy=False,
+    )
+    total_amount = fields.Monetary(
+        string="总金额", currency_field='currency_id',
+        compute='_compute_total_amount', store=True,
+    )
     transaction_id = fields.Char(string="交易 ID", readonly=True, copy=False, index=True)
     api_order_no = fields.Char(string="API 订单号", readonly=True, copy=False, index=True)
     state = fields.Selection(
@@ -96,10 +106,29 @@ class EsimOrder(models.Model):
 
     @api.model_create_multi
     def create(self, vals_list: list[dict]) -> 'EsimOrder':
+        Package = self.env['esim.package']
         for vals in vals_list:
             if vals.get('name', _('New')) == _('New'):
                 vals['name'] = self.env['ir.sequence'].next_by_code('esim.order') or _('New')
+
+            package = Package.browse(vals['package_id']) if vals.get('package_id') else Package
+            if not vals.get('currency_id'):
+                vals['currency_id'] = (
+                    package._get_currency().id
+                    if package
+                    else Package._get_fallback_shop_currency().id
+                )
+            if 'unit_price' not in vals and package:
+                currency = self.env['res.currency'].browse(vals['currency_id'])
+                vals['unit_price'] = package._get_sale_price(currency)
         return super().create(vals_list)
+
+    @api.onchange('package_id', 'currency_id')
+    def _onchange_package_currency_price(self) -> None:
+        """后台改套餐/币种时同步换算单价。"""
+        for order in self:
+            if order.package_id and order.currency_id:
+                order.unit_price = order.package_id._get_sale_price(order.currency_id)
 
     def _build_package_info(self) -> dict:
         """构建单条 packageInfoList 元素"""
@@ -127,13 +156,14 @@ class EsimOrder(models.Model):
                 raise
 
     def _confirm_deduct_balance(self) -> None:
-        """确认订单时从客户余额扣款。桥接模块可覆盖此方法跳过余额扣款。"""
+        """确认订单时从客户对应币种钱包扣款。桥接模块可覆盖此方法跳过余额扣款。"""
         self.ensure_one()
         self.partner_id._esim_change_balance(
             log_type='consume',
             amount=self.total_amount,
             description=_("购买套餐: %s × %d") % (self.package_id.name, self.quantity),
             order_id=self.id,
+            currency=self.currency_id,
         )
 
     def _confirm_place_order(self) -> None:
@@ -172,6 +202,7 @@ class EsimOrder(models.Model):
                 amount=self.total_amount,
                 description=_("下单失败自动退款: %s") % self.name,
                 order_id=self.id,
+                currency=self.currency_id,
             )
 
     def _has_balance_consumed(self) -> bool:
@@ -247,6 +278,7 @@ class EsimOrder(models.Model):
                     amount=order.total_amount,
                     description=_("取消订单退款: %s") % order.name,
                     order_id=order.id,
+                    currency=order.currency_id,
                 )
 
             order.write({'state': 'cancelled'})

@@ -21,6 +21,7 @@
                 <field name="source_partner_id"/>
                 <field name="order_id"/>
                 <field name="order_amount"/>
+                <field name="currency_id" optional="show"/>
                 <field name="tier_id_snapshot"/>
                 <field name="commission_rate"/>
                 <field name="commission_amount"/>
@@ -63,6 +64,7 @@
                         </group>
                         <group string="佣金">
                             <field name="order_amount" readonly="1"/>
+                            <field name="currency_id" readonly="1"/>
                             <field name="tier_id_snapshot" readonly="1"/>
                             <field name="commission_rate" readonly="1"/>
                             <field name="commission_amount" readonly="1"/>

@@ -92,6 +92,46 @@ class EsimPackage(models.Model):
 
         return EsimAccessAPI(access_code, secret_key, base_url)
 
+    @api.model
+    def _get_active_shop_currencies(self):
+        """返回系统中已启用的币种，供门户/网站币种选择使用。"""
+        return self.env['res.currency'].sudo().search([('active', '=', True)], order='name')
+
+    @api.model
+    def _get_fallback_shop_currency(self):
+        """购物默认币种：优先 USD，否则公司本位币。"""
+        Currency = self.env['res.currency'].sudo()
+        usd = Currency.search([('name', '=', 'USD'), ('active', '=', True)], limit=1)
+        return usd or self.env.company.currency_id
+
+    def _get_currency(self):
+        """解析套餐成本/售价对应的 res.currency。"""
+        self.ensure_one()
+        code = (self.currency_code or 'USD').upper()
+        currency = self.env['res.currency'].sudo().search([
+            ('name', '=', code),
+        ], limit=1)
+        if not currency:
+            raise UserError(_("找不到套餐货币: %s") % code)
+        return currency
+
+    def _get_sale_price(self, target_currency, date=None) -> float:
+        """
+        将套餐售价按 Odoo 汇率换算到目标币种。
+        sale_price / currency_code 为成本币种标价；目标币种与之相同则原样返回。
+        """
+        self.ensure_one()
+        source_currency = self._get_currency()
+        target_currency = target_currency or source_currency
+        if source_currency == target_currency:
+            return self.sale_price
+        return source_currency._convert(
+            self.sale_price,
+            target_currency,
+            self.env.company,
+            date or fields.Date.context_today(self),
+        )
+
     def action_sync_packages(self):
         """套餐列表页面手动触发同步"""
         self._check_manager_permission()

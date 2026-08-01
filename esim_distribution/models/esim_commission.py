@@ -33,8 +33,14 @@ class EsimCommission(models.Model):
         'res.partner', string="购买客户", required=True,
         ondelete='restrict', index=True, readonly=True,
     )
-    order_amount = fields.Float(
-        string="订单金额", digits=(12, 2), required=True, readonly=True,
+    order_amount = fields.Monetary(
+        string="订单金额", currency_field='currency_id',
+        required=True, readonly=True,
+    )
+    currency_id = fields.Many2one(
+        'res.currency', string="币种", readonly=True, index=True,
+        default=lambda self: self.env.company.currency_id.id,
+        help="佣金结算币种，默认取来源订单币种。",
     )
     tier_id_snapshot = fields.Many2one(
         'esim.distributor.tier', string="等级快照",
@@ -43,8 +49,8 @@ class EsimCommission(models.Model):
     commission_rate = fields.Float(
         string="佣金比例 (%)", digits=(5, 2), required=True, readonly=True,
     )
-    commission_amount = fields.Float(
-        string="佣金金额", digits=(12, 2),
+    commission_amount = fields.Monetary(
+        string="佣金金额", currency_field='currency_id',
         compute='_compute_commission_amount', store=True,
     )
     state = fields.Selection(
@@ -92,6 +98,14 @@ class EsimCommission(models.Model):
                 vals['name'] = self.env['ir.sequence'].next_by_code('esim.commission') or _('New')
             if not vals.get('lock_release_date'):
                 vals['lock_release_date'] = self._default_lock_release_date()
+            if not vals.get('currency_id') and vals.get('order_id'):
+                order = self.env['esim.order'].browse(vals['order_id'])
+                if order.currency_id:
+                    vals['currency_id'] = order.currency_id.id
+                else:
+                    vals['currency_id'] = self.env.company.currency_id.id
+            elif not vals.get('currency_id'):
+                vals['currency_id'] = self.env.company.currency_id.id
         return super().create(vals_list)
 
     @api.depends('order_amount', 'commission_rate')
@@ -133,6 +147,7 @@ class EsimCommission(models.Model):
             amount=self.commission_amount,
             description=_("分销佣金: %s") % self.name,
             order_id=self.order_id.id,
+            currency=self.currency_id,
         )
         self.write({
             'state': 'settled',

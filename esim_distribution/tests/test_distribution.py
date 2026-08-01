@@ -63,9 +63,13 @@ class TestEsimDistribution(TransactionCase):
         self.assertEqual(commission.state, 'pending')
         self.assertEqual(commission.commission_rate, self.basic_tier.commission_rate)
         self.assertEqual(commission.commission_amount, 5)
+        self.assertEqual(commission.currency_id, order.currency_id)
 
         commission.action_settle()
 
         self.assertEqual(commission.state, 'settled')
-        self.assertEqual(self.distributor_partner.esim_balance, 5)
+        self.assertEqual(
+            self.distributor_partner._esim_get_balance(order.currency_id),
+            5,
+        )
         self.assertEqual(self.distributor.tier_id, self.silver_tier)

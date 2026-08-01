@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'eSIM 分销返佣',
-    'version': '19.0.1.0.0',
+    'version': '19.0.2.0.1',
     'summary': 'eSIM 套餐分销商注册、审核、推广与佣金返还',
     'description': '为 eSIM Access 套餐提供一级分销返佣能力，支持分销商申请审核、'
-                   '等级佣金比例、推广链接绑定、订单佣金冻结和自动入账。',
+                   '等级佣金比例、推广链接绑定、订单佣金冻结和自动入账。'
+                   '佣金按订单币种入账到分销商对应币种钱包。',
     'author': 'WiiSoft',
     'license': 'LGPL-3',
     'category': 'Services',

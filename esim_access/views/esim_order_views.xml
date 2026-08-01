@@ -14,6 +14,7 @@
                 <field name="partner_id"/>
                 <field name="package_id"/>
                 <field name="quantity"/>
+                <field name="currency_id" optional="show"/>
                 <field name="total_amount"/>
                 <field name="state" widget="badge"
                        decoration-info="state == 'draft'"
@@ -66,6 +67,7 @@
                                    invisible="not period_num and state != 'draft'"/>
                         </group>
                         <group string="金额">
+                            <field name="currency_id" readonly="state != 'draft'"/>
                             <field name="unit_price"/>
                             <field name="total_amount"/>
                         </group>

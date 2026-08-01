@@ -19,6 +19,7 @@
                        decoration-success="type == 'topup'"
                        decoration-danger="type == 'consume'"
                        decoration-info="type == 'refund'"/>
+                <field name="currency_id"/>
                 <field name="amount"/>
                 <field name="balance_before"/>
                 <field name="balance_after"/>
@@ -45,6 +46,7 @@
                         <group string="变动信息">
                             <field name="partner_id"/>
                             <field name="type"/>
+                            <field name="currency_id"/>
                             <field name="amount"/>
                             <field name="description"/>
                         </group>
@@ -125,6 +127,18 @@
                         groups="esim_access.group_esim_manager">
                     <span class="o_stat_text">充值</span>
                 </button>
+            </xpath>
+            <xpath expr="//notebook" position="inside">
+                <page string="eSIM 多币种钱包" name="esim_wallets"
+                      groups="esim_access.group_esim_user">
+                    <field name="esim_preferred_currency_id"/>
+                    <field name="esim_balance_ids">
+                        <list editable="bottom" create="0" delete="0">
+                            <field name="currency_id"/>
+                            <field name="amount"/>
+                        </list>
+                    </field>
+                </page>
             </xpath>
         </field>
     </record>

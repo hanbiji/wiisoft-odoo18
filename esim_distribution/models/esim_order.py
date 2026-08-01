@@ -55,6 +55,7 @@ class EsimOrder(models.Model):
                 'order_id': order.id,
                 'source_partner_id': partner.id,
                 'order_amount': order.total_amount,
+                'currency_id': order.currency_id.id,
                 'tier_id_snapshot': distributor.tier_id.id,
                 'commission_rate': distributor.tier_id.commission_rate,
             })

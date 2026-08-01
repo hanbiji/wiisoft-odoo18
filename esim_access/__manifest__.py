@@ -1,10 +1,11 @@
 # -*- coding: utf-8 -*-
 {
     'name': 'eSIM Access 集成',
-    'version': '19.0.1.0.1',
+    'version': '19.0.2.0.2',
     'summary': '对接 eSIM Access API，实现 eSIM 套餐查询、购买、充值和管理',
     'description': '集成 eSIM Access 平台 API，支持后台管理和客户门户自助服务，'
-                   '包括套餐浏览、下单购买、充值续费、eSIM 生命周期管理等功能。',
+                   '包括套餐浏览、下单购买、充值续费、eSIM 生命周期管理等功能。'
+                   '支持门户多币种选择：按系统启用币种与 Odoo 汇率换算价格、余额与收款。',
     'author': 'WiiSoft',
     # 'website': 'https://example.com',
     'license': 'LGPL-3',
@@ -25,6 +26,7 @@
         'views/portal_templates.xml',
         'views/menu.xml',
     ],
+    'post_init_hook': 'post_init_hook',
     'installable': True,
     'application': True,
     'auto_install': False,

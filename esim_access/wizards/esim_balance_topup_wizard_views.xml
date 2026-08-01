@@ -8,6 +8,7 @@
             <form string="客户余额充值">
                 <group>
                     <field name="partner_id" readonly="context.get('default_partner_id')"/>
+                    <field name="currency_id"/>
                     <field name="current_balance"/>
                     <field name="amount"/>
                     <field name="note" placeholder="可选备注..."/>

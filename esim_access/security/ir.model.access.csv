@@ -15,3 +15,6 @@ access_esim_order_portal,esim.order.portal,model_esim_order,base.group_portal,1,
 access_esim_profile_portal,esim.profile.portal,model_esim_profile,base.group_portal,1,0,0,0
 access_esim_topup_portal,esim.topup.portal,model_esim_topup,base.group_portal,1,0,0,0
 access_esim_balance_log_portal,esim.balance.log.portal,model_esim_balance_log,base.group_portal,1,0,0,0
+access_esim_partner_balance_user,esim.partner.balance.user,model_esim_partner_balance,group_esim_user,1,0,0,0
+access_esim_partner_balance_manager,esim.partner.balance.manager,model_esim_partner_balance,group_esim_manager,1,1,1,1
+access_esim_partner_balance_portal,esim.partner.balance.portal,model_esim_partner_balance,base.group_portal,1,0,0,0

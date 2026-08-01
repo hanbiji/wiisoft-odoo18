@@ -225,12 +225,14 @@
                                 <td><t t-out="commission.source_partner_id.name"/></td>
                                 <td class="text-end">
                                     $<t t-out="'%.2f' % (commission.order_amount or 0)"/>
+                                    <t t-out="commission.currency_id.name"/>
                                 </td>
                                 <td class="text-end">
                                     <t t-out="'%.2f' % (commission.commission_rate or 0)"/>%
                                 </td>
                                 <td class="text-end">
-                                    $<t t-out="'%.2f' % (commission.commission_amount or 0)"/>
+                                    <t t-out="commission.currency_id.symbol or commission.currency_id.name or '$'"/>
+                                    <t t-out="'%.2f' % (commission.commission_amount or 0)"/>
                                 </td>
                                 <td>
                                     <span class="badge text-bg-secondary"

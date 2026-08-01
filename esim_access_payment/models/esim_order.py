@@ -35,9 +35,13 @@ class EsimOrder(models.Model):
                 amount=self.total_amount,
                 description=_("在线支付下单失败，金额转入余额: %s") % self.name,
                 order_id=self.id,
+                currency=self.currency_id,
             )
+            symbol = self.currency_id.symbol or self.currency_id.name
             self.message_post(
-                body=_("eSIM API 下单失败，已将 $%.2f 转入客户余额。") % self.total_amount,
+                body=_("eSIM API 下单失败，已将 %s%.2f 转入客户余额。") % (
+                    symbol, self.total_amount,
+                ),
             )
             return
         return super()._confirm_refund_on_failure()
