@@ -1,26 +1,43 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models
 from datetime import date
-from odoo.tools import _
+
+from odoo import _, api, fields, models
+
 
 class MallFacade(models.Model):
     _name = 'mall.facade'
     _description = '商场门面'
     _inherit = ['mail.thread', 'mail.activity.mixin']
+    _check_company_auto = True
 
     name = fields.Char('编号', required=True, index=True, tracking=True, copy=False, default=lambda self: _('New'))
-    mall_id = fields.Many2one('mall.mall', string='所属商场', required=True, index=True, tracking=True)
+    mall_id = fields.Many2one(
+        'mall.mall',
+        string='所属商场',
+        required=True,
+        index=True,
+        tracking=True,
+        check_company=True,
+    )
+    # 随商场公司隔离，供记录规则过滤
+    company_id = fields.Many2one(
+        related='mall_id.company_id',
+        string='公司',
+        store=True,
+        readonly=True,
+        index=True,
+    )
     address = fields.Char('地址', tracking=True)
     area = fields.Float('面积(㎡)', tracking=True)
     floor = fields.Char('楼层', tracking=True)
     layout_plan = fields.Binary('户型图')
     image_main = fields.Image('主图')
-    
+
     # 门面位置信息
     zone = fields.Char('区域', help='如：A区、B区、中庭等')
-    
+
     position = fields.Char('位置描述', help='如：临街、内铺、转角等')
-    
+
     # 门面特征
     facade_type = fields.Selection([
         ('shop', '商铺'),
@@ -28,13 +45,13 @@ class MallFacade(models.Model):
         ('office', '办公'),
         ('warehouse', '仓储'),
         ('other', '其他')], string='门面类型', tracking=True)
-    
+
     # 设施配套
     has_water = fields.Boolean('有上下水', default=True)
     has_electricity = fields.Boolean('有电力', default=True)
     has_gas = fields.Boolean('有燃气', default=False)
     has_air_conditioning = fields.Boolean('有空调', default=False)
-    
+
     # 商场信息（关联字段）
     mall_name = fields.Char('商场名称', related='mall_id.name', store=True, readonly=True)
     mall_status = fields.Selection(related='mall_id.status', string='商场状态', store=True, readonly=True)
@@ -61,9 +78,11 @@ class MallFacade(models.Model):
         ('expiring', '即将到期'),
     ], string='现状', compute='_compute_status', store=True)
 
-    _sql_constraints = [
-        ('name_mall_unique', 'unique(name, mall_id)', '同一商场内门面编号必须唯一。')
-    ]
+    # Odoo 19：SQL 约束改为 declarative Constraint
+    _name_mall_unique = models.Constraint(
+        'UNIQUE(name, mall_id)',
+        '同一商场内门面编号必须唯一。',
+    )
 
     @api.depends('contract_ids.state', 'contract_ids.contract_type', 'contract_ids.lease_end_date')
     def _compute_current_contracts(self):

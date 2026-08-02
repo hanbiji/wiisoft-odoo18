@@ -35,10 +35,8 @@
                         <group>
                             <field name="rent_amount"/>
                             <field name="deposit"/>
-                            <field name="water_fee"/>
-                            <field name="electric_fee"/>
+                            <!-- 水电费/垃圾清理费归属物业合同，租赁模板不展示 -->
                             <field name="property_fee"/>
-                            <field name="garbage_fee"/>
                         </group>
                     </group>
                     <group>

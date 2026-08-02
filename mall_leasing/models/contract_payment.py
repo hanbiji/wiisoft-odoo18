@@ -40,6 +40,8 @@ class MallLeasingContractPayment(models.Model):
 
     payment_date = fields.Date('付款时间', tracking=True)
 
-    _sql_constraints = [
-        ('amount_non_negative', 'CHECK(amount >= 0)', '金额不能为负数。'),
-    ]
+    # Odoo 19：SQL 约束改为 declarative Constraint
+    _amount_non_negative = models.Constraint(
+        'CHECK(amount >= 0)',
+        '金额不能为负数。',
+    )

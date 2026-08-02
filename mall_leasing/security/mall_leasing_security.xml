@@ -1,7 +1,127 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <data noupdate="1">
-        <!-- 租赁合同记录规则：用户只能看到其负责公司的记录 -->
+    <data>
+        <record id="module_category_mall_leasing" model="ir.module.category">
+            <field name="name">商场租赁</field>
+            <field name="description">商场租赁业务权限</field>
+            <field name="sequence">25</field>
+        </record>
+
+        <!-- Odoo 19：角色挂在 privilege 下，便于用户表单中选择 -->
+        <record id="res_groups_privilege_mall_leasing" model="res.groups.privilege">
+            <field name="name">商场租赁</field>
+            <field name="category_id" ref="module_category_mall_leasing"/>
+            <field name="sequence">10</field>
+        </record>
+
+        <record id="res_groups_privilege_mall_leasing_finance" model="res.groups.privilege">
+            <field name="name">商场租赁财务</field>
+            <field name="category_id" ref="module_category_mall_leasing"/>
+            <field name="sequence">20</field>
+        </record>
+
+        <!-- 技术基础组：不挂 privilege，仅用于记录规则与菜单 -->
+        <record id="group_mall_leasing_user" model="res.groups">
+            <field name="name">商场租赁用户</field>
+            <field name="implied_ids" eval="[(4, ref('base.group_user'))]"/>
+            <field name="comment">按公司隔离商场租赁数据的基础组</field>
+        </record>
+
+        <!-- 运营：创建合同 -->
+        <record id="group_mall_leasing_operator" model="res.groups">
+            <field name="name">运营</field>
+            <field name="sequence">10</field>
+            <field name="privilege_id" ref="res_groups_privilege_mall_leasing"/>
+            <field name="implied_ids" eval="[(4, ref('group_mall_leasing_user'))]"/>
+            <field name="comment">创建合同，维护商场/门面/租户；不可审核</field>
+        </record>
+
+        <!-- 主管：审核与管理合同（隐含运营） -->
+        <record id="group_mall_leasing_manager" model="res.groups">
+            <field name="name">主管</field>
+            <field name="sequence">20</field>
+            <field name="privilege_id" ref="res_groups_privilege_mall_leasing"/>
+            <field name="implied_ids" eval="[(4, ref('group_mall_leasing_operator'))]"/>
+            <field name="comment">审核、签约、激活及合同全生命周期管理</field>
+        </record>
+
+        <!-- 财务：查看合同、管理发票（独立 privilege，可与运营/主管叠加） -->
+        <record id="group_mall_leasing_finance" model="res.groups">
+            <field name="name">财务</field>
+            <field name="sequence">10</field>
+            <field name="privilege_id" ref="res_groups_privilege_mall_leasing_finance"/>
+            <field name="implied_ids" eval="[(4, ref('group_mall_leasing_user')), (4, ref('account.group_account_invoice'))]"/>
+            <field name="comment">查看合同；生成账单、管理租赁发票</field>
+        </record>
+    </data>
+
+    <data>
+        <record id="mall_mall_company_rule" model="ir.rule">
+            <field name="name">商场：用户所属公司</field>
+            <field name="model_id" ref="model_mall_mall"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('group_mall_leasing_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="mall_mall_admin_rule" model="ir.rule">
+            <field name="name">商场：管理员查看所有</field>
+            <field name="model_id" ref="model_mall_mall"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="mall_facade_company_rule" model="ir.rule">
+            <field name="name">门面：用户所属公司</field>
+            <field name="model_id" ref="model_mall_facade"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('group_mall_leasing_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="False"/>
+        </record>
+
+        <record id="mall_facade_admin_rule" model="ir.rule">
+            <field name="name">门面：管理员查看所有</field>
+            <field name="model_id" ref="model_mall_facade"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="mall_mall_image_company_rule" model="ir.rule">
+            <field name="name">商场图片：用户所属公司</field>
+            <field name="model_id" ref="model_mall_mall_image"/>
+            <field name="domain_force">[('company_id', 'in', company_ids)]</field>
+            <field name="groups" eval="[(4, ref('group_mall_leasing_user'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
+        <record id="mall_mall_image_admin_rule" model="ir.rule">
+            <field name="name">商场图片：管理员查看所有</field>
+            <field name="model_id" ref="model_mall_mall_image"/>
+            <field name="domain_force">[(1, '=', 1)]</field>
+            <field name="groups" eval="[(4, ref('base.group_system'))]"/>
+            <field name="perm_read" eval="True"/>
+            <field name="perm_write" eval="True"/>
+            <field name="perm_create" eval="True"/>
+            <field name="perm_unlink" eval="True"/>
+        </record>
+
         <record id="mall_leasing_contract_company_rule" model="ir.rule">
             <field name="name">租赁合同：用户负责的公司</field>
             <field name="model_id" ref="model_mall_leasing_contract"/>
@@ -10,14 +130,13 @@
                 ('operator_id', 'in', user.company_ids.ids),
                 ('property_company_id', 'in', user.company_ids.ids)
             ]</field>
-            <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+            <field name="groups" eval="[(4, ref('group_mall_leasing_user'))]"/>
             <field name="perm_read" eval="True"/>
             <field name="perm_write" eval="True"/>
             <field name="perm_create" eval="True"/>
             <field name="perm_unlink" eval="False"/>
         </record>
 
-        <!-- 管理员可以看到所有记录 -->
         <record id="mall_leasing_contract_admin_rule" model="ir.rule">
             <field name="name">租赁合同：管理员查看所有</field>
             <field name="model_id" ref="model_mall_leasing_contract"/>
@@ -30,4 +149,3 @@
         </record>
     </data>
 </odoo>
-

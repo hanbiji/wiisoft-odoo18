@@ -25,6 +25,7 @@
         <field name="arch" type="xml">
             <list>
                 <field name="mall_id"/>
+                <field name="company_id" groups="base.group_multi_company" optional="hide"/>
                 <field name="name"/>
                 <field name="zone"/>
                 <field name="address"/>
@@ -72,6 +73,7 @@
                     
                     <group>
                         <group name="basic_info" string="基本信息">
+                            <field name="company_id" groups="base.group_multi_company"/>
                             <field name="mall_id" required="1"/>
                             <field name="zone"/>
                             <field name="position"/>
@@ -118,9 +120,7 @@
                         <field name="layout_plan" widget="image"/>
                     </group>
                 </sheet>
-                <div class="oe_chatter">
-                    <chatter/>
-                </div>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -158,7 +158,7 @@
                                 <div>
                                     <span>类型: <field name="facade_type"/></span>
                                 </div>
-                                <div t-if="record.tenant_partner_id">
+                                <div t-if="record.tenant_partner_id.raw_value">
                                     <span>租户: <field name="tenant_partner_id"/></span>
                                 </div>
                             </div>
@@ -201,12 +201,13 @@
                 <filter string="有电力" name="has_electricity" domain="[('has_electricity', '=', True)]"/>
                 <filter string="有燃气" name="has_gas" domain="[('has_gas', '=', True)]"/>
                 <filter string="有空调" name="has_air_conditioning" domain="[('has_air_conditioning', '=', True)]"/>
-                <group expand="0" string="分组">
-                    <filter string="商场" name="group_by_mall" context="{'group_by': 'mall_id'}"/>
-                    <filter string="状态" name="group_by_status" context="{'group_by': 'status'}"/>
-                    <filter string="门面类型" name="group_by_facade_type" context="{'group_by': 'facade_type'}"/>
-                    <filter string="区域" name="group_by_zone" context="{'group_by': 'zone'}"/>
-                    <filter string="楼层" name="group_by_floor" context="{'group_by': 'floor'}"/>
+                <!-- Odoo 19：search 内 <group> 不再支持 expand/string -->
+                <group>
+                    <filter string="商场" name="group_by_mall" domain="[]" context="{'group_by': 'mall_id'}"/>
+                    <filter string="状态" name="group_by_status" domain="[]" context="{'group_by': 'status'}"/>
+                    <filter string="门面类型" name="group_by_facade_type" domain="[]" context="{'group_by': 'facade_type'}"/>
+                    <filter string="区域" name="group_by_zone" domain="[]" context="{'group_by': 'zone'}"/>
+                    <filter string="楼层" name="group_by_floor" domain="[]" context="{'group_by': 'floor'}"/>
                 </group>
             </search>
         </field>

@@ -1,34 +1,67 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- 根菜单 -->
-    <menuitem id="menu_mall_leasing_root" name="商场租赁" sequence="10"/>
+    <!-- 根菜单：任一商场租赁角色可见 -->
+    <menuitem id="menu_mall_leasing_root"
+              name="商场租赁"
+              sequence="10"
+              groups="mall_leasing.group_mall_leasing_user"/>
 
-    <!-- 商场管理菜单 -->
-    <menuitem id="menu_mall_management" name="商场管理" parent="menu_mall_leasing_root" sequence="10" action="mall_leasing.action_mall"/>
+    <!-- 商场 / 门面：运营与主管维护；财务只读（有 ACL 读权限即可打开） -->
+    <menuitem id="menu_mall_management"
+              name="商场管理"
+              parent="menu_mall_leasing_root"
+              sequence="10"
+              action="mall_leasing.action_mall"
+              groups="mall_leasing.group_mall_leasing_user"/>
 
-    <!-- 门面管理菜单 -->
-    <menuitem id="menu_facade_management" name="门面管理" parent="menu_mall_leasing_root" sequence="20" action="mall_leasing.act_mall_facade"/>
+    <menuitem id="menu_facade_management"
+              name="门面管理"
+              parent="menu_mall_leasing_root"
+              sequence="20"
+              action="mall_leasing.act_mall_facade"
+              groups="mall_leasing.group_mall_leasing_user"/>
 
-    <!-- 合同管理菜单 -->
-    <menuitem id="menu_contract_management" name="合同管理" parent="menu_mall_leasing_root" sequence="30"/>
-    
-    <!-- 租户合同子菜单 -->
-    <menuitem id="menu_tenant_contracts" name="租赁合同" parent="menu_contract_management" sequence="10" action="mall_leasing.action_tenant_contracts"/>
-    
-    <!-- 物业合同子菜单 -->
-    <menuitem id="menu_property_contracts" name="物业合同" parent="menu_contract_management" sequence="20" action="mall_leasing.action_property_contracts"/>
-    
-    <!-- 房东合同子菜单 -->
-    <menuitem id="menu_landlord_contracts" name="房东合同" parent="menu_contract_management" sequence="30" action="mall_leasing.action_landlord_contracts"/>
+    <!-- 合同：全部角色可查看；创建由运营/主管 ACL 控制 -->
+    <menuitem id="menu_contract_management"
+              name="合同管理"
+              parent="menu_mall_leasing_root"
+              sequence="30"
+              groups="mall_leasing.group_mall_leasing_user"/>
 
-    <!-- 沟通日志菜单 -->
-    <!-- <menuitem id="menu_communication_log" name="沟通日志" parent="menu_mall_leasing_root" sequence="40" action="mall_leasing.action_communication"/> -->
+    <menuitem id="menu_tenant_contracts"
+              name="租赁合同"
+              parent="menu_contract_management"
+              sequence="10"
+              action="mall_leasing.action_tenant_contracts"
+              groups="mall_leasing.group_mall_leasing_user"/>
 
-    <!-- 租赁发票菜单 -->
-    <menuitem id="menu_leasing_invoices" name="租赁账单" parent="menu_mall_leasing_root" sequence="50" action="mall_leasing.action_mall_leasing_invoices"/>
+    <menuitem id="menu_property_contracts"
+              name="物业合同"
+              parent="menu_contract_management"
+              sequence="20"
+              action="mall_leasing.action_property_contracts"
+              groups="mall_leasing.group_mall_leasing_user"/>
 
-    <!-- 租赁联系人菜单 -->
-    <menuitem id="menu_leasing_partners" name="租户管理" parent="menu_mall_leasing_root" sequence="60" action="mall_leasing.action_mall_leasing_partners"/>
+    <menuitem id="menu_landlord_contracts"
+              name="房东合同"
+              parent="menu_contract_management"
+              sequence="30"
+              action="mall_leasing.action_landlord_contracts"
+              groups="mall_leasing.group_mall_leasing_user"/>
 
+    <!-- 租赁账单：财务为主；主管亦可跟进 -->
+    <menuitem id="menu_leasing_invoices"
+              name="租赁账单"
+              parent="menu_mall_leasing_root"
+              sequence="50"
+              action="mall_leasing.action_mall_leasing_invoices"
+              groups="mall_leasing.group_mall_leasing_finance,mall_leasing.group_mall_leasing_manager"/>
 
+    <!-- 租户：运营/主管维护 -->
+    <menuitem id="menu_leasing_partners"
+              name="租户管理"
+              parent="menu_mall_leasing_root"
+              sequence="60"
+              action="mall_leasing.action_mall_leasing_partners"
+              groups="mall_leasing.group_mall_leasing_operator,mall_leasing.group_mall_leasing_manager"/>
 </odoo>

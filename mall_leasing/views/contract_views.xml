@@ -4,7 +4,9 @@
         <field name="name">mall.leasing.contract.list</field>
         <field name="model">mall.leasing.contract</field>
         <field name="arch" type="xml">
-            <list default_order="id desc">
+            <list default_order="id desc"
+                  decoration-muted="state == 'cancelled'"
+                  decoration-danger="state == 'cancelled'">
                 <field name="name"/>
                 <field name="mall_id"/>
                 <field name="contract_type"/>
@@ -13,7 +15,9 @@
                 <field name="partner_id"/>
                 <field name="operator_id"/>
                 <field name="property_company_id"/>
-                <field name="state"/>
+                <field name="state"
+                         decoration-danger="state == 'cancelled'"
+                         widget="badge"/>
                 <field name="lease_start_date"/>
                 <field name="lease_end_date"/>
                 <field name="payment_frequency"/>
@@ -33,29 +37,65 @@
         <field name="arch" type="xml">
             <form string="租赁合同">
                 <header>
-                    <button name="action_reject" type="object" string="审核拒绝" invisible="state != 'draft'"/>
-                    <button name="action_approve" type="object" string="审核通过" class="oe_highlight" invisible="state != 'draft'"/>
-                    <button name="action_sign" type="object" string="签约" class="oe_highlight" invisible="state != 'approved'"/>
-                    
-                    <!-- 新增：创建物业合同按钮 -->
-                    <button name="action_create_property_contract" 
-                        type="object" 
-                        string="创建物业合同" 
-                        class="btn" 
-                        invisible="contract_type in ['property', 'landlord']"/>
-                    
-                    <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight" invisible="state != 'active' or contract_type == 'landlord'"/>
-                    <button name="action_view_invoices" type="object" string="查看发票" class="btn-secondary" invisible="invoice_count == 0"/>
-                    <button name="action_active" type="object" string="激活合同" class="oe_highlight" invisible="state != 'signed'"/>
-                    <button name="%(mall_leasing.action_report_payment_notice)d" type="action" string="打印缴费通知单" class="btn-secondary" invisible="state not in ['signed', 'active'] or contract_type == 'landlord'"/>
+                    <!-- 主管：审核与合同流转 -->
+                    <button name="action_reject" type="object" string="审核拒绝"
+                            groups="mall_leasing.group_mall_leasing_manager"
+                            invisible="state != 'draft'"/>
+                    <button name="action_approve" type="object" string="审核通过" class="oe_highlight"
+                            groups="mall_leasing.group_mall_leasing_manager"
+                            invisible="state != 'draft'"/>
+                    <button name="action_sign" type="object" string="签约" class="oe_highlight"
+                            groups="mall_leasing.group_mall_leasing_manager"
+                            invisible="state != 'approved'"/>
+                    <button name="action_active" type="object" string="激活合同" class="oe_highlight"
+                            groups="mall_leasing.group_mall_leasing_manager"
+                            invisible="state != 'signed'"/>
 
-                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,signed,active,renewed,terminated"/>
+                    <!-- 主管：作废合同（向导中填写作废原因） -->
+                    <button name="action_open_cancel_wizard" type="object" string="作废"
+                            groups="mall_leasing.group_mall_leasing_manager"
+                            invisible="state in ['draft', 'cancelled', 'terminated']"/>
+
+                    <!-- 运营/主管：基于作废合同创建新合同 -->
+                    <button name="action_create_from_cancelled" type="object" string="创建新合同"
+                            class="oe_highlight"
+                            groups="mall_leasing.group_mall_leasing_operator"
+                            invisible="state != 'cancelled'"/>
+
+                    <!-- 运营/主管：创建关联物业合同 -->
+                    <button name="action_create_property_contract"
+                            type="object"
+                            string="创建物业合同"
+                            class="btn"
+                            groups="mall_leasing.group_mall_leasing_operator"
+                            invisible="contract_type in ['property', 'landlord'] or state == 'cancelled'"/>
+
+                    <!-- 财务：出账与发票 -->
+                    <button name="action_generate_move" type="object" string="生成账单" class="oe_highlight"
+                            groups="mall_leasing.group_mall_leasing_finance"
+                            invisible="state != 'active' or contract_type == 'landlord'"/>
+                    <button name="action_view_invoices" type="object" string="查看发票" class="btn-secondary"
+                            groups="mall_leasing.group_mall_leasing_finance,mall_leasing.group_mall_leasing_manager"
+                            invisible="invoice_count == 0"/>
+                    <button name="%(mall_leasing.action_report_payment_notice)d" type="action" string="打印缴费通知单" class="btn-secondary"
+                            groups="mall_leasing.group_mall_leasing_finance,mall_leasing.group_mall_leasing_operator,mall_leasing.group_mall_leasing_manager"
+                            invisible="state not in ['signed', 'active'] or contract_type == 'landlord'"/>
+
+                    <field name="state" widget="statusbar" statusbar_visible="draft,approved,signed,active,renewed,terminated,cancelled"/>
                 </header>
                 
                 <sheet>
+                    <widget name="web_ribbon" title="已作废" bg_color="text-bg-danger" invisible="state != 'cancelled'"/>
                     <div class="oe_button_box" name="button_box">
-                        <button name="action_view_invoices" type="object" class="oe_stat_button" icon="fa-file-text-o" invisible="invoice_count == 0">
+                        <button name="action_view_invoices" type="object" class="oe_stat_button" icon="fa-file-text-o"
+                                groups="mall_leasing.group_mall_leasing_finance,mall_leasing.group_mall_leasing_manager"
+                                invisible="invoice_count == 0">
                             <field name="invoice_count" widget="statinfo" string="发票"/>
+                        </button>
+                        <button name="action_view_replacement_contracts" type="object"
+                                class="oe_stat_button" icon="fa-files-o"
+                                invisible="replacement_contract_count == 0">
+                            <field name="replacement_contract_count" widget="statinfo" string="替代合同"/>
                         </button>
                         <button name="action_view_property_contracts" 
                             string="物业合同"
@@ -70,11 +110,19 @@
                             icon="fa-user" 
                             invisible="contract_type == 'tenant'"/>
                     </div>
+                    <group invisible="state != 'cancelled'">
+                        <group string="作废信息">
+                            <field name="cancel_date" readonly="1"/>
+                            <field name="cancelled_by_id" readonly="1"/>
+                            <field name="cancel_reason" readonly="1"/>
+                            <field name="source_contract_id" invisible="not source_contract_id" readonly="1"/>
+                        </group>
+                    </group>
                     <group>
                         <group>
-                            <field name="name" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                            <field name="contract_type" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                            <field name="mall_id" options="{'no_create': True}" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                            <field name="name" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated', 'cancelled']"/>
+                            <field name="contract_type" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated', 'cancelled']"/>
+                            <field name="mall_id" options="{'no_create': True}" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated', 'cancelled']"/>
                             <field name="facade_ids" 
                                 domain="[('mall_id', '=', mall_id), ('status', '=', 'vacant')]" 
                                 widget="many2many_tags" 
@@ -93,7 +141,7 @@
                             <field name="shop_name" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="currency_id" readonly="1" options="{'no_create': True, 'no_open': True}"/>
                             
-                            <field name="escalation_term_end_date" readonly="1"/>
+                            <field name="escalation_term_end_date"/>
                             <field name="escalation_term_generated" readonly="1"/>
                             <field name="pending_amount" readonly="1" string="待付款金额"/>
                             <field name="first_period_ratio" readonly="1"/>
@@ -104,6 +152,8 @@
                             <field name="lease_end_date"/>
                             <field name="free_rent_from"/>
                             <field name="free_rent_to"/>
+                            <field name="free_rent_applies_to_property_fee"
+                                     invisible="contract_type != 'property'"/>
                             <field name="payment_day" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="payment_frequency" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                             <field name="escalation_rate"/>
@@ -124,9 +174,22 @@
                                     <field name="property_fee_unit" invisible="contract_type == 'tenant'" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
                                     <field name="property_fee" invisible="contract_type == 'tenant'"/>
                                     <field name="service_fee" invisible="contract_type == 'tenant'" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                                    <field name="water_fee" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                                    <field name="electric_fee" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
-                                    <field name="garbage_fee" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                    <!-- 水电单价仅备查，不参与自动出账 -->
+                                    <field name="water_fee"
+                                             string="水费单价"
+                                             invisible="contract_type != 'property'"
+                                             readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                    <field name="electric_fee"
+                                             string="电费单价"
+                                             invisible="contract_type != 'property'"
+                                             readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                    <!-- 装修垃圾清理费仅在物业合同中维护 -->
+                                    <field name="garbage_fee"
+                                             invisible="contract_type != 'property'"
+                                             readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
+                                    <field name="garbage_fee_generated"
+                                             invisible="contract_type != 'property'"
+                                             readonly="1"/>
                                 </group>
                                 <group>
                                     <field name="first_rent_amount" invisible="contract_type == 'property'" readonly="state in ['approved', 'signed', 'active', 'renewed', 'terminated']"/>
@@ -188,9 +251,7 @@
                         
                     </notebook>
                 </sheet>
-                <div class="oe_chatter">
-                    <chatter/>
-                </div>
+                <chatter/>
             </form>
         </field>
     </record>
@@ -217,6 +278,7 @@
                 <filter string="执行中" name="active" domain="[('state', '=', 'active')]"/>
                 <filter string="已续约" name="renewed" domain="[('state', '=', 'renewed')]"/>
                 <filter string="已终止" name="terminated" domain="[('state', '=', 'terminated')]"/>
+                <filter string="已作废" name="cancelled" domain="[('state', '=', 'cancelled')]"/>
                 
                 <separator/>
                 <filter string="本月开始" name="this_month_start" 
@@ -233,13 +295,13 @@
                 <separator/>
                 <filter string="有待付款" name="has_pending_amount" domain="[('pending_amount', '&gt;', 0)]"/>
                 
-                <!-- 分组 -->
-                <group expand="0" string="分组">
-                    <filter string="状态" name="group_state" context="{'group_by': 'state'}"/>
-                    <filter string="商场" name="group_mall" context="{'group_by': 'mall_id'}"/>
-                    <filter string="租赁单位" name="group_partner" context="{'group_by': 'partner_id'}"/>
-                    <filter string="开始月份" name="group_start_month" context="{'group_by': 'lease_start_date:month'}"/>
-                    <filter string="结束月份" name="group_end_month" context="{'group_by': 'lease_end_date:month'}"/>
+                <!-- Odoo 19：search 内 <group> 不再支持 expand/string -->
+                <group>
+                    <filter string="状态" name="group_state" domain="[]" context="{'group_by': 'state'}"/>
+                    <filter string="商场" name="group_mall" domain="[]" context="{'group_by': 'mall_id'}"/>
+                    <filter string="租赁单位" name="group_partner" domain="[]" context="{'group_by': 'partner_id'}"/>
+                    <filter string="开始月份" name="group_start_month" domain="[]" context="{'group_by': 'lease_start_date:month'}"/>
+                    <filter string="结束月份" name="group_end_month" domain="[]" context="{'group_by': 'lease_end_date:month'}"/>
                 </group>
             </search>
         </field>

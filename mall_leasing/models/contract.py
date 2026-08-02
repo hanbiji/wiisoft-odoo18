@@ -1,11 +1,22 @@
 # -*- coding: utf-8 -*-
-from odoo import api, fields, models, _
-from odoo.exceptions import UserError
-from datetime import date, timedelta
-from dateutil.relativedelta import relativedelta
+import calendar
 import logging
+from datetime import date, timedelta
+
+from dateutil.relativedelta import relativedelta
+
+from odoo import Command, _, api, fields, models
+from odoo.exceptions import UserError
 
 _logger = logging.getLogger(__name__)
+
+# 支付周期对应的月数
+PAYMENT_PERIOD_MONTHS = {
+    'monthly': 1,
+    'quarterly': 3,
+    'half_yearly': 6,
+    'yearly': 12,
+}
 
 class MallLeasingContract(models.Model):
     _name = 'mall.leasing.contract'
@@ -56,21 +67,28 @@ class MallLeasingContract(models.Model):
         ('active', '执行中'),
         ('renewed', '已续约'),
         ('terminated', '已终止'),
+        ('cancelled', '已作废'),
     ], string='状态', default='draft', tracking=True)
 
     currency_id = fields.Many2one('res.currency', string='币种', default=lambda self: self.env.company.currency_id.id)
 
-    # 首期租金
-    first_rent_amount = fields.Monetary('首期租金', currency_field='currency_id')
+    # 首期租金（随首期比例与每期租金同步计算，审批前可覆盖）
+    first_rent_amount = fields.Monetary(
+        '首期租金',
+        currency_field='currency_id',
+        compute='_compute_first_period_ratio',
+        store=True,
+        readonly=False,
+    )
     # 首期租金已生成
     first_rent_generated = fields.Boolean('首期租金已生成', default=False, help='标记首期租金是否已经生成过账单')
-    # 首期账单比例（用于按自然月调整首期费用）
+    # 首期账单比例（起租日所在周期：扣除免租后的应收比例）
     first_period_ratio = fields.Float(
-        '首期账单比例', 
-        compute='_compute_first_period_ratio', 
-        store=True, 
+        '首期账单比例',
+        compute='_compute_first_period_ratio',
+        store=True,
         digits=(5, 4),
-        help='首期账单按实际天数占周期总天数的比例计算'
+        help='首期账单按实际天数占周期总天数的比例计算',
     )
     # 每期租金
     rent_amount = fields.Monetary('每期租金', currency_field='currency_id')
@@ -93,12 +111,25 @@ class MallLeasingContract(models.Model):
     property_fee = fields.Monetary('每期物业费', currency_field='currency_id', compute='_compute_property_fee', store=True, readonly=False)
     # 每期服务费
     service_fee = fields.Monetary('每期服务费', currency_field='currency_id')
-    # 水费
-    water_fee = fields.Monetary('水费', currency_field='currency_id')
-    # 电费
-    electric_fee = fields.Monetary('电费', currency_field='currency_id')
+    # 水电费单价：仅备查，不参与自动出账
+    water_fee = fields.Monetary(
+        '水费单价',
+        currency_field='currency_id',
+        help='物业合同水电单价备查，生成账单时不会自动出账。',
+    )
+    electric_fee = fields.Monetary(
+        '电费单价',
+        currency_field='currency_id',
+        help='物业合同水电单价备查，生成账单时不会自动出账。',
+    )
     # 装修垃圾清理费
     garbage_fee = fields.Monetary('装修垃圾清理费', currency_field='currency_id')
+    # 装修垃圾清理费已生成（一次性费用，防止每期重复出账）
+    garbage_fee_generated = fields.Boolean(
+        '装修垃圾清理费已生成',
+        default=False,
+        help='标记装修垃圾清理费是否已经生成过账单',
+    )
     # 装修保证金
     decoration_deposit = fields.Monetary('装修保证金', currency_field='currency_id')
     # 装修保证金已生成
@@ -137,6 +168,13 @@ class MallLeasingContract(models.Model):
 
     free_rent_from = fields.Date('免租开始')
     free_rent_to = fields.Date('免租结束')
+    # 免租默认只影响租金；物业/服务费需显式开启才会按免租折算
+    free_rent_applies_to_property_fee = fields.Boolean(
+        '免租期适用于物业费',
+        default=False,
+        help='关闭（默认）：免租期只折算租金，物业费/服务费仍全额（仍会按租期截断折算）。'
+             '开启后，免租重叠天数同样折算物业费与服务费。',
+    )
 
     escalation_rate = fields.Float('递增率(%)', help='例如每年递增5%，填写5')
     # 递增起始年（从第几年开始递增）
@@ -147,29 +185,14 @@ class MallLeasingContract(models.Model):
     )
     # 递增周期（每隔几年递增一次）
     escalation_term = fields.Integer('递增周期（年）', default=1, help='每隔几年执行一次递增')
-    # 递增周期已递增
-    escalation_term_generated = fields.Boolean('本周期已递增', default=False, help='标记当前递增周期是否已经执行过递增')
-    # 下次递增日期
-    escalation_term_end_date = fields.Date('下次递增日期', compute='_compute_escalation_term_end_date', store=True)
-
-    @api.depends('escalation_term', 'escalation_start_year', 'lease_start_date')
-    def _compute_escalation_term_end_date(self):
-        """
-        计算下次递增日期
-        逻辑：
-        - 如果递增起始年=1，则第一次递增日期 = 租赁开始日 + 递增周期
-        - 如果递增起始年>1，则第一次递增日期 = 租赁开始日 + (递增起始年-1) + 递增周期
-        - 例如：起始年=3，周期=1年，则从第3年开始，每年递增一次
-        """
-        for rec in self:
-            if rec.lease_start_date and rec.escalation_term:
-                start_year = rec.escalation_start_year or 1
-                # 首次递增日期 = 开始日期 + (起始年-1)年 + 递增周期
-                # 即：如果起始年=1，周期=1，则1年后递增；如果起始年=3，周期=1，则3年后递增
-                years_until_escalation = (start_year - 1) + rec.escalation_term
-                rec.escalation_term_end_date = rec.lease_start_date + relativedelta(years=years_until_escalation)
-            else:
-                rec.escalation_term_end_date = False
+    # 递增周期已递增（至少执行过一次递增后为 True，避免参数变更覆盖下次递增日）
+    escalation_term_generated = fields.Boolean(
+        '本周期已递增',
+        default=False,
+        help='标记是否已经执行过租金递增；执行后不再因参数变更重置下次递增日',
+    )
+    # 下次递增日期（可写；出账时到期自动调价并推进）
+    escalation_term_end_date = fields.Date('下次递增日期')
 
     introducer_id = fields.Many2one('res.partner', string='介绍人/中介')
     commission_type = fields.Selection([
@@ -186,7 +209,12 @@ class MallLeasingContract(models.Model):
         help='账单在到期日前提前多少天生成，0表示到期当天生成'
     )
 
-    next_bill_date = fields.Date('下次出账日', compute='_compute_next_bill_date', store=True)
+    # 下次出账日：可写；初始会跳过覆盖起租日的免租段，出账成功后按周期推进
+    next_bill_date = fields.Date(
+        '下次出账日',
+        help='默认从起租日起算；若免租覆盖起租日，则从免租结束次日开始。'
+             '出账成功后按支付周期推进，并自动跳过整期免租的账期。',
+    )
 
     version_ids = fields.One2many('mall.leasing.contract.version', 'contract_id', string='历史版本')
 
@@ -207,16 +235,138 @@ class MallLeasingContract(models.Model):
         readonly=True
     )
 
-    _sql_constraints = [
-        ('name_unique', 'unique(name)', '合同编号必须唯一。')
-    ]
+    # 作废信息
+    cancel_reason = fields.Text('作废原因', tracking=True, copy=False)
+    cancel_date = fields.Date('作废日期', copy=False, readonly=True)
+    cancelled_by_id = fields.Many2one(
+        'res.users', string='作废人', copy=False, readonly=True,
+    )
+    # 作废后重建：原合同 ↔ 新合同
+    source_contract_id = fields.Many2one(
+        'mall.leasing.contract',
+        string='来源合同',
+        copy=False,
+        readonly=True,
+        help='由作废合同复制创建时记录来源。',
+    )
+    replacement_contract_ids = fields.One2many(
+        'mall.leasing.contract',
+        'source_contract_id',
+        string='替代合同',
+        readonly=True,
+    )
+    replacement_contract_count = fields.Integer(
+        '替代合同数',
+        compute='_compute_replacement_contract_count',
+    )
+
+    # Odoo 19：SQL 约束改为 declarative Constraint
+    _name_unique = models.Constraint(
+        'UNIQUE(name)',
+        '合同编号必须唯一。',
+    )
+
+    @api.depends('replacement_contract_ids')
+    def _compute_replacement_contract_count(self) -> None:
+        for rec in self:
+            rec.replacement_contract_count = len(rec.replacement_contract_ids)
 
     @api.model_create_multi
     def create(self, vals_list):
         for vals in vals_list:
             if vals.get('name', _('New')) in [False, _('New')]:
                 vals['name'] = self.env['ir.sequence'].next_by_code('mall.leasing.contract') or _('New')
-        return super().create(vals_list)
+        records = super().create(vals_list)
+        # 初始化下次出账日 / 首次递增日（依赖 create 后字段齐全，以便跳过免租期）
+        for rec, vals in zip(records, vals_list):
+            if not vals.get('next_bill_date') and rec.lease_start_date:
+                rec.next_bill_date = rec._get_initial_next_bill_date()
+            if not rec.escalation_term_end_date:
+                first_esc = rec._get_first_escalation_date()
+                if first_esc:
+                    rec.escalation_term_end_date = first_esc
+        return records
+
+    def _get_period_months(self) -> int:
+        """当前合同支付周期对应的月数。"""
+        self.ensure_one()
+        return PAYMENT_PERIOD_MONTHS.get(self.payment_frequency, 1)
+
+    def _should_defer_billing_for_free_rent(self) -> bool:
+        """
+        是否因免租推迟「下次出账日」。
+        - 租户/房东合同：租金受免租影响，需跳过
+        - 物业合同：仅当勾选「免租期适用于物业费」时跳过
+        """
+        self.ensure_one()
+        if self.contract_type in ('tenant', 'landlord'):
+            return True
+        if self.contract_type == 'property':
+            return bool(self.free_rent_applies_to_property_fee)
+        return False
+
+    def _get_initial_next_bill_date(self):
+        """
+        计算合同初始下次出账日。
+        若免租覆盖起租日且本类型费用受免租影响，则从免租结束日的次日开始出账。
+        """
+        self.ensure_one()
+        start = self.lease_start_date
+        if not start:
+            return False
+
+        if (
+            self._should_defer_billing_for_free_rent()
+            and self.free_rent_from
+            and self.free_rent_to
+            and self.free_rent_from <= start <= self.free_rent_to
+        ):
+            candidate = self.free_rent_to + relativedelta(days=1)
+            if self.lease_end_date and candidate > self.lease_end_date:
+                return False
+            return candidate
+        return start
+
+    def _skip_fully_free_rent_bill_dates(self, bill_date):
+        """
+        若账期起点落在整期免租内，按支付周期推进，直到出现应收天数或超过租期。
+        """
+        self.ensure_one()
+        if not bill_date or not self._should_defer_billing_for_free_rent():
+            return bill_date
+        if not self.free_rent_from or not self.free_rent_to or not self.payment_frequency:
+            return bill_date
+
+        period_months = self._get_period_months()
+        # 最多跳过 36 个周期，防止异常数据死循环
+        for _unused in range(36):
+            ratio = self._get_period_bill_ratio(
+                bill_date, apply_free_rent=True,
+            )[0]
+            if ratio > 0:
+                return bill_date
+            advanced = bill_date + relativedelta(months=period_months)
+            # 仍落在免租期内时，直接跳到免租结束次日，避免逐期空转
+            after_free = self.free_rent_to + relativedelta(days=1)
+            if advanced <= self.free_rent_to:
+                bill_date = after_free
+            else:
+                bill_date = advanced
+            if self.lease_end_date and bill_date > self.lease_end_date:
+                return False
+        return bill_date
+
+    def _get_first_escalation_date(self):
+        """
+        计算首次递增日期。
+        起始年=1、周期=1 → 起租日 + 1 年；起始年=3、周期=1 → 起租日 + 3 年。
+        """
+        self.ensure_one()
+        if not self.lease_start_date or not self.escalation_term:
+            return False
+        start_year = self.escalation_start_year or 1
+        years_until_escalation = (start_year - 1) + self.escalation_term
+        return self.lease_start_date + relativedelta(years=years_until_escalation)
 
     @api.depends('lease_area', 'property_fee_unit')
     def _compute_property_fee(self):
@@ -229,40 +379,23 @@ class MallLeasingContract(models.Model):
                 rec.property_fee = rec.lease_area * rec.property_fee_unit
             # 如果没有设置单价或面积，保持原有值不变（允许手动输入）
 
-    @api.depends('lease_start_date', 'payment_frequency', 'free_rent_from', 'free_rent_to')
+    @api.depends(
+        'lease_start_date', 'payment_frequency', 'free_rent_from', 'free_rent_to',
+        'free_rent_applies_to_property_fee', 'contract_type',
+        'rent_amount', 'lease_end_date',
+    )
     def _compute_first_period_ratio(self):
-        """
-        计算首期账单比例
-        按正常周期生成账单，如果有免租期则计算扣除免租天数后的比例
-        """
+        """按实际首次出账日起算首期比例与首期租金（已跳过起租免租段）。"""
         for rec in self:
-            if not rec.lease_start_date or not rec.payment_frequency:
+            bill_start = rec._get_initial_next_bill_date()
+            if not bill_start or not rec.payment_frequency:
                 rec.first_period_ratio = 1.0
                 rec.first_rent_amount = rec.rent_amount
                 continue
-            
-            # 计算一个完整周期的天数
-            period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(rec.payment_frequency, 1)
-            period_end = rec.lease_start_date + relativedelta(months=period_months)
-            full_period_days = (period_end - rec.lease_start_date).days
-            
-            # 检查首期内是否有免租期
-            free_days = rec._calculate_free_rent_days_in_period(rec.lease_start_date, period_end)
-            
-            if free_days > 0:
-                # 有免租期，计算比例
-                billable_days = full_period_days - free_days
-                if billable_days < 0:
-                    billable_days = 0
-                rec.first_period_ratio = round(billable_days / full_period_days, 2) if full_period_days > 0 else 1.0
-                _logger.info(f"合同 {rec.name}: 首期有免租期 - 总天数: {full_period_days}, 免租天数: {free_days}, 应收天数: {billable_days}, 比例: {rec.first_period_ratio}")
-            else:
-                # 无免租期，完整周期
-                rec.first_period_ratio = 1.0
-                _logger.info(f"合同 {rec.name}: 首期无免租期，完整周期，比例: 1.0")
-            
-            rec.first_rent_amount = rec.rent_amount * rec.first_period_ratio
-    
+            ratio = rec._get_period_bill_ratio(bill_start)[0]
+            rec.first_period_ratio = ratio
+            rec.first_rent_amount = round((rec.rent_amount or 0.0) * ratio, 2)
+
     def _calculate_free_rent_days_in_period(self, period_start, period_end):
         """
         计算指定期间内的免租天数
@@ -271,23 +404,127 @@ class MallLeasingContract(models.Model):
         :return: 免租天数
         """
         self.ensure_one()
-        
+
         if not self.free_rent_from or not self.free_rent_to:
             return 0
-        
-        # 计算免租期与账单期间的重叠部分
+
         # 重叠开始日 = max(免租开始日, 期间开始日)
         overlap_start = max(self.free_rent_from, period_start)
         # 重叠结束日 = min(免租结束日, 期间结束日-1天)
         overlap_end = min(self.free_rent_to, period_end - relativedelta(days=1))
-        
-        # 如果有重叠
+
         if overlap_start <= overlap_end:
-            free_days = (overlap_end - overlap_start).days + 1
-            _logger.info(f"合同 {self.name}: 免租期 ({self.free_rent_from} ~ {self.free_rent_to}) 与期间 ({period_start} ~ {period_end}) 重叠 {free_days} 天")
-            return free_days
-        
+            return (overlap_end - overlap_start).days + 1
         return 0
+
+    def _get_period_bill_ratio(self, period_start, apply_free_rent: bool = True):
+        """
+        计算账期应收比例 = 应收天数 / 完整周期天数。
+        应收天数 = min(周期结束, 租期结束) 内的日历天数 −（可选）免租重叠天数。
+        :param apply_free_rent: 是否扣除免租天数（物业费默认 False，见 free_rent_applies_to_property_fee）
+        :return: (ratio, period_start, bill_end_inclusive)
+        """
+        self.ensure_one()
+        period_months = self._get_period_months()
+        full_period_end = period_start + relativedelta(months=period_months)
+        full_period_days = (full_period_end - period_start).days
+        if full_period_days <= 0:
+            return 1.0, period_start, period_start
+
+        # 账单周期闭区间结束日，不超过租期结束
+        bill_end_inclusive = full_period_end - relativedelta(days=1)
+        if self.lease_end_date and bill_end_inclusive > self.lease_end_date:
+            bill_end_inclusive = self.lease_end_date
+        if bill_end_inclusive < period_start:
+            return 0.0, period_start, period_start
+
+        period_end_exclusive = bill_end_inclusive + relativedelta(days=1)
+        calendar_days = (period_end_exclusive - period_start).days
+        free_days = 0
+        if apply_free_rent:
+            free_days = self._calculate_free_rent_days_in_period(period_start, period_end_exclusive)
+        billable_days = max(calendar_days - free_days, 0)
+        ratio = round(billable_days / full_period_days, 4)
+        return ratio, period_start, bill_end_inclusive
+
+    def _get_invoice_due_date(self, invoice_date):
+        """按支付日计算到期日：本月 payment_day；若早于发票日则顺延至下月。"""
+        self.ensure_one()
+        if not invoice_date:
+            return False
+        day = self.payment_day or 1
+        last_day = calendar.monthrange(invoice_date.year, invoice_date.month)[1]
+        due = invoice_date.replace(day=min(max(day, 1), last_day))
+        if due < invoice_date:
+            next_month = invoice_date + relativedelta(months=1)
+            last_day_next = calendar.monthrange(next_month.year, next_month.month)[1]
+            due = next_month.replace(day=min(max(day, 1), last_day_next))
+        return due
+
+    def _apply_escalation_if_due(self) -> None:
+        """
+        出账前：若下次出账日已到达递增日，则按合同类型调价并推进下次递增日。
+        - 租赁/房东合同：递增租金
+        - 物业合同：递增物业费与服务费
+        """
+        self.ensure_one()
+        if not self.escalation_rate or not self.escalation_term_end_date or not self.next_bill_date:
+            return
+        term_years = self.escalation_term or 1
+        factor = 1 + self.escalation_rate / 100.0
+        safety = 0
+        while (
+            self.escalation_term_end_date
+            and self.next_bill_date >= self.escalation_term_end_date
+            and safety < 50
+        ):
+            safety += 1
+            if self.lease_end_date and self.escalation_term_end_date > self.lease_end_date:
+                break
+
+            notes: list[str] = []
+            if self.contract_type == 'property':
+                # 有单价+面积时只递增单价，由计算字段刷新物业费，避免双重递增
+                if self.property_fee_unit and self.lease_area:
+                    old_unit = self.property_fee_unit
+                    old_fee = self.property_fee
+                    self.property_fee_unit = round(old_unit * factor, 2)
+                    notes.append(
+                        _('物业费单价 %(old_u)s → %(new_u)s（物业费 %(old_f)s → %(new_f)s）') % {
+                            'old_u': old_unit,
+                            'new_u': self.property_fee_unit,
+                            'old_f': old_fee,
+                            'new_f': self.property_fee,
+                        }
+                    )
+                elif self.property_fee:
+                    old_fee = self.property_fee
+                    self.property_fee = round(old_fee * factor, 2)
+                    notes.append(_('物业费 %(old)s → %(new)s') % {
+                        'old': old_fee, 'new': self.property_fee,
+                    })
+                if self.service_fee:
+                    old_svc = self.service_fee
+                    self.service_fee = round(old_svc * factor, 2)
+                    notes.append(_('服务费 %(old)s → %(new)s') % {
+                        'old': old_svc, 'new': self.service_fee,
+                    })
+            else:
+                old_rent = self.rent_amount or 0.0
+                self.rent_amount = round(old_rent * factor, 2)
+                notes.append(_('租金 %(old)s → %(new)s') % {
+                    'old': old_rent, 'new': self.rent_amount,
+                })
+
+            self.escalation_term_generated = True
+            self.escalation_term_end_date = self.escalation_term_end_date + relativedelta(years=term_years)
+            if notes:
+                self.message_post(
+                    body=_('费用递增生效（递增率 %(rate)s%%）：%(detail)s') % {
+                        'rate': self.escalation_rate,
+                        'detail': '；'.join(notes),
+                    }
+                )
 
     @api.depends('lease_term', 'lease_start_date')
     def _compute_lease_end_date(self):
@@ -301,18 +538,6 @@ class MallLeasingContract(models.Model):
                 rec.lease_end_date = rec.lease_start_date + relativedelta(years=rec.lease_term, days=-1)
             else:
                 rec.lease_end_date = False
-
-    @api.depends('lease_start_date', 'payment_frequency')
-    def _compute_next_bill_date(self):
-        """
-        计算合同的下次出账日（按正常周期）
-        从租赁开始日开始，按照支付周期生成账单
-        """
-        for rec in self:
-            if not rec.lease_start_date or not rec.payment_frequency:
-                rec.next_bill_date = False
-                continue
-            rec.next_bill_date = rec.lease_start_date
 
     @api.depends('invoice_ids')
     def _compute_invoice_count(self):
@@ -426,177 +651,366 @@ class MallLeasingContract(models.Model):
         
         return journal, account, company
 
-    def _charge_lines(self, account):
+    def _create_single_move(
+        self,
+        fee_name,
+        fee_amount,
+        journal,
+        account,
+        company,
+        bill_period_start_date,
+        bill_period_end_date,
+    ):
         """
-        生成合同的费用行项目
-        :param account: 费用对应的资产账户
-        :return: 费用行项目列表
-        """
-        def line(name, amount):
-            return (0, 0, {
-                'name': name,
-                'quantity': 1.0,
-                'price_unit': amount or 0.0,
-                'account_id': account.id,
-            })
-        lines = []
-        if self.rent_amount:
-            lines.append(line(_('租金'), self.rent_amount))
-        # if self.water_fee:
-        #     lines.append(line(_('水费'), self.water_fee))
-        # if self.electric_fee:
-        #     lines.append(line(_('电费'), self.electric_fee))
-        if self.property_fee:
-            lines.append(line(_('物业费'), self.property_fee))
-        if self.service_fee:
-            lines.append(line(_('服务费'), self.service_fee))
-        if self.garbage_fee:
-            lines.append(line(_('装修垃圾清理费'), self.garbage_fee))
-        return lines or [line(_('租赁费用'), 0.0)]
-
-    def _create_single_move(self, fee_name, fee_amount, journal, account, company):
-        """
-        为单个费用类型创建会计凭证
-        :param fee_name: 费用名称
-        :param fee_amount: 费用金额
-        :param journal: 会计账簿
-        :param account: 费用对应的资产账户
-        :param company: 公司对象
-        :return: 创建的会计凭证
+        为单个费用类型创建会计凭证并过账。
         """
         if not fee_amount or fee_amount <= 0:
             return None
-        # 账单周期起始日期为next_bill_date
-        bill_period_start_date = self.next_bill_date
-        # 账单周期结束日期为next_bill_date+付款周期-1天（因为下一期从结束日当天开始）
-        period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(self.payment_frequency, 1)
-        bill_period_end_date = self.next_bill_date + relativedelta(months=period_months, days=-1)
-        
+
+        invoice_date = bill_period_start_date or self.next_bill_date or date.today()
         move_vals = {
             'move_type': 'out_invoice' if self.contract_type in ['tenant', 'property'] else 'in_invoice',
-            'partner_id': self.partner_id.id,  # 租户或房东
+            'partner_id': self.partner_id.id,
             'ref': f'合同# {self.name} - {fee_name}',
-            'invoice_date': self.next_bill_date,
-            'invoice_date_due': self.next_bill_date + relativedelta(days=30),
+            'invoice_date': invoice_date,
+            'invoice_date_due': self._get_invoice_due_date(invoice_date),
             'journal_id': journal.id,
             'company_id': company.id,
-            'invoice_line_ids': [(0, 0, {
+            'invoice_line_ids': [Command.create({
                 'name': fee_name,
                 'quantity': 1.0,
                 'price_unit': fee_amount,
                 'account_id': account.id,
             })],
-            'mall_contract_id': self.id,  # 建立与合同的关联
+            'mall_contract_id': self.id,
             'bill_period_start_date': bill_period_start_date,
             'bill_period_end_date': bill_period_end_date,
         }
-        # _logger.info(f"move_vals: {move_vals}")
-        
         account_move = self.env['account.move'].sudo().create(move_vals)
-        # _logger.info(f"account_move: {account_move}")
-        # 自动确认凭证
         account_move.action_post()
         return account_move
 
-    def action_approve(self):
-        """审核通过"""
+    def _prepare_bill_fee_types(self, rent_ratio: float, property_ratio: float) -> list:
+        """
+        按合同类型组装本期费用清单。
+        - 租金使用 rent_ratio（含免租折算）
+        - 物业费/服务费使用 property_ratio（默认不含免租，见 free_rent_applies_to_property_fee）
+        - 一次性费用各自用 generated 标记防重
+        租户合同不再出物业费，避免与物业合同重复收费。
+        """
         self.ensure_one()
+        fee_types: list[tuple[str, float]] = []
+
+        def add_recurring(label: str, amount: float, ratio: float) -> None:
+            if not amount or ratio <= 0:
+                return
+            if ratio < 1.0:
+                fee_types.append((f'{label}（按比例）', round(amount * ratio, 2)))
+            else:
+                fee_types.append((label, amount))
+
+        if self.contract_type in ('tenant', 'landlord'):
+            add_recurring(_('租金'), self.rent_amount or 0.0, rent_ratio)
+
+        if self.contract_type == 'tenant':
+            if not self.deposit_generated and self.deposit:
+                fee_types.append((_('押金'), self.deposit))
+
+        if self.contract_type == 'property':
+            add_recurring(_('物业费'), self.property_fee or 0.0, property_ratio)
+            add_recurring(_('服务费'), self.service_fee or 0.0, property_ratio)
+            # 水电费仅为单价备查，不自动出账
+            if not self.decoration_deposit_generated and self.decoration_deposit:
+                fee_types.append((_('装修保证金'), self.decoration_deposit))
+            if not self.garbage_fee_generated and self.garbage_fee:
+                fee_types.append((_('装修垃圾清理费'), self.garbage_fee))
+
+        return fee_types
+
+    def _is_mall_manager(self) -> bool:
+        """主管或系统管理员。"""
+        return bool(
+            self.env.su
+            or self.env.user.has_group('mall_leasing.group_mall_leasing_manager')
+            or self.env.user.has_group('base.group_system')
+        )
+
+    def _is_mall_finance(self) -> bool:
+        """财务、主管或系统管理员。"""
+        return bool(
+            self.env.su
+            or self.env.user.has_group('mall_leasing.group_mall_leasing_finance')
+            or self._is_mall_manager()
+        )
+
+    def _is_mall_operator(self) -> bool:
+        """运营、主管或系统管理员。"""
+        return bool(
+            self.env.su
+            or self.env.user.has_group('mall_leasing.group_mall_leasing_operator')
+            or self.env.user.has_group('base.group_system')
+        )
+
+    def _ensure_mall_manager(self) -> None:
+        if not self._is_mall_manager():
+            raise UserError(_('仅主管可执行合同审核与管理操作。'))
+
+    def _ensure_mall_finance(self) -> None:
+        if not self._is_mall_finance():
+            raise UserError(_('仅财务可管理租赁账单与发票。'))
+
+    def _ensure_mall_operator(self) -> None:
+        if not self._is_mall_operator():
+            raise UserError(_('仅运营可创建或维护合同。'))
+
+    def action_approve(self):
+        """审核通过（主管）。"""
+        self.ensure_one()
+        self._ensure_mall_manager()
         if self.state != 'draft':
             raise UserError(_('只有草稿状态的合同才能审核'))
-        
+
         self.state = 'approved'
         self.message_post(body=_('合同已审核通过'))
-        
-        # 创建活动提醒
+
         self.activity_schedule(
             'mail.mail_activity_data_todo',
             summary=_('合同审核通过'),
             note=_('合同 %s 已审核通过，可以进行签约') % self.name,
-            user_id=self.env.user.id
+            user_id=self.env.user.id,
         )
-        
         return True
-    
+
     def action_reject(self):
-        """审核拒绝"""
+        """审核拒绝（主管）。"""
         self.ensure_one()
+        self._ensure_mall_manager()
         if self.state != 'draft':
             raise UserError(_('只有草稿状态的合同才能拒绝'))
-        
-        # 保持草稿状态，但添加拒绝记录
+
         self.message_post(body=_('合同审核被拒绝，请修改后重新提交'))
-        
-        # 创建活动提醒
+
         self.activity_schedule(
             'mail.mail_activity_data_todo',
             summary=_('合同审核被拒绝'),
             note=_('合同 %s 审核被拒绝，请修改后重新提交审核') % self.name,
-            user_id=self.env.user.id
+            user_id=self.env.user.id,
         )
-        
         return True
 
     def action_sign(self):
-        """签约"""
+        """签约（主管）。"""
         self.ensure_one()
+        self._ensure_mall_manager()
         if self.state != 'approved':
             raise UserError(_('只有已审核通过的合同才能签约'))
-        
+
         self.state = 'signed'
         self.message_post(body=_('合同已签约'))
-        
-        # 创建活动提醒
+
         self.activity_schedule(
             'mail.mail_activity_data_todo',
             summary=_('合同已签约'),
             note=_('合同 %s 已签约，可以开始执行') % self.name,
-            user_id=self.env.user.id
+            user_id=self.env.user.id,
         )
-        
         return True
-    
+
     def action_active(self):
-        """
-        激活合同 - 合同状态变更为活动
-        """
+        """激活合同（主管）。"""
         self.ensure_one()
+        self._ensure_mall_manager()
         if self.state != 'signed':
             raise UserError(_('只有已签约的合同才能激活'))
-        
+
         self.state = 'active'
         self.message_post(body=_('合同已激活'))
-        
-        # 创建活动提醒
+
         self.activity_schedule(
             'mail.mail_activity_data_todo',
             summary=_('合同已激活'),
             note=_('合同 %s 已激活，可以开始执行') % self.name,
-            user_id=self.env.user.id
+            user_id=self.env.user.id,
         )
-        
         return True
 
-    def action_create_property_contract(self):
-        """创建物业合同"""
+    def action_open_cancel_wizard(self) -> dict:
+        """打开作废向导（仅主管）。"""
         self.ensure_one()
+        self._ensure_mall_manager()
+        if self.state in ('cancelled', 'terminated'):
+            raise UserError(_('该合同已结束，无法再次作废。'))
+        if self.state == 'draft':
+            raise UserError(_('草稿合同可直接删除或修改，无需作废。请删除草稿或提交后再作废。'))
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('作废合同'),
+            'res_model': 'mall.leasing.contract.cancel.wizard',
+            'view_mode': 'form',
+            'target': 'new',
+            'context': {
+                'default_contract_id': self.id,
+            },
+        }
+
+    def action_cancel(self, reason: str = '') -> bool:
+        """
+        主管确认作废合同。
+        作废后不可继续出账或状态流转；可基于本单创建新合同。
+        """
+        self.ensure_one()
+        self._ensure_mall_manager()
+        if self.state in ('cancelled', 'terminated', 'draft'):
+            raise UserError(_('当前状态的合同不能作废。'))
+        if not (reason or self.cancel_reason):
+            raise UserError(_('请填写作废原因。'))
+
+        self.write({
+            'state': 'cancelled',
+            'cancel_reason': reason or self.cancel_reason,
+            'cancel_date': fields.Date.context_today(self),
+            'cancelled_by_id': self.env.user.id,
+        })
+        self.message_post(body=_('合同已作废。原因：%s') % (reason or self.cancel_reason))
+        return True
+
+    def _prepare_copy_vals_from_cancelled(self) -> dict:
+        """从作废合同组装新建草稿合同的字段值。"""
+        self.ensure_one()
+        return {
+            'contract_type': self.contract_type,
+            'mall_id': self.mall_id.id,
+            'facade_ids': [Command.set(self.facade_ids.ids)],
+            'operator_id': self.operator_id.id,
+            'property_company_id': self.property_company_id.id,
+            'partner_id': self.partner_id.id,
+            'landlord_id': self.landlord_id.id,
+            'shop_name': self.shop_name,
+            'currency_id': self.currency_id.id,
+            'rent_amount': self.rent_amount,
+            'deposit': self.deposit,
+            'lease_area': self.lease_area,
+            'property_fee_unit': self.property_fee_unit,
+            'property_fee': self.property_fee,
+            'service_fee': self.service_fee,
+            'water_fee': self.water_fee,
+            'electric_fee': self.electric_fee,
+            'garbage_fee': self.garbage_fee,
+            'decoration_deposit': self.decoration_deposit,
+            'payment_frequency': self.payment_frequency,
+            'payment_day': self.payment_day,
+            'bank_account': self.bank_account,
+            'bank_account_name': self.bank_account_name,
+            'bank_name': self.bank_name,
+            'bank_account_number': self.bank_account_number,
+            'lease_term': self.lease_term,
+            'lease_start_date': self.lease_start_date,
+            'lease_end_date': self.lease_end_date,
+            'free_rent_from': self.free_rent_from,
+            'free_rent_to': self.free_rent_to,
+            'free_rent_applies_to_property_fee': self.free_rent_applies_to_property_fee,
+            'escalation_rate': self.escalation_rate,
+            'escalation_start_year': self.escalation_start_year,
+            'escalation_term': self.escalation_term,
+            'introducer_id': self.introducer_id.id,
+            'commission_type': self.commission_type,
+            'commission_amount': self.commission_amount,
+            'bill_advance_days': self.bill_advance_days,
+            'source_contract_id': self.id,
+            'state': 'draft',
+            # 出账标记重置，由新合同重新起算
+            'first_rent_generated': False,
+            'deposit_generated': False,
+            'garbage_fee_generated': False,
+            'decoration_deposit_generated': False,
+            'escalation_term_generated': False,
+            'next_bill_date': False,
+            'escalation_term_end_date': False,
+        }
+
+    def action_create_from_cancelled(self) -> dict:
+        """
+        基于作废合同创建新草稿合同，并带入原合同信息。
+        运营/主管均可操作。
+        """
+        self.ensure_one()
+        self._ensure_mall_operator()
+        if self.state != 'cancelled':
+            raise UserError(_('仅已作废的合同可创建替代合同。'))
+
+        new_contract = self.env['mall.leasing.contract'].create(
+            self._prepare_copy_vals_from_cancelled()
+        )
+        self.message_post(
+            body=_('已基于本作出废合同创建新合同 %s') % new_contract.name
+        )
+        new_contract.message_post(
+            body=_('本单由作废合同 %s 复制创建') % self.name
+        )
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('新合同'),
+            'res_model': 'mall.leasing.contract',
+            'res_id': new_contract.id,
+            'view_mode': 'form',
+            'target': 'current',
+        }
+
+    def action_view_replacement_contracts(self) -> dict:
+        """查看由本作出废合同生成的替代合同。"""
+        self.ensure_one()
+        return {
+            'type': 'ir.actions.act_window',
+            'name': _('替代合同'),
+            'res_model': 'mall.leasing.contract',
+            'view_mode': 'list,form',
+            'domain': [('source_contract_id', '=', self.id)],
+            'context': {'default_source_contract_id': self.id},
+        }
+
+    def action_create_property_contract(self):
+        """
+        从租赁合同创建关联物业合同（运营/主管）。
+        同步租期、支付条款与费用字段；免租日期仅作参考，默认不折算物业费。
+        """
+        self.ensure_one()
+        self._ensure_mall_operator()
+        # 租赁面积：优先合同字段，否则汇总关联门面面积
+        lease_area = self.lease_area or sum(self.facade_ids.mapped('area'))
         vals = {
             'contract_type': 'property',
             'mall_id': self.mall_id.id,
-            'facade_ids': [(6, 0, self.facade_ids.ids)],
+            'facade_ids': [Command.set(self.facade_ids.ids)],
             'operator_id': self.operator_id.id,
             'partner_id': self.partner_id.id,
             'property_company_id': self.property_company_id.id,
             'shop_name': self.shop_name,
             'currency_id': self.currency_id.id,
             'bank_account': self.bank_account,
+            'bank_account_name': self.bank_account_name,
+            'bank_name': self.bank_name,
+            'bank_account_number': self.bank_account_number,
             'lease_term': self.lease_term,
             'lease_start_date': self.lease_start_date,
             'lease_end_date': self.lease_end_date,
             'payment_frequency': self.payment_frequency,
             'payment_day': self.payment_day,
+            'bill_advance_days': self.bill_advance_days,
+            # 免租日期保留备查；物业费默认不参与免租折算
             'free_rent_from': self.free_rent_from,
             'free_rent_to': self.free_rent_to,
+            'free_rent_applies_to_property_fee': False,
             'escalation_rate': self.escalation_rate,
+            'escalation_start_year': self.escalation_start_year,
+            'escalation_term': self.escalation_term,
+            'next_bill_date': self.lease_start_date,
+            # 费用字段
+            'lease_area': lease_area,
+            'property_fee_unit': self.property_fee_unit,
+            'property_fee': self.property_fee,
+            'service_fee': self.service_fee,
+            'decoration_deposit': self.decoration_deposit,
+            'garbage_fee': self.garbage_fee,
         }
         new = self.env['mall.leasing.contract'].create(vals)
         return {
@@ -610,22 +1024,13 @@ class MallLeasingContract(models.Model):
     def action_view_property_contracts(self):
         """查看相关的物业合同"""
         self.ensure_one()
-        # 读取已有的动作定义（若存在）
-        try:
-            action = self.env.ref('mall_leasing.action_property_contracts').read()[0]
-        except Exception:
-            action = {
-                'type': 'ir.actions.act_window',
-                'name': _('物业合同'),
-                'res_model': 'mall.leasing.contract',
-                'view_mode': 'list,form',
-            }
-        # 基础筛选：物业合同
+        action = self.env['ir.actions.act_window']._for_xml_id(
+            'mall_leasing.action_property_contracts'
+        )
+        # 基础筛选：物业合同 + 同商场/同房号/同租户
         domain = [('contract_type', '=', 'property')]
-        # 同商场
         if self.mall_id:
             domain.append(('mall_id', '=', self.mall_id.id))
-        # 关联相同房号（多选）
         if self.facade_ids:
             domain.append(('facade_ids', 'in', self.facade_ids.ids))
         if self.partner_id:
@@ -637,7 +1042,7 @@ class MallLeasingContract(models.Model):
         ctx.update({
             'default_contract_type': 'property',
             'default_mall_id': self.mall_id.id,
-            'default_facade_ids': [(6, 0, self.facade_ids.ids)],
+            'default_facade_ids': [Command.set(self.facade_ids.ids)],
             'default_operator_id': self.operator_id.id,
             'default_partner_id': self.partner_id.id,
             'default_property_company_id': self.property_company_id.id,
@@ -647,27 +1052,17 @@ class MallLeasingContract(models.Model):
         # 若仅有一个匹配，直接打开表单视图
         records = self.env['mall.leasing.contract'].search(domain, limit=2)
         if len(records) == 1:
-            try:
-                form_view = self.env.ref('mall_leasing.view_mall_contract_form').id
-                action['views'] = [(form_view, 'form')]
-            except Exception:
-                # 无特定视图引用时，保持默认
-                pass
+            form_view = self.env.ref('mall_leasing.view_mall_contract_form').id
+            action['views'] = [(form_view, 'form')]
             action['res_id'] = records.id
         return action
 
     def action_view_tenant_contracts(self):
         """查看相关的租户合同"""
         self.ensure_one()
-        try:
-            action = self.env.ref('mall_leasing.action_tenant_contracts').read()[0]
-        except Exception:
-            action = {
-                'type': 'ir.actions.act_window',
-                'name': _('租户合同'),
-                'res_model': 'mall.leasing.contract',
-                'view_mode': 'list,form',
-            }
+        action = self.env['ir.actions.act_window']._for_xml_id(
+            'mall_leasing.action_tenant_contracts'
+        )
         domain = [('contract_type', '=', 'tenant')]
         if self.mall_id:
             domain.append(('mall_id', '=', self.mall_id.id))
@@ -681,7 +1076,7 @@ class MallLeasingContract(models.Model):
         ctx.update({
             'default_contract_type': 'tenant',
             'default_mall_id': self.mall_id.id,
-            'default_facade_ids': [(6, 0, self.facade_ids.ids)],
+            'default_facade_ids': [Command.set(self.facade_ids.ids)],
             'default_operator_id': self.operator_id.id,
             'default_partner_id': self.partner_id.id,
             'default_property_company_id': self.property_company_id.id,
@@ -690,107 +1085,98 @@ class MallLeasingContract(models.Model):
 
         records = self.env['mall.leasing.contract'].search(domain, limit=2)
         if len(records) == 1:
-            try:
-                form_view = self.env.ref('mall_leasing.view_mall_contract_form').id
-                action['views'] = [(form_view, 'form')]
-            except Exception:
-                pass
+            form_view = self.env.ref('mall_leasing.view_mall_contract_form').id
+            action['views'] = [(form_view, 'form')]
             action['res_id'] = records.id
         return action
 
     def action_generate_move(self):
         """
-        生成合同对应的会计凭证 - 为每种费用类型生成单独的凭证
-        支持首期账单按比例计算（对齐自然月周期）
-        :return: 包含所有凭证ID的字典
+        生成合同对应的会计凭证：按费用拆票（财务）。
+        - 每期按免租重叠与租期截断计算应收比例
+        - 一次性费用（押金/保证金/垃圾费）用 generated 标记防重
+        - 出账前按递增条款调价
         """
         self.ensure_one()
-        
+        self._ensure_mall_finance()
+
+        if self.state != 'active':
+            raise UserError(_('只有执行中的合同才能生成账单'))
         if not self.lease_start_date:
             raise UserError(_('请先设置租赁开始日期'))
-        
-        # 判断当前日期+bill_advance_days是否小于出账日
-        if self.next_bill_date > date.today() + timedelta(days=self.bill_advance_days):
-            raise UserError(_('未到出账日，不能生成账单！'))
-        
-        journal, account, company = self._get_journal_and_account()
-        
-        # 判断是否是首期账单（首期租金未生成）
-        is_first_period = not self.first_rent_generated
-        # 首期比例（只在有免租期时才会小于1.0）
-        ratio = self.first_period_ratio if is_first_period and self.first_period_ratio else 1.0
-        
-        # 定义费用类型和对应的金额
-        fee_types = []
-        
-        # 租金处理
-        if is_first_period and self.first_rent_amount and ratio < 1.0:
-            # 首期有免租期，使用按比例计算的租金
-            fee_types.append((_('租金（扣除免租期）'), self.first_rent_amount))
-        else:
-            # 正常周期租金
-            fee_types.append((_('租金'), self.rent_amount))
-        
-        # 押金只在第一次生成账单时包含
-        if not self.deposit_generated and self.deposit:
-            fee_types.append((_('押金'), self.deposit))
-        # 装修保证金只在第一次生成账单时包含
-        if not self.decoration_deposit_generated and self.decoration_deposit:
-            fee_types.append((_('装修保证金'), self.decoration_deposit))
-        
-        # 其他费用（首期有免租期时按比例）
-        if is_first_period and ratio < 1.0:
-            if self.property_fee:
-                fee_types.append((_('物业费（扣除免租期）'), round(self.property_fee * ratio, 2)))
-            if self.service_fee:
-                fee_types.append((_('服务费（扣除免租期）'), round(self.service_fee * ratio, 2)))
-        else:
-            if self.property_fee:
-                fee_types.append((_('物业费'), self.property_fee))
-            if self.service_fee:
-                fee_types.append((_('服务费'), self.service_fee))
-        
-        # 装修垃圾清理费（一次性，不按比例）
-        if self.garbage_fee:
-            fee_types.append((_('装修垃圾清理费'), self.garbage_fee))
-        
-        _logger.info(f"fee_types: {fee_types}")
-        
-        # 为每种费用类型生成单独的会计凭证
-        created_moves = []
-        deposit_move_created = False
-        first_rent_move_created = False
-        for fee_name, fee_amount in fee_types:
-            if not fee_amount:
-                continue
-            move = self._create_single_move(fee_name, fee_amount, journal, account, company)
-            if move:
-                created_moves.append(move)
-                # 如果生成了押金账单，标记为已生成
-                if fee_name == _('押金'):
-                    deposit_move_created = True
-                # 如果生成了租金账单（包含"租金"关键字），标记为已生成
-                if '租金' in fee_name:
-                    first_rent_move_created = True
-                if '装修保证金' in fee_name:
-                    self.decoration_deposit_generated = True
+        if not self.payment_frequency:
+            raise UserError(_('请先设置支付方式'))
+        if not self.next_bill_date:
+            raise UserError(_('请先设置下次出账日'))
+        if self.lease_end_date and self.next_bill_date > self.lease_end_date:
+            raise UserError(_('下次出账日已超过租赁结束日，无法继续出账'))
 
-        
-        # 更新押金生成状态
-        if deposit_move_created:
-            self.deposit_generated = True
-        
-        # 首期账单生成后，标记首期租金已生成
-        if first_rent_move_created and is_first_period:
+        # 允许按 bill_advance_days 提前出账
+        if self.next_bill_date > date.today() + timedelta(days=self.bill_advance_days or 0):
+            raise UserError(_('未到出账日，不能生成账单！'))
+
+        # 同账期幂等：已有未作废账单则拒绝
+        existing = self.invoice_ids.filtered(
+            lambda m: m.state != 'cancel' and m.bill_period_start_date == self.next_bill_date
+        )
+        if existing:
+            raise UserError(_('该账期已生成账单，请勿重复出账。'))
+
+        # 递增到期则先调价，再算出账金额
+        self._apply_escalation_if_due()
+
+        # 租金比例含免租；物业费比例默认仅租期截断，除非开启 free_rent_applies_to_property_fee
+        rent_ratio, period_start, period_end = self._get_period_bill_ratio(
+            self.next_bill_date, apply_free_rent=True,
+        )
+        # 不可用 _ 丢弃返回值：会遮蔽 gettext 的 _，导致后续 _('...') 报错
+        property_ratio = self._get_period_bill_ratio(
+            self.next_bill_date,
+            apply_free_rent=bool(self.free_rent_applies_to_property_fee),
+        )[0]
+        fee_types = self._prepare_bill_fee_types(rent_ratio, property_ratio)
+        _logger.info(
+            '合同 %s 出账：周期 %s ~ %s，租金比例 %s，物业比例 %s，费用 %s',
+            self.name, period_start, period_end, rent_ratio, property_ratio, fee_types,
+        )
+
+        # 整期免租且无一次性费用：推进出账日，不报错（避免 Cron 卡住）
+        if not fee_types:
             self.first_rent_generated = True
-        
+            self.next_bill_date = self._get_next_bill_date_after_current()
+            return {
+                'type': 'ir.actions.client',
+                'tag': 'display_notification',
+                'params': {
+                    'title': _('出账跳过'),
+                    'message': _('本期无可出账费用（可能整期免租），已推进下次出账日。'),
+                    'type': 'warning',
+                    'sticky': False,
+                },
+            }
+
+        journal, account, company = self._get_journal_and_account()
+        created_moves = []
+        for fee_name, fee_amount in fee_types:
+            move = self._create_single_move(
+                fee_name, fee_amount, journal, account, company, period_start, period_end,
+            )
+            if not move:
+                continue
+            created_moves.append(move)
+            if fee_name == _('押金'):
+                self.deposit_generated = True
+            if _('装修保证金') in fee_name:
+                self.decoration_deposit_generated = True
+            if _('装修垃圾清理费') in fee_name:
+                self.garbage_fee_generated = True
+
         if not created_moves:
             raise UserError(_('没有需要生成凭证的费用项目'))
 
+        self.first_rent_generated = True
         self.next_bill_date = self._get_next_bill_date_after_current()
-        
-        
-        # 如果只有一个凭证，直接返回该凭证的表单视图
+
         if len(created_moves) == 1:
             return {
                 'type': 'ir.actions.act_window',
@@ -799,8 +1185,6 @@ class MallLeasingContract(models.Model):
                 'view_mode': 'form',
                 'target': 'current',
             }
-        
-        # 如果有多个凭证，返回列表视图显示所有生成的凭证
         return {
             'type': 'ir.actions.act_window',
             'res_model': 'account.move',
@@ -873,56 +1257,67 @@ class MallLeasingContract(models.Model):
         """
         self.ensure_one()
         
-        # 获取周期月数
-        period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(self.payment_frequency, 1)
-        
+        period_months = self._get_period_months()
+
         # 计算费用产生时间段
         start_date = self.next_bill_date or self.lease_start_date or date.today()
         end_date = start_date + relativedelta(months=period_months, days=-1)
+        if self.lease_end_date and end_date > self.lease_end_date:
+            end_date = self.lease_end_date
         
         # 格式化日期
         period_start_str = start_date.strftime('%Y年%m月%d日') if start_date else ''
         period_end_str = end_date.strftime('%Y年%m月%d日') if end_date else ''
         period_str = f"{period_start_str} 至 {period_end_str}" if period_start_str else ''
         
-        # 构建费用项目列表
+        # 与出账一致：租金含免租折算；物业/服务费按配置决定是否含免租
+        bill_start = self.next_bill_date or self.lease_start_date or date.today()
+        # 不可用 _ 丢弃返回值：会遮蔽 gettext 的 _
+        rent_ratio = self._get_period_bill_ratio(bill_start, apply_free_rent=True)[0]
+        property_ratio = self._get_period_bill_ratio(
+            bill_start,
+            apply_free_rent=bool(self.free_rent_applies_to_property_fee),
+        )[0]
+
         fee_items = []
         total_amount = 0.0
-        
-        # 商铺租金
+
+        # 商铺租金（仅非物业合同）
         if self.rent_amount and self.contract_type != 'property':
+            rent_bill = round(self.rent_amount * rent_ratio, 2)
             fee_items.append({
                 'name': '商铺租金',
                 'period': period_str,
                 'months': period_months,
-                'amount': self.rent_amount,
-                'remark': '',
+                'amount': rent_bill,
+                'remark': _('按比例 %s') % rent_ratio if rent_ratio < 1.0 else '',
             })
-            total_amount += self.rent_amount
-        
-        # 物业费
-        if self.property_fee:
+            total_amount += rent_bill
+
+        # 物业费/服务费：仅物业合同展示（与出账职责一致）
+        if self.contract_type == 'property' and self.property_fee:
+            property_bill = round(self.property_fee * property_ratio, 2)
             fee_items.append({
                 'name': '物业费',
                 'period': period_str,
                 'months': period_months,
-                'amount': self.property_fee,
-                'remark': '',
+                'amount': property_bill,
+                'remark': _('按比例 %s') % property_ratio if property_ratio < 1.0 else '',
             })
-            total_amount += self.property_fee
-        
-        # 服务费
-        if self.service_fee:
+            total_amount += property_bill
+
+        if self.contract_type == 'property' and self.service_fee:
+            service_bill = round(self.service_fee * property_ratio, 2)
             fee_items.append({
                 'name': '服务费',
                 'period': period_str,
                 'months': period_months,
-                'amount': self.service_fee,
-                'remark': '',
+                'amount': service_bill,
+                'remark': _('按比例 %s') % property_ratio if property_ratio < 1.0 else '',
             })
-            total_amount += self.service_fee
-        
-        # 押金（仅首次）
+            total_amount += service_bill
+
+        # 押金（仅首次，非物业合同）
         if self.deposit and not self.deposit_generated and self.contract_type != 'property':
             fee_items.append({
                 'name': '押金',
@@ -932,9 +1327,13 @@ class MallLeasingContract(models.Model):
                 'remark': '',
             })
             total_amount += self.deposit
-        
-        # 装修垃圾清理费
-        if self.garbage_fee:
+
+        # 装修垃圾清理费 / 装修保证金：仅物业合同、未出过账时展示
+        if (
+            self.contract_type == 'property'
+            and self.garbage_fee
+            and not self.garbage_fee_generated
+        ):
             fee_items.append({
                 'name': '装修垃圾清理费',
                 'period': '一次性',
@@ -943,7 +1342,21 @@ class MallLeasingContract(models.Model):
                 'remark': '',
             })
             total_amount += self.garbage_fee
-        
+
+        if (
+            self.contract_type == 'property'
+            and self.decoration_deposit
+            and not self.decoration_deposit_generated
+        ):
+            fee_items.append({
+                'name': '装修保证金',
+                'period': '一次性',
+                'months': '-',
+                'amount': self.decoration_deposit,
+                'remark': '',
+            })
+            total_amount += self.decoration_deposit
+
         return {
             'fee_items': fee_items,
             'total_amount': total_amount,
@@ -954,93 +1367,68 @@ class MallLeasingContract(models.Model):
     @api.model
     def cron_generate_periodic_bills(self):
         """
-        自动生成合同的周期性账单（按正常周期）
-        优化逻辑：
-        1. 使用 next_bill_date 判断出账时间（已考虑 bill_advance_days）
-        2. 跳过免租期内的账单
-        3. 记录详细的生成日志
+        自动生成执行中合同的周期性账单。
+        免租折算由 action_generate_move 统一处理，此处不再按免租日推进出账日。
         """
-        
-        # 查找所有执行中的合同，且到达出账日期
         active_contracts = self.search([
             ('state', '=', 'active'),
-            ('next_bill_date', '!=', False)
+            ('next_bill_date', '!=', False),
         ])
-        
+
         generated_count = 0
         skipped_count = 0
         error_count = 0
-        
-        for c in active_contracts:
-            today = date.today() + relativedelta(days=c.bill_advance_days or 0)
-            _logger.info(f"开始执行自动出账任务，当前日期: {today}")
-            try:
-                # 1. 检查是否在免租期内
-                if c.free_rent_from and c.free_rent_to:
-                    if c.free_rent_from <= date.today() <= c.free_rent_to:
-                        _logger.info(f"合同 {c.name}: 当前在免租期内 ({c.free_rent_from} 至 {c.free_rent_to})，跳过")
-                        # 更新到下一个周期
-                        c.next_bill_date = c._get_next_bill_date_after_current()
-                        skipped_count += 1
-                        continue
-                
-                # 2. 生成账单
-                if c.next_bill_date <= today:
-                    _logger.info(f"合同 {c.name}: 开始生成账单，出账日: {c.next_bill_date}")
-                    c.action_generate_move()
-                    generated_count += 1
-                    
-                    # 3. 更新下一个账单日期（按正常周期）
-                    next_date = c._get_next_bill_date_after_current()
-                    _logger.info(f"合同 {c.name}: 账单生成成功，下次出账日: {next_date}")
-                
-            except Exception as e:
-                error_count += 1
-                _logger.error(f"合同 {c.name} 生成账单失败: {str(e)}", exc_info=True)
-                # 发送错误通知
-                try:
-                    c.message_post(
-                        body=f"自动生成账单失败: {str(e)}",
-                        subject="账单生成错误",
-                        message_type='notification'
-                    )
-                except:
-                    pass
+
+        for contract in active_contracts:
+            due_by = date.today() + relativedelta(days=contract.bill_advance_days or 0)
+            if not contract.next_bill_date or contract.next_bill_date > due_by:
+                skipped_count += 1
                 continue
-        
-        # 记录汇总日志
+            try:
+                _logger.info(
+                    '合同 %s: 开始自动出账，出账日 %s',
+                    contract.name, contract.next_bill_date,
+                )
+                contract.action_generate_move()
+                generated_count += 1
+                _logger.info(
+                    '合同 %s: 出账完成，下次出账日 %s',
+                    contract.name, contract.next_bill_date,
+                )
+            except Exception as exc:
+                error_count += 1
+                _logger.error(
+                    '合同 %s 生成账单失败: %s', contract.name, exc, exc_info=True,
+                )
+                contract.message_post(
+                    body=_('自动生成账单失败: %s') % exc,
+                    subject=_('账单生成错误'),
+                    message_type='notification',
+                )
+
         _logger.info(
-            f"自动出账任务完成 - "
-            f"检查合同数: {len(active_contracts)}, "
-            f"成功生成: {generated_count}, "
-            f"跳过: {skipped_count}, "
-            f"失败: {error_count}"
+            '自动出账任务完成 - 检查: %s, 成功: %s, 未到期跳过: %s, 失败: %s',
+            len(active_contracts), generated_count, skipped_count, error_count,
         )
-        
         return True
 
     def _get_next_bill_date_after_current(self):
         """
-        获取当前账单后的下一个出账日期（按正常周期）
-        从当前出账日开始，按照支付周期月数递增
+        获取当前账单后的下一个出账日期（按支付周期递增）。
+        整期免租的账期会继续跳过；超过租期结束日则返回 False。
         """
         self.ensure_one()
-        
+
         if not self.payment_frequency:
             return False
-        
-        # 获取当前出账日
+
         current_date = self.next_bill_date or self.lease_start_date or date.today()
-        
-        # 按照支付周期递增
-        period_months = {'monthly': 1, 'quarterly': 3, 'half_yearly': 6, 'yearly': 12}.get(self.payment_frequency, 1)
-        next_bill_date = current_date + relativedelta(months=period_months)
-        
-        # 确保不超过租赁结束日
+        next_bill_date = current_date + relativedelta(months=self._get_period_months())
+
         if self.lease_end_date and next_bill_date > self.lease_end_date:
             return False
-        
-        return next_bill_date
+
+        return self._skip_fully_free_rent_bill_dates(next_bill_date)
 
     @api.model
     def _create_activity(self, res_model, res_id, summary, note):
@@ -1105,14 +1493,79 @@ class MallLeasingContract(models.Model):
             self._create_activity('res.partner', c.partner_id.id, summary, note)
 
     def write(self, vals):
+        # 运营（非主管）：仅可改草稿合同
+        if (
+            not self.env.su
+            and self.env.user.has_group('mall_leasing.group_mall_leasing_operator')
+            and not self._is_mall_manager()
+            and any(rec.state != 'draft' for rec in self)
+        ):
+            raise UserError(_('运营仅可修改草稿状态的合同，审批后请联系主管处理。'))
+
+        # 财务（非主管/运营）：禁止直接改合同状态与关键商务字段
+        if (
+            not self.env.su
+            and self.env.user.has_group('mall_leasing.group_mall_leasing_finance')
+            and not self._is_mall_manager()
+            and not self.env.user.has_group('mall_leasing.group_mall_leasing_operator')
+        ):
+            blocked = {
+                'state', 'contract_type', 'mall_id', 'facade_ids', 'partner_id',
+                'shop_name', 'operator_id', 'property_company_id', 'landlord_id',
+                'lease_term', 'lease_start_date', 'lease_end_date',
+                'deposit', 'commission_type', 'commission_amount', 'introducer_id',
+            }
+            if blocked & set(vals):
+                raise UserError(_('财务可查合同并管理账单，不可修改合同商务条款或状态。'))
+
         # 审批后禁止修改合同类型
         if 'contract_type' in vals:
-            prohibited_states = ['approved', 'signed', 'active', 'renewed', 'terminated']
+            prohibited_states = ['approved', 'signed', 'active', 'renewed', 'terminated', 'cancelled']
             for rec in self:
                 if rec.state in prohibited_states:
                     raise UserError(_('审批通过后合同类型不可修改。'))
+
+        # 已作废合同禁止再改商务字段（仅允许 chatter 等系统写入由权限控制）
+        if not self.env.su and any(rec.state == 'cancelled' for rec in self):
+            mutable_when_cancelled = {
+                'message_follower_ids', 'message_ids', 'activity_ids',
+                'replacement_contract_ids',
+            }
+            if set(vals) - mutable_when_cancelled:
+                raise UserError(_('已作废合同不可修改，请基于作废合同创建新合同。'))
         res = super().write(vals)
-        tracked_fields = ['state', 'rent_amount', 'deposit', 'water_fee', 'electric_fee', 'property_fee', 'garbage_fee', 'payment_frequency', 'payment_day', 'lease_start_date', 'lease_end_date']
+
+        # 尚未出过账时：起租/免租/支付方式变更则重算下次出账日；递增参数变更则重置首次递增日
+        billing_trigger_keys = {
+            'lease_start_date', 'payment_frequency',
+            'free_rent_from', 'free_rent_to', 'free_rent_applies_to_property_fee',
+            'contract_type',
+            'escalation_term', 'escalation_start_year',
+        }
+        next_bill_trigger_keys = {
+            'lease_start_date', 'payment_frequency',
+            'free_rent_from', 'free_rent_to', 'free_rent_applies_to_property_fee',
+            'contract_type',
+        }
+        if billing_trigger_keys & set(vals):
+            for rec in self:
+                updates = {}
+                if not rec.first_rent_generated and rec.lease_start_date:
+                    if next_bill_trigger_keys & set(vals):
+                        if 'next_bill_date' not in vals:
+                            updates['next_bill_date'] = rec._get_initial_next_bill_date()
+                if not rec.escalation_term_generated:
+                    if {'lease_start_date', 'escalation_term', 'escalation_start_year'} & set(vals):
+                        if 'escalation_term_end_date' not in vals:
+                            updates['escalation_term_end_date'] = rec._get_first_escalation_date()
+                if updates:
+                    super(MallLeasingContract, rec).write(updates)
+
+        tracked_fields = [
+            'state', 'rent_amount', 'deposit', 'water_fee', 'electric_fee',
+            'property_fee', 'garbage_fee', 'payment_frequency', 'payment_day',
+            'lease_start_date', 'lease_end_date',
+        ]
         changed = {k: v for k, v in vals.items() if k in tracked_fields}
         for rec in self:
             if changed:

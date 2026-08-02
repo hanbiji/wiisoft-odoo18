@@ -48,6 +48,7 @@
                                 <t t-elif="o.state == 'active'">执行中</t>
                                 <t t-elif="o.state == 'renewed'">已续约</t>
                                 <t t-elif="o.state == 'terminated'">已终止</t>
+                                <t t-elif="o.state == 'cancelled'">已作废</t>
                             </span>
                         </div>
 
@@ -184,26 +185,27 @@
                                         </td>
                                         <td></td>
                                     </tr>
-                                    <tr t-if="o.water_fee">
-                                        <td>水费</td>
+                                    <!-- 水电单价仅备查打印，不作出账金额 -->
+                                    <tr t-if="o.contract_type == 'property' and o.water_fee">
+                                        <td>水费单价</td>
                                         <td style="text-align: right;">
-                                            <span t-field="o.water_fee" 
+                                            <span t-field="o.water_fee"
                                                   t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
                                         </td>
-                                        <td></td>
+                                        <td>仅单价，不自动出账</td>
                                     </tr>
-                                    <tr t-if="o.electric_fee">
-                                        <td>电费</td>
+                                    <tr t-if="o.contract_type == 'property' and o.electric_fee">
+                                        <td>电费单价</td>
                                         <td style="text-align: right;">
-                                            <span t-field="o.electric_fee" 
+                                            <span t-field="o.electric_fee"
                                                   t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
                                         </td>
-                                        <td></td>
+                                        <td>仅单价，不自动出账</td>
                                     </tr>
-                                    <tr t-if="o.garbage_fee">
-                                        <td>垃圾费</td>
+                                    <tr t-if="o.contract_type == 'property' and o.garbage_fee">
+                                        <td>装修垃圾清理费</td>
                                         <td style="text-align: right;">
-                                            <span t-field="o.garbage_fee" 
+                                            <span t-field="o.garbage_fee"
                                                   t-options="{'widget': 'monetary', 'display_currency': o.currency_id}"/>
                                         </td>
                                         <td></td>

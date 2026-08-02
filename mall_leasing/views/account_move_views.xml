@@ -1,49 +1,51 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <!-- 继承发票列表视图，添加开票字段 -->
+    <!-- 继承发票列表视图，添加租赁账单字段 -->
     <record id="view_lease_invoice_tree" model="ir.ui.view">
-        <field name="name">mall.leasing.invoice.tree</field>
+        <field name="name">mall.leasing.invoice.list</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_invoice_tree"/>
         <field name="arch" type="xml">
-            <!-- 在支付状态后面添加开票字段 -->
+            <!-- 标准 ref（Customer Reference）默认隐藏，租赁账单改为默认显示 -->
+            <field name="ref" position="attributes">
+                <attribute name="string">客服参考号</attribute>
+                <attribute name="optional">show</attribute>
+            </field>
+            <!-- status_in_payment 在 Odoo 19 account 发票列表中仍存在 -->
             <field name="status_in_payment" position="after">
-                <field name="bill_period_start_date" string="账单起始" readonly="1"/>
-                <field name="bill_period_end_date" string="账单结束" readonly="1"/>
+                <field name="bill_period_start_date" string="账单起始" optional="show" readonly="1"/>
+                <field name="bill_period_end_date" string="账单结束" optional="show" readonly="1"/>
                 <field name="is_invoiced" string="是否开票" widget="boolean_toggle" optional="show" readonly="1"/>
                 <field name="invoice_time" string="开票时间" optional="hide" readonly="1"/>
             </field>
         </field>
     </record>
 
-    <!-- 继承 account.move 表单视图，添加自定义字段 (Odoo 18) -->
+    <!-- 继承 account.move 表单：仅扩展 notebook，避免锚定多处出现的标准字段 -->
     <record id="view_move_form_inherit_mall_leasing" model="ir.ui.view">
         <field name="name">account.move.form.inherit.mall.leasing</field>
         <field name="model">account.move</field>
         <field name="inherit_id" ref="account.view_move_form"/>
         <field name="arch" type="xml">
-            <!-- 方法1：在 ref 字段后面添加开票信息（表单顶部） -->
-            <field name="fapiao" position="after">
-                <field name="is_invoiced" widget="boolean_toggle" optional="show"/>
-                <field name="invoice_time" invisible="not is_invoiced"/>
-            </field>
-            
-            <!-- 方法2：在 notebook 中添加商场租赁页签 -->
             <notebook position="inside">
                 <page string="租赁信息" name="mall_leasing_info">
                     <group>
                         <group string="租赁合同信息">
                             <field name="mall_contract_id" readonly="1"/>
+                            <field name="mall_facade_id" readonly="1"/>
                             <field name="bill_period_start_date" readonly="1"/>
                             <field name="bill_period_end_date" readonly="1"/>
+                        </group>
+                        <group string="开票信息">
+                            <field name="is_invoiced" widget="boolean_toggle"/>
+                            <field name="invoice_time" invisible="not is_invoiced"/>
                         </group>
                     </group>
                 </page>
             </notebook>
-            
         </field>
     </record>
-    
+
     <!-- 租赁发票动作 -->
     <record id="action_mall_leasing_invoices" model="ir.actions.act_window">
         <field name="name">租赁账单</field>
@@ -53,6 +55,4 @@
         <field name="domain">[('mall_contract_id', '!=', False)]</field>
         <field name="context">{'create': False}</field>
     </record>
-
 </odoo>
-

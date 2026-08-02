@@ -9,6 +9,7 @@
             <list>
                 <field name="code"/>
                 <field name="name"/>
+                <field name="company_id" groups="base.group_multi_company" optional="show"/>
                 <field name="city"/>
                 <field name="status"/>
                 <field name="facade_count"/>
@@ -61,6 +62,7 @@
                     
                     <group>
                         <group name="basic_info" string="基本信息">
+                            <field name="company_id" groups="base.group_multi_company" options="{'no_create': True}"/>
                             <field name="province"/>
                             <field name="city"/>
                             <field name="postal_code"/>
@@ -122,9 +124,7 @@
                         </page>
                     </notebook>
                 </sheet>
-                <div class="oe_chatter">
-                    <chatter/>
-                </div>
+                <chatter/>
             </form>
         </field>
     </record>

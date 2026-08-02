@@ -15,10 +15,8 @@ class MallLeasingContractTemplate(models.Model):
 
     rent_amount = fields.Monetary('租金', currency_field='currency_id')
     deposit = fields.Monetary('押金', currency_field='currency_id')
-    water_fee = fields.Monetary('水费', currency_field='currency_id')
-    electric_fee = fields.Monetary('电费', currency_field='currency_id')
+    # 水电费/垃圾清理费仅维护在物业合同，租赁模板不再携带
     property_fee = fields.Monetary('物业费', currency_field='currency_id')
-    garbage_fee = fields.Monetary('垃圾费', currency_field='currency_id')
 
     payment_frequency = fields.Selection([
         ('monthly', '月付'),
@@ -44,10 +42,7 @@ class MallLeasingContractTemplate(models.Model):
             'default_currency_id': self.currency_id.id,
             'default_rent_amount': self.rent_amount,
             'default_deposit': self.deposit,
-            'default_water_fee': self.water_fee,
-            'default_electric_fee': self.electric_fee,
             'default_property_fee': self.property_fee,
-            'default_garbage_fee': self.garbage_fee,
             'default_payment_frequency': self.payment_frequency,
             'default_payment_day': self.payment_day,
             'default_escalation_rate': self.escalation_rate,
